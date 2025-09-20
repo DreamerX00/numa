@@ -1,15 +1,16 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
-import { ArrowRight, Shield, Truck, Award, Star, Sparkles } from "lucide-react";
-import { motion } from 'framer-motion';
+import { ArrowRight, Shield, Truck, Award, Star, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from "../../mocks/fixtures/products";
-import type { Product, Collection } from "../../mocks/types";
+import type { Product } from "@prisma/client";
 
 // Animation variants for framer-motion
 const containerVariants = {
@@ -29,7 +30,7 @@ const itemVariants = {
     y: 0,
     opacity: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 100,
       damping: 12
     }
@@ -42,7 +43,7 @@ const floatingVariants = {
     transition: {
       duration: 6,
       repeat: Infinity,
-      ease: "easeInOut"
+      ease: "easeInOut" as const
     }
   }
 };
@@ -54,7 +55,7 @@ const cardHoverVariants = {
     y: -10,
     transition: {
       duration: 0.3,
-      ease: "easeOut"
+      ease: "easeOut" as const
     }
   }
 };
@@ -69,12 +70,91 @@ const staggeredContainer = {
   }
 };
 
+// Carousel data inspired by luxury jewelry brands
+const carouselSlides = [
+  {
+    id: 1,
+    image: "/numa/public/Carausal/carausal1.png",
+    title: "New Heritage Collection",
+    subtitle: "Timeless Elegance Redefined", 
+    description: "Discover our latest collection inspired by royal heritage and crafted with precision",
+    ctaText: "Explore Collection",
+    ctaLink: "/collections/heritage",
+    overlay: "bg-gradient-to-r from-black/70 to-black/20"
+  },
+  {
+    id: 2,
+    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1400&h=500&fit=crop&q=80",
+    title: "Bridal Splendor",
+    subtitle: "Your Perfect Wedding Jewelry",
+    description: "Exquisite pieces designed to make your most special day unforgettable",
+    ctaText: "Shop Bridal",
+    ctaLink: "/collections/bridal", 
+    overlay: "bg-gradient-to-r from-brand/80 to-brand/20"
+  },
+  {
+    id: 3,
+    image: "https://images.unsplash.com/photo-1506755855567-92ff770e8d00?w=1400&h=500&fit=crop&q=80",
+    title: "Diamond Luxe",
+    subtitle: "Brilliance Beyond Compare",
+    description: "Premium diamond jewelry for those who appreciate the finest in life",
+    ctaText: "View Diamonds", 
+    ctaLink: "/collections/diamonds",
+    overlay: "bg-gradient-to-r from-gray-900/80 to-gray-900/20"
+  }
+];
+
+// Carousel animation variants
+const carouselVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 1000 : -1000,
+    opacity: 0
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction: number) => ({
+    zIndex: 0,
+    x: direction < 0 ? 1000 : -1000,
+    opacity: 0
+  })
+};
+
 interface AnimatedHomePageProps {
   featured: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  collections: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  collections: Array<{
+    slug: string;
+    name: string;
+    image?: string | null;
+    heroImage?: string;
+  }>;
 }
 
 export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProps) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const timer = setInterval(() => {
+      paginate(1);
+    }, 5000); // Change slide every 5 seconds
+    return () => clearInterval(timer);
+  }, [currentSlide]);
+
+  const paginate = (newDirection: number) => {
+    setDirection(newDirection);
+    setCurrentSlide((prevSlide) => {
+      if (newDirection === 1) {
+        return (prevSlide + 1) % carouselSlides.length;
+      } else {
+        return prevSlide === 0 ? carouselSlides.length - 1 : prevSlide - 1;
+      }
+    });
+  };
+
   return (
     <motion.div 
       className="flex flex-col"
@@ -82,8 +162,129 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
       animate="visible"
       variants={containerVariants}
     >
+      {/* Hero Carousel - Inspired by Palmonas, Tanishq, Giva */}
+      <section className="relative h-[60vh] lg:h-[70vh] overflow-hidden">
+        <AnimatePresence initial={false} custom={direction}>
+          <motion.div
+            key={currentSlide}
+            custom={direction}
+            variants={carouselVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+            className="absolute inset-0"
+          >
+            <div className="relative h-full w-full">
+              <Image
+                src={carouselSlides[currentSlide].image}
+                alt={carouselSlides[currentSlide].title}
+                fill
+                className="object-cover"
+                priority
+              />
+              
+              {/* Gradient Overlay */}
+              <div className={`absolute inset-0 ${carouselSlides[currentSlide].overlay}`} />
+              
+              {/* Content */}
+              <div className="absolute inset-0 flex items-center">
+                <Container>
+                  <motion.div 
+                    className="max-w-2xl text-white"
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.8 }}
+                  >
+                    <motion.p 
+                      className="text-sm md:text-base font-light mb-2 tracking-wider opacity-90"
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4, duration: 0.6 }}
+                    >
+                      {carouselSlides[currentSlide].subtitle}
+                    </motion.p>
+                    
+                    <motion.h1 
+                      className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight"
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6, duration: 0.6 }}
+                    >
+                      {carouselSlides[currentSlide].title}
+                    </motion.h1>
+                    
+                    <motion.p 
+                      className="text-lg md:text-xl mb-8 opacity-90 max-w-lg"
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8, duration: 0.6 }}
+                    >
+                      {carouselSlides[currentSlide].description}
+                    </motion.p>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1, duration: 0.6 }}
+                    >
+                      <Button 
+                        size="lg" 
+                        className="bg-white text-black hover:bg-gray-100 font-semibold px-8 py-3 text-lg"
+                        asChild
+                      >
+                        <Link href={carouselSlides[currentSlide].ctaLink}>
+                          {carouselSlides[currentSlide].ctaText}
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </Link>
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                </Container>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation Arrows */}
+        <button
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
+          onClick={() => paginate(-1)}
+        >
+          <ChevronLeft className="h-6 w-6 text-white" />
+        </button>
+        
+        <button
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
+          onClick={() => paginate(1)}
+        >
+          <ChevronRight className="h-6 w-6 text-white" />
+        </button>
+
+        {/* Slide Indicators */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3 z-10">
+          {carouselSlides.map((_, index) => (
+            <button
+              key={index}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentSlide 
+                  ? 'bg-white scale-125' 
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+              onClick={() => {
+                setDirection(index > currentSlide ? 1 : -1);
+                setCurrentSlide(index);
+              }}
+            />
+          ))}
+        </div>
+      </section>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-light/20 via-background to-brand-light/10 py-20 lg:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand-light/20 via-background to-brand-light/10 py-8 lg:py-12">
         {/* Animated Background Elements */}
         <motion.div 
           className="absolute inset-0 bg-grid-black/[0.02] -z-10"
@@ -99,13 +300,20 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
         
         {/* Floating particles */}
         <div className="absolute inset-0 overflow-hidden -z-5">
-          {[...Array(6)].map((_, i) => (
+          {[
+            { left: 8.4, top: 83.7, delay: 0 },
+            { left: 12.8, top: 52.2, delay: 0.5 },
+            { left: 69.8, top: 65.8, delay: 1.0 },
+            { left: 37.0, top: 90.6, delay: 1.5 },
+            { left: 99.9, top: 46.4, delay: 0.3 },
+            { left: 17.3, top: 62.3, delay: 0.8 }
+          ].map((particle, i) => (
             <motion.div
               key={i}
               className="absolute w-2 h-2 bg-brand-accent/20 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
               }}
               animate={{
                 y: [-20, -60, -20],
@@ -113,10 +321,10 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                 opacity: [0.2, 0.8, 0.2],
               }}
               transition={{
-                duration: 8 + Math.random() * 4,
+                duration: 10,
                 repeat: Infinity,
                 ease: "easeInOut",
-                delay: Math.random() * 2,
+                delay: particle.delay,
               }}
             />
           ))}
@@ -125,12 +333,12 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
         <Container>
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-16 items-center">
             <motion.div 
-              className="flex flex-col space-y-6"
+              className="flex flex-col space-y-4 justify-center"
               variants={containerVariants}
             >
-              <motion.div className="space-y-4" variants={itemVariants}>
+              <motion.div className="space-y-2" variants={itemVariants}>
                 <motion.div 
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-2"
                   variants={itemVariants}
                 >
                   <motion.div
@@ -140,24 +348,24 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     <Image
                       src="/numaLogo.png"
                       alt="NUMA"
-                      width={60}
-                      height={60}
-                      className="rounded-xl shadow-lg floating-element"
+                      width={48}
+                      height={48}
+                      className="rounded-lg shadow-lg floating-element"
                     />
                   </motion.div>
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Badge variant="secondary" className="bg-brand-light text-brand border-brand/20 shimmer-effect">
+                    <Badge variant="secondary" className="bg-brand-light text-brand border-brand/20 shimmer-effect text-xs">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      New Collection Available
+                      New Collection
                     </Badge>
                   </motion.div>
                 </motion.div>
                 
                 <motion.h1 
-                  className="text-4xl font-bold tracking-tight sm:text-5xl xl:text-6xl"
+                  className="text-3xl font-bold tracking-tight sm:text-4xl xl:text-5xl leading-tight"
                   variants={itemVariants}
                 >
                   <motion.span
@@ -172,14 +380,11 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     }}
                   >
                     𝙔𝙤𝙪𝙧 𝙚𝙣𝙚𝙧𝙜𝙮. 𝙊𝙪𝙧 𝙚𝙡𝙚𝙢𝙚𝙣𝙩 🫶🏻
-                  </motion.span>{" "}
-                  <span className="animated-gradient-text">
-                    
-                  </span>
+                  </motion.span>
                 </motion.h1>
                 
                 <motion.p 
-                  className="text-lg text-muted-foreground max-w-lg"
+                  className="text-base text-muted-foreground max-w-lg leading-relaxed"
                   variants={itemVariants}
                 >
                   anti-tarnish jewels that get you 💅 
@@ -189,7 +394,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
               </motion.div>
               
               <motion.div 
-                className="flex flex-col sm:flex-row gap-4"
+                className="flex flex-col sm:flex-row gap-3"
                 variants={itemVariants}
               >
                 <motion.div
@@ -226,7 +431,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
               </motion.div>
               
               <motion.div 
-                className="flex items-center gap-4 pt-4"
+                className="flex items-center gap-3 pt-2"
                 variants={itemVariants}
               >
                 <motion.div 
@@ -246,24 +451,24 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                         stiffness: 200
                       }}
                     >
-                      <Star className="h-4 w-4 fill-brand-accent text-brand-accent" />
+                      <Star className="h-3 w-3 fill-brand-accent text-brand-accent" />
                     </motion.div>
                   ))}
                 </motion.div>
                 <motion.p 
-                  className="text-sm text-muted-foreground"
+                  className="text-xs text-muted-foreground"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.5 }}
                 >
-                  Trusted by 10,000+ customers worldwide
+                  Trusted by 10,000+ customers
                 </motion.p>
               </motion.div>
             </motion.div>
 
             {/* Featured Products Grid */}
             <motion.div 
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-2 mt-0 lg:mt-0"
               variants={staggeredContainer}
             >
               {featured.slice(0, 4).map((product, index) => {
@@ -281,12 +486,13 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                         className={`group overflow-hidden border border-brand/10 shadow-lg hover:shadow-xl hover:border-brand/30 transition-all duration-300 hover-lift`}
                       >
                         <Link href={`/product/${product.slug}`}>
-                          <div className={`relative overflow-hidden ${index === 0 ? 'aspect-[2/1]' : 'aspect-square'}`}>
+                          <div className={`relative overflow-hidden ${index === 0 ? 'aspect-[2/1]' : 'aspect-square'} bg-muted rounded-lg`}>
                             <Image
                               src={variant.images[0]}
                               alt={product.name}
                               fill
                               className="object-cover transition-transform duration-500 group-hover:scale-105"
+                              sizes={index === 0 ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 50vw, 25vw"}
                             />
                             {product.badges?.includes('NEW') && (
                               <motion.div
@@ -337,9 +543,9 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
         </Container>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section - Professional & Minimal */}
       <motion.section 
-        className="py-16 bg-muted/30"
+        className="py-16 bg-[#FAF9F7]"
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -347,7 +553,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
       >
         <Container>
           <motion.div 
-            className="grid gap-8 md:grid-cols-3"
+            className="grid gap-12 md:grid-cols-3"
             variants={staggeredContainer}
             initial="hidden"
             whileInView="visible"
@@ -372,28 +578,103 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
             ].map((feature, index) => (
               <motion.div 
                 key={index} 
-                className="flex flex-col items-center text-center space-y-4"
+                className="group text-center"
                 variants={itemVariants}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
+                {/* Icon Container */}
                 <motion.div 
-                  className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center"
-                  whileHover={{ 
-                    backgroundColor: "var(--brand)",
-                    scale: 1.1,
-                    transition: { duration: 0.3 }
-                  }}
+                  className="relative mx-auto mb-6"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 400 }}
                 >
-                  <motion.div
-                    whileHover={{ color: "white" }}
+                  <motion.div 
+                    className="w-16 h-16 rounded-full bg-white border-2 border-[#E7654D]/20 flex items-center justify-center shadow-sm group-hover:border-[#E7654D] group-hover:shadow-md transition-all duration-300"
+                    whileHover={{ 
+                      backgroundColor: "#E7654D",
+                      borderColor: "#E7654D"
+                    }}
                   >
-                    <feature.icon className="h-6 w-6 text-brand" />
+                    <motion.div
+                      whileHover={{ color: "white" }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <feature.icon className="h-7 w-7 text-[#E7654D] group-hover:text-white transition-colors duration-300" />
+                    </motion.div>
                   </motion.div>
                 </motion.div>
-                <h3 className="font-semibold">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+
+                {/* Content */}
+                <div className="space-y-3">
+                  <motion.h3 
+                    className="font-semibold text-lg text-gray-900"
+                    whileHover={{ color: "#E7654D" }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {feature.title}
+                  </motion.h3>
+                  <motion.p 
+                    className="text-gray-600 leading-relaxed max-w-xs mx-auto"
+                    initial={{ opacity: 0.8 }}
+                    whileHover={{ opacity: 1 }}
+                  >
+                    {feature.description}
+                  </motion.p>
+                </div>
+
+                {/* Subtle accent line */}
+                <motion.div 
+                  className="mt-6 mx-auto h-0.5 bg-[#E7654D]/20 transition-all duration-500 group-hover:bg-[#E7654D]"
+                  initial={{ width: "0%" }}
+                  whileInView={{ width: "30%" }}
+                  transition={{ delay: 0.5 + index * 0.2, duration: 0.8 }}
+                  whileHover={{ width: "50%" }}
+                />
               </motion.div>
             ))}
+          </motion.div>
+
+          {/* Trust Indicators - Simplified */}
+          <motion.div 
+            className="mt-16 pt-12 border-t border-gray-200"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+          >
+            <motion.div 
+              className="flex flex-wrap justify-center items-center gap-12 text-center"
+              variants={staggeredContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              {[
+                { stat: "10,000+", label: "Happy Customers" },
+                { stat: "99.9%", label: "Customer Satisfaction" },
+                { stat: "500+", label: "Unique Designs" },
+                { stat: "24/7", label: "Customer Support" }
+              ].map((item, index) => (
+                <motion.div 
+                  key={index}
+                  className="group"
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <motion.div 
+                    className="text-2xl font-bold text-[#E7654D] mb-1"
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {item.stat}
+                  </motion.div>
+                  <div className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                    {item.label}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
           </motion.div>
         </Container>
       </motion.section>
@@ -452,7 +733,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     <Link href={`/collection/${collection.slug}`}>
                       <div className="relative aspect-[4/3] overflow-hidden">
                         <Image
-                          src={collection.heroImage}
+                          src={collection.image || collection.heroImage || '/placeholder-image.jpg'}
                           alt={collection.name}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"

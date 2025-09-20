@@ -35,10 +35,13 @@ export interface UserProfile {
 }
 
 export interface PersonalInfo {
+  title?: string;
   firstName: string;
   lastName: string;
   displayName?: string;
-  dateOfBirth?: Date;
+  email: string;
+  phone: string;
+  dateOfBirth: string; // ISO date string for form compatibility
   gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
   anniversary?: Date;
   profession?: string;

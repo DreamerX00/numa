@@ -90,28 +90,54 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
     try {
+      console.log("Starting Google sign-up...");
       const { auth, googleProvider } = getFirebaseClient();
+      console.log("Firebase client initialized:", { auth: !!auth, googleProvider: !!googleProvider });
+      
+      console.log("Opening Google popup...");
       const cred = await signInWithPopup(auth, googleProvider);
+      console.log("Google sign-in successful:", cred.user.email);
+      
+      console.log("Getting ID token...");
       const idToken = await cred.user.getIdToken();
+      console.log("ID token obtained, length:", idToken.length);
+      
+      console.log("Calling login API...");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
-      if (!res.ok) throw new Error("Session creation failed");
+      console.log("Login API response:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Login API failed:", errorText);
+        throw new Error(`Session creation failed: ${res.status} - ${errorText}`);
+      }
+      
+      console.log("Redirecting to:", redirect);
       router.push(redirect);
       router.refresh();
     } catch (err: unknown) {
+      console.error("Google sign-up error:", err);
       let errorMessage = "Google sign-up failed";
       if (err && typeof err === 'object' && 'code' in err) {
-        const firebaseError = err as { code: string };
+        const firebaseError = err as { code: string; message?: string };
+        console.error("Firebase error code:", firebaseError.code);
+        console.error("Firebase error message:", firebaseError.message);
         if (firebaseError.code === "auth/popup-closed-by-user") {
           return; // User closed popup, don't show error
         } else if (firebaseError.code === "auth/popup-blocked") {
           errorMessage = "Popup was blocked. Please allow popups and try again";
         } else if (firebaseError.code === "auth/account-exists-with-different-credential") {
           errorMessage = "An account already exists with this email using a different sign-in method";
+        } else {
+          errorMessage = `Google sign-up failed: ${firebaseError.code} - ${firebaseError.message || 'Unknown error'}`;
         }
+      } else if (err instanceof Error) {
+        console.error("General error:", err.message);
+        errorMessage = `Google sign-up failed: ${err.message}`;
       }
       setError(errorMessage);
     } finally {
@@ -120,7 +146,7 @@ export default function SignupPage() {
   }
 
   return (
-    <Container className="min-h-screen flex items-center justify-center py-12 px-4">
+    <Container className="min-h-screen flex items-center justify-center py-8 md:py-12 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">

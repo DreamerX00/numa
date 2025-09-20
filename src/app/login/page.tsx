@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,7 +25,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
   const search = useSearchParams();
   const redirect = search.get("redirect") || "/";
   const [loading, setLoading] = useState(false);
@@ -54,8 +53,12 @@ export default function LoginPage() {
         body: JSON.stringify({ idToken }),
       });
       if (!res.ok) throw new Error("Session creation failed");
-      router.push(redirect);
-      router.refresh();
+      
+      // Force a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Redirect to the desired page
+      window.location.href = redirect;
     } catch (err: unknown) {
       let errorMessage = "Login failed";
       if (err && typeof err === 'object' && 'code' in err) {
@@ -68,6 +71,8 @@ export default function LoginPage() {
           errorMessage = "Invalid email address";
         } else if (firebaseError.code === "auth/too-many-requests") {
           errorMessage = "Too many failed attempts. Please try again later";
+        } else if (firebaseError.code === "auth/invalid-credential") {
+          errorMessage = "Invalid email or password";
         }
       }
       setError(errorMessage);
@@ -81,28 +86,59 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
+      console.log("Starting Google sign-in...");
       const { auth, googleProvider } = getFirebaseClient();
+      console.log("Firebase client initialized:", { auth: !!auth, googleProvider: !!googleProvider });
+      
+      console.log("Opening Google popup...");
       const cred = await signInWithPopup(auth, googleProvider);
+      console.log("Google sign-in successful:", cred.user.email);
+      
+      console.log("Getting ID token...");
       const idToken = await cred.user.getIdToken();
+      console.log("ID token obtained, length:", idToken.length);
+      
+      console.log("Calling login API...");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
-      if (!res.ok) throw new Error("Session creation failed");
-      router.push(redirect);
-      router.refresh();
+      console.log("Login API response:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Login API failed:", errorText);
+        throw new Error(`Session creation failed: ${res.status} - ${errorText}`);
+      }
+      
+      // Force a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log("Redirecting to:", redirect);
+      // Redirect to the desired page
+      window.location.href = redirect;
     } catch (err: unknown) {
+      console.error("Google sign-in error:", err);
       let errorMessage = "Google sign-in failed";
       if (err && typeof err === 'object' && 'code' in err) {
-        const firebaseError = err as { code: string };
+        const firebaseError = err as { code: string; message?: string };
+        console.error("Firebase error code:", firebaseError.code);
+        console.error("Firebase error message:", firebaseError.message);
         if (firebaseError.code === "auth/popup-closed-by-user") {
           return; // User closed popup, don't show error
         } else if (firebaseError.code === "auth/popup-blocked") {
           errorMessage = "Popup was blocked. Please allow popups and try again";
         } else if (firebaseError.code === "auth/account-exists-with-different-credential") {
           errorMessage = "An account already exists with this email using a different sign-in method";
+        } else if (firebaseError.code === "auth/cancelled-popup-request") {
+          return; // User cancelled, don't show error
+        } else {
+          errorMessage = `Google sign-in failed: ${firebaseError.code} - ${firebaseError.message || 'Unknown error'}`;
         }
+      } else if (err instanceof Error) {
+        console.error("General error:", err.message);
+        errorMessage = `Google sign-in failed: ${err.message}`;
       }
       setError(errorMessage);
     } finally {
@@ -111,7 +147,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Container className="min-h-screen flex items-center justify-center py-12 px-4">
+    <Container className="min-h-screen flex items-center justify-center py-8 md:py-12 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -154,6 +190,11 @@ export default function LoginPage() {
             >
               <CardDescription className="text-muted-foreground">
                 Sign in to continue exploring NUMA&apos;s exquisite collection
+                {redirect !== '/' && (
+                  <span className="block text-xs mt-1 text-primary">
+                    You&apos;ll be redirected to {redirect === '/profile' ? 'your profile' : redirect} after signing in
+                  </span>
+                )}
               </CardDescription>
             </motion.div>
           </CardHeader>

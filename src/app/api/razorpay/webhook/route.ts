@@ -37,53 +37,47 @@ export async function POST(req: NextRequest) {
     const orderIdFromGateway: string | undefined = payment?.order_id;
 
     if (type === "payment.captured" && orderIdFromGateway) {
-      const amount = Number(payment.amount); // in paise
-      const currency = String(payment.currency || "INR");
       const razorpayPaymentId = String(payment.id);
-      const razorpaySignature = signature;
 
-      const order = await prisma.order.findUnique({ where: { razorpayOrderId: orderIdFromGateway } });
+      const order = await prisma.order.findFirst({ where: { razorpayOrderId: orderIdFromGateway } });
       if (order) {
-        // create payment if not exists
-        await prisma.payment.upsert({
-          where: { razorpayPaymentId },
-          create: {
-            orderId: order.id,
-            amount,
-            currency,
-            status: "CAPTURED",
-            razorpayPaymentId,
-            razorpaySignature,
-          },
-          update: {
-            status: "CAPTURED",
-          },
-        });
-
+        // Update order payment status
         await prisma.order.update({
           where: { id: order.id },
-          data: { status: "PAID" },
+          data: { 
+            paymentStatus: "PAID",
+            paymentMethod: "razorpay",
+            paymentIntentId: razorpayPaymentId
+          }
+        });
+
+        // Update order status to CONFIRMED
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: "CONFIRMED" }
         });
       }
     }
 
     if (type === "payment.failed" && orderIdFromGateway) {
       const razorpayPaymentId = String(payment.id);
-      const order = await prisma.order.findUnique({ where: { razorpayOrderId: orderIdFromGateway } });
+      const order = await prisma.order.findFirst({ where: { razorpayOrderId: orderIdFromGateway } });
       if (order) {
-        await prisma.payment.upsert({
-          where: { razorpayPaymentId },
-          create: {
-            orderId: order.id,
-            amount: Number(payment.amount),
-            currency: String(payment.currency || "INR"),
-            status: "FAILED",
-            razorpayPaymentId,
-            razorpaySignature: signature,
-          },
-          update: { status: "FAILED" },
+        // Update order payment status to failed
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { 
+            paymentStatus: "FAILED",
+            paymentMethod: "razorpay",
+            paymentIntentId: razorpayPaymentId
+          }
         });
-        await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+
+        // Update order status to CANCELLED
+        await prisma.order.update({ 
+          where: { id: order.id }, 
+          data: { status: "CANCELLED" } 
+        });
       }
     }
 

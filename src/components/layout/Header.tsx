@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Search, Menu, ShoppingBag, User, LogOut } from 'lucide-react';
 import { useAuth, getAuthDisplayName } from '@/lib/auth/client';
+import { useCartStore } from '@/lib/store/cart';
+import { MiniCart } from '@/components/cart/MiniCart';
 
 interface NavItem { label: string; href: string; }
 const primaryNav: NavItem[] = [
@@ -23,6 +25,7 @@ const primaryNav: NavItem[] = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const getTotalItems = useCartStore((state) => state.getTotalItems);
 
   const handleLogout = async () => {
     try {
@@ -64,7 +67,7 @@ export function Header() {
                     height={32}
                     className="rounded-lg"
                   />
-                  <span className="font-serif text-lg tracking-tight">NUMA</span>
+                  
                 </div>
                 {primaryNav.map(item => (
                   <Link
@@ -85,11 +88,12 @@ export function Header() {
             <Image
               src="/numaLogo.png"
               alt="NUMA"
-              width={40}
-              height={40}
+              width={70}
+              height={60}
               className="rounded-lg"
+              style={{ width: "70px", height: "60px" }}
+              priority
             />
-            <span className="font-serif text-xl tracking-tight">NUMA</span>
           </Link>
 
           {/* Desktop navigation */}
@@ -121,36 +125,63 @@ export function Header() {
             <div className="hidden sm:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Hello, {getAuthDisplayName(user)}
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href="/profile" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="text-sm">
+                          {getAuthDisplayName(user)}
+                        </span>
+                      </Link>
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button variant="ghost" size="sm" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </motion.div>
                 </div>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/login">
-                      <User className="h-4 w-4 mr-2" />
-                      Login
-                    </Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link href="/signup">Sign Up</Link>
-                  </Button>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href="/login">
+                        <User className="h-4 w-4 mr-2" />
+                        Login
+                      </Link>
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button size="sm" className="bg-brand hover:bg-brand-dark text-white" asChild>
+                      <Link href="/signup">Sign Up</Link>
+                    </Button>
+                  </motion.div>
                 </>
               )}
             </div>
 
             {/* Cart */}
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/cart" className="relative">
+            <MiniCart>
+              <Button variant="ghost" size="icon" className="relative">
                 <ShoppingBag className="h-5 w-5" />
-                <span className="absolute -top-2 -right-2 bg-brand text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
-              </Link>
-            </Button>
+                <span className="absolute -top-2 -right-2 bg-brand text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                  {getTotalItems()}
+                </span>
+              </Button>
+            </MiniCart>
           </div>
         </div>
       </Container>

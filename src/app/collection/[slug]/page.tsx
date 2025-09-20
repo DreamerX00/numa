@@ -14,7 +14,7 @@ export default async function CollectionPage({ params }: Props) {
   const products = await fetchProductsByCollection(slug);
   if (!products.length) return notFound();
   return (
-    <div className="container py-16">
+    <div className="container py-6 md:py-8">
       <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
         <div>
           <h1 className="font-serif text-3xl tracking-tight capitalize">{slug.replace(/-/g,' ')}</h1>
