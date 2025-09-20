@@ -1,4 +1,4 @@
-import { fetchFeaturedProducts, fetchCollections } from "../mocks/services/catalog";
+import { fetchFeaturedProducts, fetchCollections } from "../lib/services/catalog";
 import { AnimatedHomePage } from "@/components/pages/AnimatedHomePage";
 
 async function getHomeData() {

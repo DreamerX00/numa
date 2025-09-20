@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   Save, 
-  Upload, 
   X, 
   AlertCircle
 } from 'lucide-react';
@@ -52,7 +52,7 @@ interface FormData {
   metaTitle: string;
   metaDescription: string;
   categoryId: string;
-  sponsors: string[]; // Array of sponsor IDs instead of single brandId
+  sponsors: string; // Comma-separated sponsor names
   tags: string;
   isActive: boolean;
   isFeatured: boolean;
@@ -80,25 +80,19 @@ export default function NewProductPage() {
     metaTitle: '',
     metaDescription: '',
     categoryId: '',
-    sponsors: [], // Array of sponsor IDs
+    sponsors: '', // Comma-separated sponsor names
     tags: '',
     isActive: true,
     isFeatured: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string>('');
 
   // Fetch categories
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['admin', 'categories'],
     queryFn: adminApi.getCategories,
-  });
-
-  // Fetch sponsors
-  const { data: sponsors = [] } = useQuery({
-    queryKey: ['admin', 'sponsors'],
-    queryFn: adminApi.getSponsors,
   });
 
   // Create product mutation
@@ -111,22 +105,6 @@ export default function NewProductPage() {
     onError: (error: Error) => {
       console.error('Create failed:', error);
       setErrors({ submit: 'Failed to create product. Please try again.' });
-    },
-  });
-
-  // Upload image mutation
-  const uploadImageMutation = useMutation({
-    mutationFn: adminApi.uploadImage,
-    onSuccess: (url: string) => {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, url]
-      }));
-      setIsUploading(false);
-    },
-    onError: () => {
-      setErrors({ image: 'Failed to upload image. Please try again.' });
-      setIsUploading(false);
     },
   });
 
@@ -149,27 +127,6 @@ export default function NewProductPage() {
     if (!formData.slug || formData.slug === generateSlug(formData.name)) {
       handleInputChange('slug', generateSlug(name));
     }
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setErrors({ image: 'Please select a valid image file.' });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors({ image: 'Image size must be less than 5MB.' });
-      return;
-    }
-
-    setIsUploading(true);
-    setErrors({ image: '' });
-    uploadImageMutation.mutate(file);
   };
 
   const handleRemoveImage = (index: number) => {
@@ -200,13 +157,16 @@ export default function NewProductPage() {
 
     const createData = {
       ...formData,
-      tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean).join(','),
+      tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean), // Keep as array
+      brandId: formData.sponsors || undefined, // Map sponsors to brandId
       comparePrice: formData.comparePrice || undefined,
       costPrice: formData.costPrice || undefined,
       minQuantity: formData.minQuantity || undefined,
       weight: formData.weight || undefined,
       metaTitle: formData.metaTitle || undefined,
       metaDescription: formData.metaDescription || undefined,
+      // Remove sponsors field as it's not expected by API
+      sponsors: undefined,
     };
 
     createProductMutation.mutate(createData);
@@ -461,31 +421,26 @@ export default function NewProductPage() {
                 <CardContent className="space-y-4">
                   {/* Image Upload */}
                   <div>
-                    <Label htmlFor="imageUpload" className="cursor-pointer">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                        {isUploading ? (
-                          <div className="flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                            <span className="ml-2">Uploading...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-600">Click to upload image</p>
-                            <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP up to 5MB</p>
-                          </>
-                        )}
-                      </div>
-                    </Label>
-                    <Input
-                      id="imageUpload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      disabled={isUploading}
+                    <Label>Product Images</Label>
+                    <ImageUpload
+                      onUpload={(imageUrl) => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          images: [...prev.images, imageUrl] 
+                        }));
+                        setUploadError('');
+                        setErrors(prev => ({ ...prev, image: '' }));
+                      }}
+                      onError={(error) => {
+                        setUploadError(error);
+                        setErrors(prev => ({ ...prev, image: error }));
+                      }}
+                      folder="products"
+                      maxSize={10}
                     />
-                    {errors.image && <p className="text-sm text-red-500 mt-1">{errors.image}</p>}
+                    {uploadError && (
+                      <p className="text-sm text-red-600 mt-2">{uploadError}</p>
+                    )}
                   </div>
 
                   {/* Image Gallery */}
@@ -545,40 +500,14 @@ export default function NewProductPage() {
                   </div>
 
                   <div>
-                    <Label>Sponsors & Partners</Label>
-                    <p className="text-sm text-gray-600 mb-3">Select material suppliers and certification partners for this product</p>
-                    <div className="grid grid-cols-1 gap-3">
-                      {sponsors.map((sponsor: any) => (
-                        <Card key={sponsor.id} className={`cursor-pointer transition-colors ${
-                          formData.sponsors.includes(sponsor.id) 
-                            ? 'bg-blue-50 border-blue-200' 
-                            : 'hover:bg-gray-50'
-                        }`}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center space-x-3">
-                              <input
-                                type="checkbox"
-                                id={`sponsor-${sponsor.id}`}
-                                checked={formData.sponsors.includes(sponsor.id)}
-                                onChange={(e) => {
-                                  const newSponsors = e.target.checked
-                                    ? [...formData.sponsors, sponsor.id]
-                                    : formData.sponsors.filter(id => id !== sponsor.id);
-                                  handleInputChange('sponsors', newSponsors);
-                                }}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <div className="flex-1">
-                                <Label htmlFor={`sponsor-${sponsor.id}`} className="font-medium cursor-pointer">
-                                  {sponsor.name}
-                                </Label>
-                                <p className="text-sm text-gray-500 mt-1">{sponsor.description}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    <Label htmlFor="sponsors">Sponsors & Partners</Label>
+                    <Input
+                      id="sponsors"
+                      value={formData.sponsors}
+                      onChange={(e) => handleInputChange('sponsors', e.target.value)}
+                      placeholder="De Beers, Gemological Institute, Swiss Gold Refiners"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Enter sponsor names separated by commas</p>
                   </div>
 
                   <div>

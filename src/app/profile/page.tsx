@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useUserProfile, useAddresses, useUpdateUserProfile } from "@/hooks/useApi";
+import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,7 +142,7 @@ export default function ProfilePage() {
       gender: profileData.user.profile?.gender?.toLowerCase() || "",
       profession: "", // Would need to add to API
       bio: "", // Would need to add to API
-      avatar: profileData.user.profile?.avatar || "/api/placeholder/120/120",
+      avatar: profileData.user.profile?.avatar || DEFAULT_IMAGES.USER,
       metalPreferences: [], // Would need to add to API
       gemstonePreferences: [], // Would need to add to API
       sizePreferences: {

@@ -1,7 +1,8 @@
 "use client";
 
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useState, useEffect } from 'react';
+import { ImageUpload } from '@/components/admin/ImageUpload';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,7 @@ interface FormData {
   metaTitle: string;
   metaDescription: string;
   categoryId: string;
-  sponsors: string[]; // Array of sponsor IDs instead of single brandId
+  sponsors: string; // Comma-separated string instead of array
   tags: string;
   isActive: boolean;
   isFeatured: boolean;
@@ -117,7 +118,7 @@ export default function EditProductPage() {
     metaTitle: '',
     metaDescription: '',
     categoryId: '',
-    sponsors: [] as string[], // Array of sponsor IDs
+    sponsors: '', // Comma-separated sponsor names
     tags: '',
     isActive: true,
     isFeatured: false,
@@ -137,12 +138,6 @@ export default function EditProductPage() {
   const { data: categories = [] } = useQuery({
     queryKey: ['admin', 'categories'],
     queryFn: adminApi.getCategories,
-  });
-
-  // Fetch sponsors
-  const { data: sponsors = [] } = useQuery({
-    queryKey: ['admin', 'sponsors'],
-    queryFn: adminApi.getSponsors,
   });
 
   // Update product mutation
@@ -196,7 +191,7 @@ export default function EditProductPage() {
         metaTitle: product.metaTitle || '',
         metaDescription: product.metaDescription || '',
         categoryId: product.categoryId,
-        sponsors: product.brandId ? [product.brandId] : [], // Convert single brand to sponsors array
+        sponsors: '', // Initialize as empty, no automatic conversion
         tags: product.tags.join(', '),
         isActive: product.isActive,
         isFeatured: product.isFeatured,
@@ -648,40 +643,14 @@ export default function EditProductPage() {
                   </div>
 
                   <div>
-                    <Label>Sponsors & Partners</Label>
-                    <p className="text-sm text-gray-600 mb-3">Select material suppliers and certification partners for this product</p>
-                    <div className="grid grid-cols-1 gap-3">
-                      {sponsors.map((sponsor: any) => (
-                        <Card key={sponsor.id} className={`cursor-pointer transition-colors ${
-                          formData.sponsors.includes(sponsor.id) 
-                            ? 'bg-blue-50 border-blue-200' 
-                            : 'hover:bg-gray-50'
-                        }`}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center space-x-3">
-                              <input
-                                type="checkbox"
-                                id={`sponsor-${sponsor.id}`}
-                                checked={formData.sponsors.includes(sponsor.id)}
-                                onChange={(e) => {
-                                  const newSponsors = e.target.checked
-                                    ? [...formData.sponsors, sponsor.id]
-                                    : formData.sponsors.filter(id => id !== sponsor.id);
-                                  handleInputChange('sponsors', newSponsors);
-                                }}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <div className="flex-1">
-                                <Label htmlFor={`sponsor-${sponsor.id}`} className="font-medium cursor-pointer">
-                                  {sponsor.name}
-                                </Label>
-                                <p className="text-sm text-gray-500 mt-1">{sponsor.description}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    <Label htmlFor="sponsors">Sponsors & Partners</Label>
+                    <Input
+                      id="sponsors"
+                      value={formData.sponsors}
+                      onChange={(e) => handleInputChange('sponsors', e.target.value)}
+                      placeholder="De Beers, Gemological Institute, Swiss Gold Refiners"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Enter sponsor names separated by commas</p>
                   </div>
 
                   <div>

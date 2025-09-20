@@ -1,12 +1,13 @@
-import { fetchProductsByCollection, fetchCollections } from '../../../mocks/services/catalog';
+import { fetchProductsByCollection, fetchCollections } from '../../../lib/services/catalog';
 import ProductCard from '../../../components/product/ProductCard';
 import { notFound } from 'next/navigation';
+import type { Product } from '@prisma/client';
 
 interface Props { params: { slug: string } }
 
 export async function generateStaticParams() {
   const cols = await fetchCollections();
-  return cols.map(c => ({ slug: c.slug }));
+  return cols.map((c: { slug: string }) => ({ slug: c.slug }));
 }
 
 export default async function CollectionPage({ params }: Props) {
@@ -31,7 +32,7 @@ export default async function CollectionPage({ params }: Props) {
         </div>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {products.map(p => <ProductCard key={p.id} product={p} />)}
+        {products.map((p: Product) => <ProductCard key={p.id} product={p} />)}
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ interface ProductData {
   metaDescription?: string;
   categoryId?: string;
   brandId?: string;
-  tags?: string;
+  tags?: string[]; // Array of strings to match backend schema
   isActive?: boolean;
   isFeatured?: boolean;
 }

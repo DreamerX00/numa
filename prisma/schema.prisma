@@ -601,3 +601,24 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+// ================================
+// CAROUSEL MODELS
+// ================================
+
+model CarouselSlide {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  subtitle    String?
+  description String?
+  image       String   // Image URL or path
+  ctaText     String?  // Call-to-action button text
+  ctaLink     String?  // Call-to-action link
+  overlay     String?  // CSS class for overlay (e.g., "bg-gradient-to-r from-black/70 to-black/20")
+  order       Int      @default(0) // Display order
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("carousel_slides")
+}

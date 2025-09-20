@@ -17,6 +17,8 @@ import {
   CheckCircle,
   AlertCircle
 } from "lucide-react"
+import { useImageUpload } from '@/hooks/useImageUpload'
+import { UPLOAD_FOLDERS } from '@/lib/cloudinary'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -87,29 +89,26 @@ export default function PersonalInfoSection({ personalInfo, onUpdate }: Personal
     }
   }
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({ ...prev, avatar: 'Please select an image file' }))
-        return
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, avatar: 'Image must be less than 5MB' }))
-        return
-      }
+  const { uploadFile, isUploading, uploadError } = useImageUpload({
+    folder: UPLOAD_FOLDERS.USERS
+  })
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const result = e.target?.result as string
-        setAvatarPreview(result)
-        setFormData(prev => ({ ...prev, avatar: result }))
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const result = await uploadFile(file)
+      if (result) {
+        setFormData(prev => ({ ...prev, avatar: result.url }))
+        setAvatarPreview(result.url)
         setErrors(prev => ({ ...prev, avatar: '' }))
       }
-      reader.readAsDataURL(file)
+    } catch {
+      setErrors(prev => ({ 
+        ...prev, 
+        avatar: uploadError || 'Failed to upload image' 
+      }))
     }
   }
 
@@ -228,14 +227,27 @@ export default function PersonalInfoSection({ personalInfo, onUpdate }: Personal
                 <motion.label
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground p-2 rounded-full cursor-pointer shadow-lg hover:bg-primary/90 transition-colors"
+                  className={`absolute -bottom-2 -right-2 bg-primary text-primary-foreground p-2 rounded-full cursor-pointer shadow-lg hover:bg-primary/90 transition-colors ${
+                    isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  <Upload className="w-4 h-4" />
+                  {isUploading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </motion.div>
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleAvatarUpload}
                     className="hidden"
+                    disabled={isUploading}
                   />
                 </motion.label>
               )}

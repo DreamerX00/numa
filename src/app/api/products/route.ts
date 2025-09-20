@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category');
     const brand = searchParams.get('brand');
     const search = searchParams.get('search');
+    const featured = searchParams.get('featured') === 'true';
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
@@ -22,6 +23,10 @@ export async function GET(req: NextRequest) {
       isActive: true,
       status: 'ACTIVE'
     };
+
+    if (featured) {
+      where.isFeatured = true;
+    }
 
     if (category) {
       where.category = {

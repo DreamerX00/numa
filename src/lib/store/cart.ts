@@ -2,21 +2,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { MockProduct, MockProductVariant } from "@/mocks/fixtures/products";
-
-export interface CartItem {
-  id: string;
-  productId: string;
-  variantId: string;
-  quantity: number;
-  product: MockProduct;
-  variant: MockProductVariant;
-  addedAt: Date;
-}
+import type { Product, ProductVariant, CartItem } from "@/lib/types/product";
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: MockProduct, variant: MockProductVariant, quantity?: number) => void;
+  addItem: (product: Product, variant: ProductVariant | null, quantity?: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -30,8 +20,9 @@ export const useCartStore = create<CartState>()(
       items: [],
 
       addItem: (product, variant, quantity = 1) => {
+        const variantId = variant?.id || null;
         const existingItemIndex = get().items.findIndex(
-          (item) => item.productId === product.id && item.variantId === variant.id
+          (item) => item.productId === product.id && item.variantId === variantId
         );
 
         if (existingItemIndex > -1) {
@@ -45,14 +36,18 @@ export const useCartStore = create<CartState>()(
           }));
         } else {
           // Add new item
+          // Use variant price if available, otherwise product price
+          const itemPrice = variant?.price || product.price;
+          
           const newItem: CartItem = {
-            id: `${product.id}-${variant.id}-${Date.now()}`,
+            id: `${product.id}-${variantId || 'main'}-${Date.now()}`,
             productId: product.id,
-            variantId: variant.id,
+            variantId: variantId,
             quantity,
             product,
             variant,
             addedAt: new Date(),
+            priceAtAdd: itemPrice,
           };
           set((state) => ({ items: [...state.items, newItem] }));
         }
@@ -84,7 +79,11 @@ export const useCartStore = create<CartState>()(
 
       getTotalPrice: () => {
         return get().items.reduce(
-          (total, item) => total + item.variant.priceCents * item.quantity,
+          (total, item) => {
+            // Use priceAtAdd (stored when item was added) for price consistency
+            const itemPrice = item.priceAtAdd;
+            return total + itemPrice * item.quantity;
+          },
           0
         );
       },

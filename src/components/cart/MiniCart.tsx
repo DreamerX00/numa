@@ -5,16 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/lib/store/cart";
-import { formatPrice } from "@/mocks/fixtures/products";
+import { formatPriceFromFloat } from "@/lib/utils/currency";
+import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { 
   ShoppingBag, 
   Minus, 
   Plus, 
-  Trash2, 
   ArrowRight,
   X
 } from "lucide-react";
@@ -77,7 +76,7 @@ export function MiniCart({ children }: MiniCartProps) {
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
                         <Image
-                          src={item.variant.images[0]}
+                          src={item.variant?.image || item.product.images[0] || DEFAULT_IMAGES.PRODUCT}
                           alt={item.product.name}
                           width={64}
                           height={64}
@@ -93,19 +92,30 @@ export function MiniCart({ children }: MiniCartProps) {
                           <h4 className="font-medium text-sm leading-tight">
                             {item.product.name}
                           </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {item.product.subtitle}
-                          </p>
-                          {(item.variant.size || item.variant.metal) && (
+                          {item.product.shortDescription && (
+                            <p className="text-xs text-muted-foreground">
+                              {item.product.shortDescription}
+                            </p>
+                          )}
+                          {item.variant && (
                             <div className="flex gap-1 mt-1">
-                              {item.variant.size && (
-                                <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                                  {item.variant.size}
-                                </Badge>
+                              {item.variant.attributes && typeof item.variant.attributes === 'object' && (
+                                <>
+                                  {(item.variant.attributes as Record<string, string>).size && (
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                      Size: {(item.variant.attributes as Record<string, string>).size}
+                                    </Badge>
+                                  )}
+                                  {(item.variant.attributes as Record<string, string>).color && (
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                      {(item.variant.attributes as Record<string, string>).color}
+                                    </Badge>
+                                  )}
+                                </>
                               )}
-                              {item.variant.metal && (
+                              {item.variant.name && (
                                 <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                                  {item.variant.metal}
+                                  {item.variant.name}
                                 </Badge>
                               )}
                             </div>
@@ -141,13 +151,13 @@ export function MiniCart({ children }: MiniCartProps) {
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.variant.stock}
+                            disabled={item.quantity >= (item.variant?.quantity || item.product.quantity)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
                         <p className="font-medium text-sm">
-                          {formatPrice(item.variant.priceCents * item.quantity)}
+                          {formatPriceFromFloat(item.priceAtAdd * item.quantity)}
                         </p>
                       </div>
                     </div>
@@ -161,7 +171,7 @@ export function MiniCart({ children }: MiniCartProps) {
               <div className="flex justify-between items-center">
                 <span className="font-medium">Total</span>
                 <span className="font-semibold text-lg">
-                  {formatPrice(totalPrice)}
+                  {formatPriceFromFloat(totalPrice)}
                 </span>
               </div>
 

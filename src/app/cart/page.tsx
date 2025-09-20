@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useCartStore } from "@/lib/store/cart";
-import { formatPrice } from "@/mocks/fixtures/products";
+import { formatPriceFromFloat } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";

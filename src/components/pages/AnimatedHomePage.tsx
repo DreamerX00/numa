@@ -1,16 +1,92 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
+import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { ArrowRight, Shield, Truck, Award, Star, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatPrice } from "../../mocks/fixtures/products";
+import { formatPrice } from "../../lib/services/catalog";
 import type { Product } from "@prisma/client";
+
+interface CarouselSlide {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  image: string;
+  ctaText?: string;
+  ctaLink?: string;
+  overlay?: string;
+  order: number;
+}
+
+// Fetch carousel slides from database
+async function fetchCarouselSlides(): Promise<CarouselSlide[]> {
+  try {
+    const response = await fetch('/api/carousel');
+    if (!response.ok) {
+      throw new Error('Failed to fetch carousel slides');
+    }
+    const slides = await response.json();
+    return slides.length > 0 ? slides : fallbackCarouselSlides;
+  } catch (error) {
+    console.error('Error fetching carousel slides:', error);
+    return fallbackCarouselSlides;
+  }
+}
+
+// Fallback carousel data (used if database is empty)
+const fallbackCarouselSlides: CarouselSlide[] = [
+  {
+    id: "fallback-1",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/heritage-collection.jpg",
+    title: "New Heritage Collection",
+    subtitle: "Timeless Elegance Redefined", 
+    description: "Discover our latest collection inspired by royal heritage and crafted with precision",
+    ctaText: "Explore Collection",
+    ctaLink: "/collections/heritage",
+    overlay: "bg-gradient-to-r from-black/70 to-black/20",
+    order: 0
+  },
+  {
+    id: "fallback-2",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/bridal-splendor.jpg",
+    title: "Bridal Splendor",
+    subtitle: "Your Perfect Wedding Jewelry",
+    description: "Exquisite pieces designed to make your most special day unforgettable",
+    ctaText: "Shop Bridal",
+    ctaLink: "/collections/bridal", 
+    overlay: "bg-gradient-to-r from-brand/80 to-brand/20",
+    order: 1
+  },
+  {
+    id: "fallback-3",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/diamond-luxe.jpg",
+    title: "Diamond Luxe",
+    subtitle: "Brilliance Beyond Compare",
+    description: "Premium diamond jewelry for those who appreciate the finest in life",
+    ctaText: "View Diamonds", 
+    ctaLink: "/collections/diamonds",
+    overlay: "bg-gradient-to-r from-gray-900/80 to-gray-900/20",
+    order: 2
+  },
+  {
+    id: "fallback-4",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/exclusive-earrings.jpg",
+    title: "Exclusive Earrings",
+    subtitle: "Elegance in Every Detail",
+    description: "Handcrafted earrings that complement your unique style",
+    ctaText: "Shop Earrings",
+    ctaLink: "/collections/earrings",
+    overlay: "bg-gradient-to-r from-purple-900/80 to-purple-900/20",
+    order: 3
+  }
+];
 
 // Animation variants for framer-motion
 const containerVariants = {
@@ -70,40 +146,6 @@ const staggeredContainer = {
   }
 };
 
-// Carousel data inspired by luxury jewelry brands
-const carouselSlides = [
-  {
-    id: 1,
-    image: "/numa/public/Carausal/carausal1.png",
-    title: "New Heritage Collection",
-    subtitle: "Timeless Elegance Redefined", 
-    description: "Discover our latest collection inspired by royal heritage and crafted with precision",
-    ctaText: "Explore Collection",
-    ctaLink: "/collections/heritage",
-    overlay: "bg-gradient-to-r from-black/70 to-black/20"
-  },
-  {
-    id: 2,
-    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1400&h=500&fit=crop&q=80",
-    title: "Bridal Splendor",
-    subtitle: "Your Perfect Wedding Jewelry",
-    description: "Exquisite pieces designed to make your most special day unforgettable",
-    ctaText: "Shop Bridal",
-    ctaLink: "/collections/bridal", 
-    overlay: "bg-gradient-to-r from-brand/80 to-brand/20"
-  },
-  {
-    id: 3,
-    image: "https://images.unsplash.com/photo-1506755855567-92ff770e8d00?w=1400&h=500&fit=crop&q=80",
-    title: "Diamond Luxe",
-    subtitle: "Brilliance Beyond Compare",
-    description: "Premium diamond jewelry for those who appreciate the finest in life",
-    ctaText: "View Diamonds", 
-    ctaLink: "/collections/diamonds",
-    overlay: "bg-gradient-to-r from-gray-900/80 to-gray-900/20"
-  }
-];
-
 // Carousel animation variants
 const carouselVariants = {
   enter: (direction: number) => ({
@@ -123,7 +165,7 @@ const carouselVariants = {
 };
 
 interface AnimatedHomePageProps {
-  featured: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  featured: Product[];
   collections: Array<{
     slug: string;
     name: string;
@@ -135,16 +177,24 @@ interface AnimatedHomePageProps {
 export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(fallbackCarouselSlides);
 
-  // Auto-advance carousel
+  // Fetch carousel slides on component mount
   useEffect(() => {
-    const timer = setInterval(() => {
-      paginate(1);
-    }, 5000); // Change slide every 5 seconds
-    return () => clearInterval(timer);
-  }, [currentSlide]);
+    const loadCarouselSlides = async () => {
+      try {
+        const slides = await fetchCarouselSlides();
+        setCarouselSlides(slides);
+      } catch (error) {
+        console.error('Failed to load carousel slides:', error);
+        // Keep fallback slides if fetch fails
+      }
+    };
+    
+    loadCarouselSlides();
+  }, []);
 
-  const paginate = (newDirection: number) => {
+  const paginate = useCallback((newDirection: number) => {
     setDirection(newDirection);
     setCurrentSlide((prevSlide) => {
       if (newDirection === 1) {
@@ -153,7 +203,15 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
         return prevSlide === 0 ? carouselSlides.length - 1 : prevSlide - 1;
       }
     });
-  };
+  }, [carouselSlides.length]);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const timer = setInterval(() => {
+      paginate(1);
+    }, 5000); // Change slide every 5 seconds
+    return () => clearInterval(timer);
+  }, [currentSlide, carouselSlides.length, paginate]);
 
   return (
     <motion.div 
@@ -236,8 +294,8 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                         className="bg-white text-black hover:bg-gray-100 font-semibold px-8 py-3 text-lg"
                         asChild
                       >
-                        <Link href={carouselSlides[currentSlide].ctaLink}>
-                          {carouselSlides[currentSlide].ctaText}
+                        <Link href={carouselSlides[currentSlide].ctaLink || '/collections'}>
+                          {carouselSlides[currentSlide].ctaText || 'Shop Now'}
                           <ArrowRight className="ml-2 h-5 w-5" />
                         </Link>
                       </Button>
@@ -472,7 +530,9 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
               variants={staggeredContainer}
             >
               {featured.slice(0, 4).map((product, index) => {
-                const variant = product.variants[0];
+                const primaryImage = product.images?.[0] || DEFAULT_IMAGES.PRODUCT;
+                const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+                
                 return (
                   <motion.div
                     key={product.id}
@@ -488,13 +548,13 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                         <Link href={`/product/${product.slug}`}>
                           <div className={`relative overflow-hidden ${index === 0 ? 'aspect-[2/1]' : 'aspect-square'} bg-muted rounded-lg`}>
                             <Image
-                              src={variant.images[0]}
+                              src={primaryImage}
                               alt={product.name}
                               fill
                               className="object-cover transition-transform duration-500 group-hover:scale-105"
                               sizes={index === 0 ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 50vw, 25vw"}
                             />
-                            {product.badges?.includes('NEW') && (
+                            {product.isFeatured && (
                               <motion.div
                                 initial={{ scale: 0, rotate: -45 }}
                                 animate={{ scale: 1, rotate: 0 }}
@@ -505,11 +565,11 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                                 }}
                               >
                                 <Badge className="absolute left-3 top-3 bg-brand-accent text-brand shadow-lg pulse-glow">
-                                  NEW
+                                  FEATURED
                                 </Badge>
                               </motion.div>
                             )}
-                            {product.badges?.includes('LIMITED') && (
+                            {hasDiscount && (
                               <motion.div
                                 initial={{ scale: 0, rotate: -45 }}
                                 animate={{ scale: 1, rotate: 0 }}
@@ -519,8 +579,8 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                                   stiffness: 200 
                                 }}
                               >
-                                <Badge className="absolute left-3 top-3 bg-brand text-white shadow-lg pulse-glow">
-                                  LIMITED
+                                <Badge className="absolute right-3 top-3 bg-red-500 text-white shadow-lg pulse-glow">
+                                  SALE
                                 </Badge>
                               </motion.div>
                             )}
@@ -529,8 +589,15 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                             <h3 className="font-semibold text-sm mb-1 group-hover:text-brand transition-colors">
                               {product.name}
                             </h3>
-                            <p className="text-xs text-muted-foreground mb-2">{product.subtitle}</p>
-                            <p className="font-bold text-brand">{formatPrice(variant.priceCents)}</p>
+                            <p className="text-xs text-muted-foreground mb-2">{product.shortDescription || product.description}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-brand">{formatPrice(product.price)}</p>
+                              {hasDiscount && (
+                                <p className="text-xs text-muted-foreground line-through">
+                                  {formatPrice(product.comparePrice!)}
+                                </p>
+                              )}
+                            </div>
                           </CardContent>
                         </Link>
                       </Card>
@@ -733,7 +800,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     <Link href={`/collection/${collection.slug}`}>
                       <div className="relative aspect-[4/3] overflow-hidden">
                         <Image
-                          src={collection.image || collection.heroImage || '/placeholder-image.jpg'}
+                          src={collection.image || collection.heroImage || 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_300,w_400,g_center/v1/defaults/default-category.jpg'}
                           alt={collection.name}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"

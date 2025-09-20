@@ -8,20 +8,21 @@ import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
 import { CheckoutButton } from '@/components/CheckoutButton';
 import { useCartStore } from '@/lib/store/cart';
+import { DEFAULT_IMAGES } from '@/lib/cloudinary';
 import { Star, Heart, Share2, Truck, Shield, RefreshCw, ShoppingBag, Check, Minus, Plus } from 'lucide-react';
-import { fetchProduct } from '../../../mocks/services/catalog';
-import { formatPrice, type MockProduct, type MockProductVariant } from '../../../mocks/fixtures/products';
+import { fetchProduct, formatPrice } from '../../../lib/services/catalog';
+import type { Product } from '@prisma/client';
 
 interface Props { 
   params: { slug: string } 
 }
 
 export default function ProductPage({ params }: Props) {
-  const [product, setProduct] = useState<MockProduct | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<MockProductVariant | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   const addItem = useCartStore((state) => state.addItem);
 
@@ -30,9 +31,8 @@ export default function ProductPage({ params }: Props) {
       try {
         const resolvedParams = await params;
         const foundProduct = await fetchProduct(resolvedParams.slug);
-        setProduct(foundProduct);
         if (foundProduct) {
-          setSelectedVariant(foundProduct.variants[0]);
+          setProduct(foundProduct);
         }
       } catch (error) {
         console.error('Failed to load product:', error);
@@ -65,17 +65,44 @@ export default function ProductPage({ params }: Props) {
     return notFound();
   }
 
-  const variant = selectedVariant || product.variants[0];
-
   const handleAddToCart = () => {
-    if (!selectedVariant) return;
-    
-    addItem(product, selectedVariant, quantity);
+    if (!product) return;
+
+    // Create a compatible variant for cart compatibility
+    const defaultVariant = {
+      id: `${product.id}-default`,
+      sku: product.sku || `${product.id}-DEFAULT`,
+      size: undefined,
+      metal: undefined,
+      priceCents: product.price * 100,
+      compareAtCents: product.comparePrice ? product.comparePrice * 100 : undefined,
+      stock: 10, // Default stock
+      images: product.images
+    };
+
+    // Convert product to match cart interface
+    const cartProduct = {
+      ...product,
+      subtitle: product.shortDescription || product.description || '',
+      description: product.description || undefined,
+      shortDescription: product.shortDescription || undefined,
+      comparePrice: product.comparePrice || undefined,
+      variants: [defaultVariant],
+      materials: [],
+      gemstones: [],
+      collections: [],
+      badges: [],
+      createdAt: new Date().toISOString()
+    };
+
+    addItem(cartProduct, defaultVariant, quantity);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
 
-  const canAddToCart = selectedVariant && selectedVariant.stock >= quantity;
+  const canAddToCart = product.isActive && product.status === 'PUBLISHED';
+  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+  const primaryImage = product.images?.[0] || DEFAULT_IMAGES.PRODUCT;
 
   return (
     <div className="min-h-screen">

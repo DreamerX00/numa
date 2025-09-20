@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin';
-import { writeFile, mkdir, unlink } from 'fs/promises';
-import path from 'path';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin(request);
@@ -10,6 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const folder = formData.get('folder') as string || 'uploads';
 
     if (!file) {
       return NextResponse.json(
@@ -19,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' },
@@ -27,51 +34,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (10MB limit for better quality images)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size too large. Maximum 5MB allowed.' },
+        { error: 'File size too large. Maximum 10MB allowed.' },
         { status: 400 }
       );
     }
 
-    // Create unique filename
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${timestamp}_${originalName}`;
-
-    // Create upload directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch {
-      // Directory might already exist, that's fine
-    }
-
-    // Save file
+    // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const filePath = path.join(uploadDir, fileName);
 
-    await writeFile(filePath, buffer);
-
-    // Return the public URL
-    const fileUrl = `/uploads/${fileName}`;
+    // Upload to Cloudinary
+    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: `numa/${folder}`,
+          resource_type: 'image',
+          transformation: [
+            {
+              quality: 'auto',
+              fetch_format: 'auto'
+            }
+          ],
+          // Generate a unique filename
+          public_id: `${Date.now()}_${file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_')}`
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else if (result) resolve(result);
+          else reject(new Error('Upload failed'));
+        }
+      ).end(buffer);
+    });
 
     return NextResponse.json({
       success: true,
-      url: fileUrl,
-      fileName: fileName,
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      format: uploadResult.format,
+      bytes: uploadResult.bytes,
       originalName: file.name,
-      size: file.size,
-      type: file.type
+      folder: folder
     });
 
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { error: 'Failed to upload image to Cloudinary' },
       { status: 500 }
     );
   }
@@ -83,44 +97,28 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const fileName = searchParams.get('fileName');
+    const publicId = searchParams.get('publicId');
 
-    if (!fileName) {
+    if (!publicId) {
       return NextResponse.json(
-        { error: 'No fileName provided' },
+        { error: 'No publicId provided' },
         { status: 400 }
       );
     }
 
-    // Validate fileName to prevent path traversal
-    if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
-      return NextResponse.json(
-        { error: 'Invalid fileName' },
-        { status: 400 }
-      );
-    }
+    // Delete from Cloudinary
+    const result = await cloudinary.uploader.destroy(publicId);
 
-    const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-
-    try {
-      await unlink(filePath);
-      
-      return NextResponse.json({
-        success: true,
-        message: 'File deleted successfully'
-      });
-    } catch {
-      // File might not exist, that's fine
-      return NextResponse.json({
-        success: true,
-        message: 'File not found or already deleted'
-      });
-    }
+    return NextResponse.json({
+      success: true,
+      result: result,
+      message: 'Image deleted successfully from Cloudinary'
+    });
 
   } catch (error) {
     console.error('Delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete file' },
+      { error: 'Failed to delete image from Cloudinary' },
       { status: 500 }
     );
   }

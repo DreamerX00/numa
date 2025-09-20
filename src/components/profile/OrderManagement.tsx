@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,7 +69,7 @@ const mockOrders: (OrderSummary & {
     orderDate: new Date("2024-08-15"),
     estimatedDelivery: new Date("2024-08-20"),
     trackingNumber: "1Z999AA1234567890",
-    thumbnail: "/api/placeholder/80/80",
+    thumbnail: DEFAULT_IMAGES.PRODUCT,
     canReturn: true,
     canReview: true,
     items: [
@@ -78,7 +79,7 @@ const mockOrders: (OrderSummary & {
         variant: "18K Gold, Size 7",
         quantity: 1,
         price: 950.00,
-        image: "/api/placeholder/100/100",
+        image: DEFAULT_IMAGES.PRODUCT,
         sku: "RING-DIA-001"
       },
       {
@@ -87,7 +88,7 @@ const mockOrders: (OrderSummary & {
         variant: "White Gold",
         quantity: 1,
         price: 300.00,
-        image: "/api/placeholder/100/100",
+        image: DEFAULT_IMAGES.PRODUCT,
         sku: "EAR-PEARL-002"
       }
     ],
@@ -111,7 +112,7 @@ const mockOrders: (OrderSummary & {
     orderDate: new Date("2024-09-10"),
     estimatedDelivery: new Date("2024-09-22"),
     trackingNumber: "1Z999AA1234567891",
-    thumbnail: "/api/placeholder/80/80",
+    thumbnail: "DEFAULT_IMAGES.PRODUCT",
     canReturn: false,
     canReview: false,
     items: [
@@ -121,7 +122,7 @@ const mockOrders: (OrderSummary & {
         variant: "22K Gold, 18 inches",
         quantity: 1,
         price: 875.00,
-        image: "/api/placeholder/100/100",
+        image: "DEFAULT_IMAGES.PRODUCT",
         sku: "NECK-GOLD-003"
       }
     ],
@@ -145,7 +146,7 @@ const mockOrders: (OrderSummary & {
     orderDate: new Date("2024-09-18"),
     estimatedDelivery: new Date("2024-09-25"),
     trackingNumber: undefined,
-    thumbnail: "/api/placeholder/80/80",
+    thumbnail: "DEFAULT_IMAGES.PRODUCT",
     canReturn: false,
     canReview: false,
     items: [
@@ -155,7 +156,7 @@ const mockOrders: (OrderSummary & {
         variant: "Rose Gold, Leather Strap",
         quantity: 1,
         price: 1800.00,
-        image: "/api/placeholder/100/100",
+        image: "DEFAULT_IMAGES.PRODUCT",
         sku: "WATCH-LUX-001"
       },
       {
@@ -164,7 +165,7 @@ const mockOrders: (OrderSummary & {
         variant: "Sterling Silver",
         quantity: 2,
         price: 175.00,
-        image: "/api/placeholder/100/100",
+        image: "DEFAULT_IMAGES.PRODUCT",
         sku: "BRAC-SIL-004"
       }
     ],
