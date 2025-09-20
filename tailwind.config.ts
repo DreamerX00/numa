@@ -1,10 +1,12 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './src/**/*.{ts,tsx,js,jsx}',
     './src/app/**/*.{ts,tsx}',
     './src/components/**/*.{ts,tsx}',
+    './docs/**/*.{md,mdx}'
   ],
   theme: {
     extend: {
@@ -50,6 +52,11 @@ const config: Config = {
       animation: {
         fadeIn: 'fadeIn .4s ease',
         scaleIn: 'scaleIn .25s ease'
+      },
+      container: {
+        center: true,
+        padding: '1rem',
+        screens: { '2xl': '1400px' }
       }
     }
   },

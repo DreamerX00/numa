@@ -1,10 +1,11 @@
 // Initialize Firebase Client SDK (browser)
 // Uses NEXT_PUBLIC_* env vars
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
 
 let app: FirebaseApp;
 let auth: Auth;
+let googleProvider: GoogleAuthProvider;
 
 export function getFirebaseClient() {
   if (!getApps().length) {
@@ -19,5 +20,13 @@ export function getFirebaseClient() {
     });
   }
   auth = getAuth();
-  return { app, auth };
+  
+  // Configure Google Auth Provider
+  if (!googleProvider) {
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.addScope('email');
+    googleProvider.addScope('profile');
+  }
+  
+  return { app, auth, googleProvider };
 }

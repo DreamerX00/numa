@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { CreditCard, Loader2 } from "lucide-react";
 
 // Minimal type declarations (avoid installing @types for now)
 interface RazorpayOptions {
@@ -96,14 +98,26 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
   }, [createOrder]);
 
   return (
-    <button
+    <Button
       onClick={openCheckout}
       disabled={!ready || loading}
-      className={`focus-ring inline-flex items-center justify-center rounded-md px-6 py-3 font-medium transition-colors text-sm md:text-base shadow-sm border border-transparent bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)] disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-      aria-live="polite"
+      className={className}
+      size="lg"
     >
-      {loading ? "Creating order..." : !ready ? "Loading SDK..." : label}
-    </button>
+      {loading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Creating order...
+        </>
+      ) : !ready ? (
+        "Loading SDK..."
+      ) : (
+        <>
+          <CreditCard className="mr-2 h-4 w-4" />
+          {label}
+        </>
+      )}
+    </Button>
   );
 }
 

@@ -2,6 +2,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Container } from '@/components/ui/container';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Search, Menu, ShoppingBag, User, LogOut } from 'lucide-react';
+import { useAuth, getAuthDisplayName } from '@/lib/auth/client';
 
 interface NavItem { label: string; href: string; }
 const primaryNav: NavItem[] = [
@@ -9,56 +16,145 @@ const primaryNav: NavItem[] = [
   { label: 'Rings', href: '/collection/rings' },
   { label: 'Necklaces', href: '/collection/necklaces' },
   { label: 'Earrings', href: '/collection/earrings' },
-  { label: 'Lookbook', href: '/lookbook' },
+  
   { label: 'About', href: '/about' }
 ];
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur bg-base-bg/80 border-b border-base-border">
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-6">
-        <button aria-label="Toggle navigation" className="lg:hidden p-2 focus-ring" onClick={() => setMobileOpen(o => !o)}>
-          <span className="block w-5 h-0.5 bg-base-ink mb-1" />
-          <span className="block w-5 h-0.5 bg-base-ink mb-1" />
-          <span className="block w-5 h-0.5 bg-base-ink" />
-        </button>
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/NUMALOGO.jpg" alt="NUMA" width={40} height={40} className="rounded-sm object-cover" />
-          <span className="font-serif text-xl tracking-tight">NUMA</span>
-        </Link>
-        <nav className="hidden lg:flex items-center gap-8 text-sm">
-          {primaryNav.map(item => (
-            <Link key={item.href} href={item.href} className="hover:text-brand-dark transition-colors">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-4">
-          <button aria-label="Search" className="text-sm hover:text-brand-dark focus-ring">Search</button>
-          <Link href="/account" className="text-sm hover:text-brand-dark">Account</Link>
-          <Link href="/cart" className="relative text-sm hover:text-brand-dark">
-            Cart
-            <span className="absolute -top-2 -right-3 bg-brand text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+    <motion.header 
+      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    >
+      <Container>
+        <div className="flex h-16 items-center justify-between">
+          {/* Mobile menu trigger */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </motion.div>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+              <nav className="flex flex-col space-y-4">
+                <div className="flex items-center gap-3 pb-4">
+                  <Image
+                    src="/numaLogo.png"
+                    alt="NUMA"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                  />
+                  <span className="font-serif text-lg tracking-tight">NUMA</span>
+                </div>
+                {primaryNav.map(item => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/numaLogo.png"
+              alt="NUMA"
+              width={40}
+              height={40}
+              className="rounded-lg"
+            />
+            <span className="font-serif text-xl tracking-tight">NUMA</span>
           </Link>
-        </div>
-      </div>
-      {mobileOpen && (
-        <div className="lg:hidden border-t border-base-border bg-base-bg animate-fadeIn">
-          <nav className="flex flex-col p-4 gap-3 text-sm">
+
+          {/* Desktop navigation */}
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium">
             {primaryNav.map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className="py-1">
+              <Link
+                key={item.href}
+                href={item.href}
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
                 {item.label}
               </Link>
             ))}
-            <hr className="my-2 border-base-border" />
-            <Link href="/account" onClick={() => setMobileOpen(false)} className="py-1">Account</Link>
-            <Link href="/cart" onClick={() => setMobileOpen(false)} className="py-1">Cart</Link>
           </nav>
+
+          {/* Right side actions */}
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <div className="hidden md:flex relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search jewelry..."
+                className="w-64 pl-8"
+              />
+            </div>
+
+            {/* Auth buttons */}
+            <div className="hidden sm:flex items-center gap-2">
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Hello, {getAuthDisplayName(user)}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/login">
+                      <User className="h-4 w-4 mr-2" />
+                      Login
+                    </Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Cart */}
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/cart" className="relative">
+                <ShoppingBag className="h-5 w-5" />
+                <span className="absolute -top-2 -right-2 bg-brand text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+              </Link>
+            </Button>
+          </div>
         </div>
-      )}
-    </header>
+      </Container>
+    </motion.header>
   );
 }
 
