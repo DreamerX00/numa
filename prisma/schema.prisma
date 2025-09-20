@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for order and payment statuses
+enum OrderStatus {
+  CREATED
+  PAID
+  FAILED
+  CANCELED
+}
+
+enum PaymentStatus {
+  CREATED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String?
+  amount           Int          // amount in paise (e.g., 49900 = ₹499.00)
+  currency         String       @default("INR")
+  status           OrderStatus  @default(CREATED)
+  razorpayOrderId  String       @unique
+  notes            Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  payments         Payment[]
+}
+
+model Payment {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderId            String        @db.ObjectId
+  order              Order         @relation(fields: [orderId], references: [id])
+  amount             Int           // in paise
+  currency           String        @default("INR")
+  status             PaymentStatus @default(CREATED)
+  razorpayPaymentId  String?       @unique
+  razorpaySignature  String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}

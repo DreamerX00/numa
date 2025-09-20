@@ -1,5 +1,7 @@
 import Razorpay from "razorpay";
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getUserFromRequest } from "@/lib/auth/session";
 
 // Contract
 // POST /api/razorpay/order
@@ -33,16 +35,30 @@ export async function POST(req: NextRequest) {
       notes,
     });
 
+    // Persist Order in DB
+    const user = await getUserFromRequest(req);
+    const dbOrder = await prisma.order.create({
+      data: {
+        userId: user?.uid ?? null,
+        amount: Number(order.amount),
+        currency: order.currency,
+        status: "CREATED",
+        razorpayOrderId: order.id,
+        notes: Object.keys(notes).length ? notes : undefined,
+      },
+    });
+
     return NextResponse.json(
       {
         id: order.id,
         amount: order.amount,
         currency: order.currency,
         key_id, // expose public key to client
+        order: { id: dbOrder.id },
       },
       { status: 201 },
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("/api/razorpay/order error", err);
     return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { prisma } from "@/lib/prisma";
 
 // Contract
 // POST /api/razorpay/webhook
@@ -30,11 +31,64 @@ export async function POST(req: NextRequest) {
 
     const event = JSON.parse(text);
 
-    // TODO: handle events like 'payment.captured', 'payment.failed'
-    // Example: update Order status in DB using event.payload.payment.entity.order_id
+    // Handle key events
+    const type: string = event.event;
+    const payment = event?.payload?.payment?.entity;
+    const orderIdFromGateway: string | undefined = payment?.order_id;
 
-    return NextResponse.json({ received: true });
-  } catch (err: any) {
+    if (type === "payment.captured" && orderIdFromGateway) {
+      const amount = Number(payment.amount); // in paise
+      const currency = String(payment.currency || "INR");
+      const razorpayPaymentId = String(payment.id);
+      const razorpaySignature = signature;
+
+      const order = await prisma.order.findUnique({ where: { razorpayOrderId: orderIdFromGateway } });
+      if (order) {
+        // create payment if not exists
+        await prisma.payment.upsert({
+          where: { razorpayPaymentId },
+          create: {
+            orderId: order.id,
+            amount,
+            currency,
+            status: "CAPTURED",
+            razorpayPaymentId,
+            razorpaySignature,
+          },
+          update: {
+            status: "CAPTURED",
+          },
+        });
+
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: "PAID" },
+        });
+      }
+    }
+
+    if (type === "payment.failed" && orderIdFromGateway) {
+      const razorpayPaymentId = String(payment.id);
+      const order = await prisma.order.findUnique({ where: { razorpayOrderId: orderIdFromGateway } });
+      if (order) {
+        await prisma.payment.upsert({
+          where: { razorpayPaymentId },
+          create: {
+            orderId: order.id,
+            amount: Number(payment.amount),
+            currency: String(payment.currency || "INR"),
+            status: "FAILED",
+            razorpayPaymentId,
+            razorpaySignature: signature,
+          },
+          update: { status: "FAILED" },
+        });
+        await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+      }
+    }
+
+    return NextResponse.json({ received: true, type });
+  } catch (err: unknown) {
     console.error("/api/razorpay/webhook error", err);
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
