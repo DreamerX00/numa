@@ -9,7 +9,7 @@ export async function GET() {
     
     // Test 1: Simple database connection
     console.log('⚡ Testing Prisma connection...');
-    const connectionTest = await prisma.$queryRaw`SELECT 1 as test`;
+    const connectionTest = await prisma.$runCommandRaw({ ping: 1 });
     console.log('✅ Prisma connection successful:', connectionTest);
     
     // Test 2: Count documents in a collection
