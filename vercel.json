@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "env": {
+    "MONGODB_TIMEOUT": "10000",
+    "PRISMA_QUERY_ENGINE_LIBRARY": "./node_modules/.prisma/client/libquery_engine-rhel-openssl-1.0.x.so.node"
+  }
+}
