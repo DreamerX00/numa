@@ -141,7 +141,7 @@ class ShippingService {
     
     // Calculate cart subtotal
     const subtotal = cartItems.reduce((total, item) => 
-      total + (item.priceAtAdd * item.quantity), 0
+      total + (item.price * item.quantity), 0
     );
 
     const isInternational = userLocation.country !== 'IN';
@@ -298,7 +298,7 @@ export async function calculateShippingCost(
     productId: 'mock',
     variantId: null,
     quantity: 1,
-    priceAtAdd: orderTotal,
+    price: orderTotal,
     addedAt: new Date(),
     product: { id: 'mock', name: 'Mock Product' } as CartItem['product'],
     variant: null,
@@ -314,7 +314,7 @@ export async function qualifiesForFreeShipping(orderTotal: number): Promise<bool
     productId: 'mock',
     variantId: null,
     quantity: 1,
-    priceAtAdd: orderTotal,
+    price: orderTotal,
     addedAt: new Date(),
     product: { id: 'mock', name: 'Mock Product' } as CartItem['product'],
     variant: null,
@@ -330,7 +330,7 @@ export async function amountNeededForFreeShipping(orderTotal: number): Promise<n
     productId: 'mock',
     variantId: null,
     quantity: 1,
-    priceAtAdd: orderTotal,
+    price: orderTotal,
     addedAt: new Date(),
     product: { id: 'mock', name: 'Mock Product' } as CartItem['product'],
     variant: null,

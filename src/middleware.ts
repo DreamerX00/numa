@@ -38,39 +38,87 @@ function isValidSessionFormat(sessionCookie: string): boolean {
   }
 }
 
+// Enhanced error handling function
+function createErrorResponse(request: NextRequest, statusCode: number, reason?: string): NextResponse {
+  const url = new URL(`/error?code=${statusCode}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, request.url);
+  
+  const response = NextResponse.rewrite(url, { status: statusCode });
+  return withSecurityHeaders(response);
+}
+
+// Rate limiting check (basic implementation)
+const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 100;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(ip);
+  
+  if (!userLimit) {
+    rateLimitMap.set(ip, { count: 1, lastReset: now });
+    return false;
+  }
+  
+  if (now - userLimit.lastReset > RATE_LIMIT_WINDOW) {
+    rateLimitMap.set(ip, { count: 1, lastReset: now });
+    return false;
+  }
+  
+  if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+    return true;
+  }
+  
+  userLimit.count++;
+  return false;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Handle CORS preflight requests
-  const corsResponse = handleCORS(request);
-  if (corsResponse) {
-    return corsResponse;
-  }
-  
-  // Check if user has a valid session cookie format
-  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
-  const hasValidSessionFormat = sessionCookie?.value ? isValidSessionFormat(sessionCookie.value) : false;
-
-  // Handle protected routes (excluding admin routes which are handled client-side)
-  if (protectedRoutes.some(route => pathname.startsWith(route)) && !adminRoutes.some(route => pathname.startsWith(route))) {
-    if (!hasValidSessionFormat) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+  try {
+    // Handle CORS preflight requests
+    const corsResponse = handleCORS(request);
+    if (corsResponse) {
+      return corsResponse;
     }
-  }
 
-  // Handle auth routes (login/signup)
-  if (authRoutes.some(route => pathname.startsWith(route))) {
-    if (hasValidSessionFormat) {
-      const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
-      return NextResponse.redirect(new URL(redirectTo, request.url));
+    // Basic rate limiting
+    const ip = request.headers.get('X-Forwarded-For') ?? request.headers.get('X-Real-IP') ?? 'unknown';
+    if (isRateLimited(ip)) {
+      return createErrorResponse(request, 429, 'Too many requests');
     }
-  }
 
-  // Apply security headers to response
-  const response = NextResponse.next();
-  return withSecurityHeaders(response);
+    // Check if user has a valid session cookie format
+    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
+    const hasValidSessionFormat = sessionCookie?.value ? isValidSessionFormat(sessionCookie.value) : false;
+
+    // Handle protected routes (excluding admin routes which are handled client-side)
+    if (protectedRoutes.some(route => pathname.startsWith(route)) && !adminRoutes.some(route => pathname.startsWith(route))) {
+      if (!hasValidSessionFormat) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    }
+
+    // Handle auth routes (login/signup)
+    if (authRoutes.some(route => pathname.startsWith(route))) {
+      if (hasValidSessionFormat) {
+        const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
+        return NextResponse.redirect(new URL(redirectTo, request.url));
+      }
+    }
+
+    // Apply security headers to response
+    const response = NextResponse.next();
+    return withSecurityHeaders(response);
+    
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // Return a 500 error response if middleware fails
+    return createErrorResponse(request, 500, 'Internal middleware error');
+  }
 }
 
 export const config = {

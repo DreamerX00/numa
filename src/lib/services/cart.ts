@@ -42,7 +42,7 @@ export class CartService {
       product,
       variant,
       addedAt: new Date(raw.createdAt ?? Date.now()),
-      priceAtAdd: Number(raw.price ?? 0),
+      price: Number(raw.price ?? 0),
     };
     return mapped;
   }
@@ -122,7 +122,7 @@ export class CartService {
         product,
         variant: variant ?? null,
         addedAt: new Date(),
-        priceAtAdd: Number(raw?.price ?? (variant?.price ?? product.price)),
+        price: Number(raw?.price ?? (variant?.price ?? product.price)),
       };
       return { success: true, cartItem: fallback };
     } catch (error) {
@@ -162,7 +162,7 @@ export class CartService {
         product,
         variant,
         addedAt: new Date(),
-        priceAtAdd: itemPrice,
+        price: itemPrice,
       };
       cart.state.items.push(newItem);
     }

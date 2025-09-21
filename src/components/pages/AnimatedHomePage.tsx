@@ -44,7 +44,7 @@ async function fetchCarouselSlides(): Promise<CarouselSlide[]> {
 const fallbackCarouselSlides: CarouselSlide[] = [
   {
     id: "fallback-1",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/heritage-collection.jpg",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
     title: "New Heritage Collection",
     subtitle: "Timeless Elegance Redefined", 
     description: "Discover our latest collection inspired by royal heritage and crafted with precision",
@@ -55,7 +55,7 @@ const fallbackCarouselSlides: CarouselSlide[] = [
   },
   {
     id: "fallback-2",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/bridal-splendor.jpg",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
     title: "Bridal Splendor",
     subtitle: "Your Perfect Wedding Jewelry",
     description: "Exquisite pieces designed to make your most special day unforgettable",
@@ -66,7 +66,7 @@ const fallbackCarouselSlides: CarouselSlide[] = [
   },
   {
     id: "fallback-3",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/diamond-luxe.jpg",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
     title: "Diamond Luxe",
     subtitle: "Brilliance Beyond Compare",
     description: "Premium diamond jewelry for those who appreciate the finest in life",
@@ -77,7 +77,7 @@ const fallbackCarouselSlides: CarouselSlide[] = [
   },
   {
     id: "fallback-4",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/fallback/exclusive-earrings.jpg",
+    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
     title: "Exclusive Earrings",
     subtitle: "Elegance in Every Detail",
     description: "Handcrafted earrings that complement your unique style",
@@ -801,7 +801,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     <Link href={`/collection/${collection.slug}`}>
                       <div className="relative aspect-[4/3] overflow-hidden">
                         <Image
-                          src={collection.image || collection.heroImage || 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_300,w_400,g_center/v1/defaults/default-category.jpg'}
+                          src={collection.image || collection.heroImage || 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_300,w_600,g_center/v1/defaults/default-category.jpg'}
                           alt={collection.name}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"

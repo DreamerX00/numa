@@ -73,7 +73,10 @@ interface PaymentStepProps {
   };
   cartItems: CartItem[];
   subtotal: number;
-  onComplete: () => void;
+  shippingCost: number;
+  shippingMethod: string;
+  onComplete: (orderId: string) => void;
+  onError: (error: string) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
 }
@@ -82,59 +85,31 @@ export function PaymentStep({
   checkoutData, 
   cartItems, 
   subtotal, 
+  shippingCost,
+  shippingMethod,
   onComplete,
+  onError,
   loading, 
   setLoading 
 }: PaymentStepProps) {
   const { user } = useAuth();
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [error, setError] = useState<string>("");
-  const [shippingCost, setShippingCost] = useState(0);
 
-  // Calculate amounts
+  // Calculate amounts using passed shipping cost
   const taxAmount = (subtotal + shippingCost) * 0.18;
   const totalAmount = subtotal + shippingCost + taxAmount;
 
-  // Calculate shipping cost
-  useEffect(() => {
-    const calculateShipping = async () => {
-      try {
-        const response = await fetch('/api/shipping/calculate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            items: cartItems.map(item => ({
-              productId: item.productId,
-              variantId: item.variantId,
-              quantity: item.quantity
-            })),
-            address: {
-              postalCode: checkoutData.address?.postalCode || '110001',
-              state: checkoutData.address?.state || 'Delhi',
-              country: checkoutData.address?.country || 'IN'
-            }
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setShippingCost(data.shipping?.cost || 0);
-        } else {
-          console.error('Failed to calculate shipping');
-          setShippingCost(50); // Fallback to default rate
-        }
-      } catch (error) {
-        console.error('Failed to calculate shipping:', error);
-        setShippingCost(50); // Fallback to default rate
-      }
-    };
-
-    if (cartItems.length > 0) {
-      calculateShipping();
-    }
-  }, [cartItems, checkoutData.address]);
+  // Check if order is ready for payment
+  const isOrderReady = cartItems.length > 0 && 
+                      checkoutData.address &&
+                      checkoutData.address.firstName &&
+                      checkoutData.address.lastName &&
+                      checkoutData.address.address1 &&
+                      checkoutData.address.city &&
+                      checkoutData.address.state &&
+                      checkoutData.address.postalCode &&
+                      checkoutData.address.phone;
 
   // Load Razorpay script
   useEffect(() => {
@@ -160,28 +135,95 @@ export function PaymentStep({
     setLoading(true);
 
     try {
+      // Validate required data
+      if (!checkoutData.address) {
+        throw new Error('Shipping address is required');
+      }
+
+      if (cartItems.length === 0) {
+        throw new Error('No items in cart');
+      }
+
+      // Validate required address fields
+      const { address } = checkoutData;
+      if (!address.firstName || !address.lastName || !address.address1 || 
+          !address.city || !address.state || !address.postalCode || !address.phone) {
+        throw new Error('Please complete all required address fields');
+      }
+
+      // Additional validation for Indian formats
+      if (!/^\d{6}$/.test(address.postalCode)) {
+        throw new Error('Postal code must be exactly 6 digits');
+      }
+
+      if (!/^[6-9]\d{9}$/.test(address.phone)) {
+        throw new Error('Phone number must be 10 digits starting with 6, 7, 8, or 9');
+      }
+
+      if (address.alternatePhone && !/^[6-9]\d{9}$/.test(address.alternatePhone)) {
+        throw new Error('Alternate phone number must be 10 digits starting with 6, 7, 8, or 9');
+      }
+
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          priceAtAdd: item.price
+        })),
+        shippingAddress: {
+          firstName: checkoutData.address.firstName,
+          lastName: checkoutData.address.lastName,
+          company: checkoutData.address.company,
+          address1: checkoutData.address.address1,
+          address2: checkoutData.address.address2,
+          city: checkoutData.address.city,
+          state: checkoutData.address.state,
+          postalCode: checkoutData.address.postalCode,
+          country: checkoutData.address.country,
+          phone: checkoutData.address.phone,
+          alternateEmail: checkoutData.address.alternateEmail,
+          alternatePhone: checkoutData.address.alternatePhone
+        },
+        shippingMethod: 'STANDARD',
+        currency: 'INR'
+      };
+      
+      console.log('Creating order with data:', orderData);
+      console.log('Cart items structure:', cartItems);
+      console.log('Address details:', checkoutData.address);
+
       // Create order on server
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: cartItems.map(item => ({
-            productId: item.product.id,
-            variantId: item.variant?.id,
-            quantity: item.quantity,
-            price: item.priceAtAdd
-          })),
-          shippingAddress: checkoutData.address,
-          shippingMethod: 'STANDARD',
-          currency: 'INR'
-        }),
+        body: JSON.stringify(orderData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create order');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Order creation failed with status:', response.status);
+        console.error('Error response:', errorData);
+        console.error('Error response structure:', JSON.stringify(errorData, null, 2));
+        
+        // Log detailed validation errors if available
+        if (errorData.details && Array.isArray(errorData.details)) {
+          console.error('Validation details:', errorData.details);
+          const validationErrors = errorData.details.map((detail: { path: (string | number)[]; message: string }) => 
+            `${detail.path.join('.')}: ${detail.message}`
+          ).join(', ');
+          throw new Error(`Validation failed: ${validationErrors}`);
+        }
+        
+        if (errorData.formattedError) {
+          console.error('Formatted validation error:', errorData.formattedError);
+        }
+        
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create order`);
       }
 
       const orderResult = await response.json();
+      console.log('Order creation successful:', orderResult);
       
       if (!orderResult.success) {
         throw new Error(orderResult.error || 'Failed to create order');
@@ -192,7 +234,9 @@ export function PaymentStep({
 
     } catch (error) {
       console.error('Order creation failed:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create order');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to create order';
+      setError(errorMsg);
+      onError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -221,6 +265,8 @@ export function PaymentStep({
       image: '/logo.png',
       handler: async function (response: RazorpayResponse) {
         try {
+          setLoading(true);
+          
           // Verify payment on server
           const verifyResponse = await fetch('/api/payments/verify', {
             method: 'POST',
@@ -236,13 +282,22 @@ export function PaymentStep({
           const verifyResult = await verifyResponse.json();
 
           if (verifyResult.success) {
-            onComplete();
+            // Clear any existing errors
+            setError("");
+            // Call onComplete with order ID
+            onComplete(order.id);
           } else {
-            setError('Payment verification failed');
+            const errorMsg = verifyResult.error || 'Payment verification failed';
+            setError(errorMsg);
+            onError(errorMsg);
           }
         } catch (error) {
           console.error('Payment verification error:', error);
-          setError('Payment verification failed');
+          const errorMsg = 'Payment verification failed. Please contact support.';
+          setError(errorMsg);
+          onError(errorMsg);
+        } finally {
+          setLoading(false);
         }
       },
       prefill: {
@@ -260,7 +315,9 @@ export function PaymentStep({
       modal: {
         ondismiss: function() {
           setLoading(false);
-          setError('Payment was cancelled');
+          const errorMsg = 'Payment was cancelled by user';
+          setError(errorMsg);
+          onError(errorMsg);
         }
       }
     };
@@ -315,7 +372,7 @@ export function PaymentStep({
               </div>
               
               <div className="flex justify-between text-sm">
-                <span>Shipping (Standard)</span>
+                <span>Shipping ({shippingMethod})</span>
                 <span>
                   {shippingCost === 0 ? (
                     <span className="text-green-600 font-medium">FREE</span>
@@ -382,6 +439,20 @@ export function PaymentStep({
             </div>
           </div>
 
+          {/* Order Readiness Check */}
+          {!isOrderReady && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <p className="text-sm text-amber-800">
+                  {cartItems.length === 0 
+                    ? 'No items in cart' 
+                    : 'Please complete your shipping address in the previous step'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Error Display */}
           {error && (
             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -397,12 +468,17 @@ export function PaymentStep({
             <Button 
               onClick={createOrder}
               className="w-full" 
-              disabled={loading || !razorpayLoaded}
+              disabled={loading || !razorpayLoaded || !isOrderReady}
             >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Processing...
+                </>
+              ) : !isOrderReady ? (
+                <>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Complete Address Details
                 </>
               ) : (
                 <>

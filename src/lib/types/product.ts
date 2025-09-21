@@ -114,5 +114,5 @@ export interface CartItem {
   variant: ProductVariant | null;
   addedAt: Date;
   // Store price at time of adding to cart (for price protection)
-  priceAtAdd: number;
+  price: number;
 }

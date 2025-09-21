@@ -61,6 +61,23 @@ Once you add your credentials, the admin panel will automatically handle:
 - Different sizes for thumbnails/full images
 - Fast CDN delivery worldwide
 
+## 🖼️ **Default Images Setup**
+
+To avoid 404 errors, upload these default placeholder images to your Cloudinary account:
+
+### Required Default Images:
+- `v1/defaults/default-product.jpg` (400x400) - Product placeholder
+- `v1/defaults/default-category.jpg` (300x600) - Category placeholder  
+- `v1/defaults/default-brand.jpg` (200x200) - Brand placeholder
+- `v1/defaults/default-avatar.jpg` (150x150) - User avatar placeholder
+- `v1/defaults/default-carousel.jpg` (600x1200) - Carousel slide placeholder
+
+### Upload Steps:
+1. Go to your Cloudinary Dashboard → Media Library
+2. Create a folder called `defaults`
+3. Upload placeholder images with the exact names above
+4. Or use auto-generated placeholders in Cloudinary settings
+
 ---
 
 **💡 Pro Tip**: Cloudinary automatically optimizes images for web delivery, reducing load times and improving user experience!

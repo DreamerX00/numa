@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth/client";
@@ -8,18 +8,13 @@ import { useHybridCartStore } from "@/lib/store/hybridCart";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
   Check, 
   ArrowLeft, 
-  ArrowRight,
-  ShoppingBag,
   User,
   MapPin,
-  CreditCard,
-  Loader2
+  CreditCard
 } from "lucide-react";
 
 // Step Components
@@ -46,7 +41,7 @@ interface CheckoutData {
     state: string;
     postalCode: string;
     country: string;
-    phone?: string;
+    phone: string;
     alternateEmail?: string;
     alternatePhone?: string;
   };
@@ -92,7 +87,7 @@ interface CheckoutStepData {
     state: string;
     postalCode: string;
     country: string;
-    phone?: string;
+    phone: string;
     alternateEmail?: string;
     alternatePhone?: string;
   };
@@ -102,15 +97,91 @@ interface CheckoutStepData {
 export default function CheckoutPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { items, getTotalPrice, getTotalItems } = useHybridCartStore();
+  const { items, getTotalPrice, getTotalItems, clearCart } = useHybridCartStore();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({});
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [shippingCalculation, setShippingCalculation] = useState<{
+    cost: number;
+    method: string;
+    estimatedDays: string;
+    qualifiesForFree: boolean;
+    loading: boolean;
+  }>({
+    cost: 0,
+    method: 'STANDARD',
+    estimatedDays: '3-5',
+    qualifiesForFree: false,
+    loading: false,
+  });
 
   const totalItems = getTotalItems();
   const subtotal = getTotalPrice();
+
+  // Calculate shipping cost based on cart items and address
+  const calculateShipping = useCallback(async () => {
+    if (items.length === 0 || subtotal === 0) return;
+
+    setShippingCalculation(prev => ({ ...prev, loading: true }));
+
+    try {
+      const response = await fetch('/api/shipping/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+          address: checkoutData.address ? {
+            postalCode: checkoutData.address.postalCode,
+            state: checkoutData.address.state,
+            country: checkoutData.address.country,
+          } : undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.shipping) {
+          setShippingCalculation({
+            cost: data.shipping.cost || 0,
+            method: data.shipping.method || 'STANDARD',
+            estimatedDays: data.shipping.estimatedDays || '3-5',
+            qualifiesForFree: data.shipping.qualifiesForFreeShipping || false,
+            loading: false,
+          });
+        }
+      } else {
+        // Fallback to default calculation
+        setShippingCalculation({
+          cost: subtotal >= 500 ? 0 : 50,
+          method: 'STANDARD',
+          estimatedDays: '3-5',
+          qualifiesForFree: subtotal >= 500,
+          loading: false,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to calculate shipping:', error);
+      // Fallback to default calculation
+      setShippingCalculation({
+        cost: subtotal >= 500 ? 0 : 50,
+        method: 'STANDARD',
+        estimatedDays: '3-5',
+        qualifiesForFree: subtotal >= 500,
+        loading: false,
+      });
+    }
+  }, [items, subtotal, checkoutData.address]);
+
+  // Calculate shipping when cart items change or address is updated
+  useEffect(() => {
+    calculateShipping();
+  }, [calculateShipping]);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -133,8 +204,37 @@ export default function CheckoutPage() {
     }
   }, [user, currentStep]);
 
+  const handlePaymentComplete = (orderId: string) => {
+    // Clear cart items for guest users (logged-in users' carts are cleared server-side)
+    if (!user) {
+      // Clear the hybrid cart store
+      clearCart();
+      
+      // Also clear localStorage for guest users
+      try {
+        localStorage.removeItem('numa-cart');
+      } catch (error) {
+        console.error('Failed to clear localStorage cart:', error);
+      }
+    }
+    
+    // Redirect to order success page
+    router.push(`/order-success?order_id=${orderId}&payment_id=success`);
+  };
+
+  const handlePaymentError = (error: string) => {
+    // Redirect to payment failed page
+    router.push(`/payment-failed?error=${encodeURIComponent(error)}`);
+  };
+
+  // Recalculate shipping when address step is completed
   const handleStepComplete = (stepData: CheckoutStepData) => {
     setCheckoutData(prev => ({ ...prev, ...stepData }));
+    
+    // If address was just updated, recalculate shipping
+    if (stepData.address) {
+      calculateShipping();
+    }
     
     if (currentStep < STEPS.length) {
       setCurrentStep(prev => prev + 1);
@@ -162,16 +262,14 @@ export default function CheckoutPage() {
       case 1:
         return (
           <AuthStep
-            onComplete={handleStepComplete}
-            onError={(error: string) => setErrors({ auth: error })}
-            loading={loading}
-            setLoading={setLoading}
+            onNext={() => setCurrentStep(2)}
+            onSkip={() => setCurrentStep(2)}
           />
         );
       case 2:
         return (
           <AddressStep
-            onComplete={handleStepComplete}
+            onComplete={(data) => handleStepComplete({ address: data.address })}
             onError={(error: string) => setErrors({ address: error })}
           />
         );
@@ -181,10 +279,10 @@ export default function CheckoutPage() {
             checkoutData={checkoutData}
             cartItems={items}
             subtotal={subtotal}
-            onComplete={() => {
-              // Payment completion handled in PaymentStep
-            }}
-            onError={(error: string) => setErrors({ payment: error })}
+            shippingCost={shippingCalculation.cost}
+            shippingMethod={shippingCalculation.method}
+            onComplete={handlePaymentComplete}
+            onError={handlePaymentError}
             loading={loading}
             setLoading={setLoading}
           />
@@ -298,8 +396,12 @@ export default function CheckoutPage() {
             <OrderSummary 
               items={items}
               subtotal={subtotal}
-              shipping={checkoutData.shipping}
-              loading={loading}
+              shipping={{
+                method: shippingCalculation.method,
+                cost: shippingCalculation.cost,
+                estimatedDays: shippingCalculation.estimatedDays,
+              }}
+              loading={shippingCalculation.loading}
             />
           </div>
         </div>

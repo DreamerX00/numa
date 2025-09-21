@@ -56,8 +56,10 @@ export async function GET(
         createdAt: true,
         shippingAddress: {
           select: {
-            fullName: true,
-            streetAddress: true,
+            firstName: true,
+            lastName: true,
+            address1: true,
+            address2: true,
             city: true,
             state: true,
             postalCode: true,
@@ -172,8 +174,10 @@ export async function POST(
         createdAt: true,
         shippingAddress: {
           select: {
-            fullName: true,
-            streetAddress: true,
+            firstName: true,
+            lastName: true,
+            address1: true,
+            address2: true,
             city: true,
             state: true,
             postalCode: true,

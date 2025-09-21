@@ -17,7 +17,7 @@ const orderRateLimit = rateLimit(rateLimitConfigs.payment);
 // Order item schema
 const orderItemSchema = z.object({
   productId: z.string().min(1),
-  variantId: z.string().optional(),
+  variantId: z.string().optional().nullable(),
   quantity: z.number().min(1).max(100),
   priceAtAdd: z.number().min(0)
 });
@@ -60,15 +60,22 @@ export async function POST(req: NextRequest) {
       
       // Validate request body
       const body = await req.json();
+      console.log('Received order data:', JSON.stringify(body, null, 2));
+      
       const validationResult = createOrderSchema.safeParse(body);
       
       if (!validationResult.success) {
-        console.error('Validation failed:', validationResult.error.errors);
+        console.error('Validation failed:');
+        console.error('Raw validation error:', validationResult.error);
+        console.error('Validation error format:', validationResult.error.format());
+        console.error('Validation error issues:', validationResult.error.issues);
+        
         return NextResponse.json(
           { 
             success: false,
             error: 'Invalid request data',
-            details: validationResult.error.errors
+            details: validationResult.error.issues,
+            formattedError: validationResult.error.format()
           },
           { status: 400 }
         );
@@ -189,7 +196,7 @@ export async function POST(req: NextRequest) {
       const order = await prisma.order.create({
         data: {
           orderNumber,
-          userId: dbUser?.id,
+          userId: dbUser!.id, // Assert that dbUser exists since we checked earlier
           status: 'PENDING',
           paymentStatus: 'PENDING',
           fulfillmentStatus: 'UNFULFILLED',
@@ -241,10 +248,17 @@ export async function POST(req: NextRequest) {
           razorpayOrderId: razorpayOrder.id,
           amount: totalAmount,
           currency: currency,
-          items: order.items
+          items: productDetails.map((detail) => ({
+            productId: detail.product.id,
+            variantId: detail.variant?.id,
+            name: detail.product.name,
+            sku: detail.variant?.sku || detail.product.sku,
+            price: detail.priceAtAdd,
+            quantity: detail.requestedQuantity
+          }))
         },
         razorpay: {
-          key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          key_id: process.env.RAZORPAY_KEY_ID,
           order_id: razorpayOrder.id
         }
       });

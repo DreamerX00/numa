@@ -14,11 +14,13 @@ import {
   Phone,
   Mail,
   Plus,
-  Edit
+  Edit,
+  Trash2
 } from "lucide-react";
 
 interface AddressData {
   id?: string;
+  type: 'SHIPPING' | 'BILLING';
   firstName: string;
   lastName: string;
   company?: string;
@@ -58,6 +60,7 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
     phone: "",
     alternateEmail: "",
     alternatePhone: "",
+    type: "SHIPPING", // Default to shipping address type
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -151,24 +154,54 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
           
           if (response.ok) {
             const savedAddress = await response.json();
-            onComplete({ address: savedAddress.address });
+            // Ensure the saved address has required fields for PaymentStep
+            const addressWithDefaults: AddressData = {
+              ...savedAddress.address,
+              type: savedAddress.address.type,
+              phone: savedAddress.address.phone || formData.phone || "",
+            };
+            onComplete({ address: addressWithDefaults });
           } else {
-            onComplete({ address: formData });
+            // Ensure formData has required fields for PaymentStep
+            const formDataWithDefaults: AddressData = {
+              ...formData,
+              type: formData.type,
+              phone: formData.phone || "",
+            };
+            onComplete({ address: formDataWithDefaults });
           }
         } catch (error) {
           console.error('Failed to save address:', error);
-          onComplete({ address: formData });
+          // Ensure formData has required fields for PaymentStep
+          const formDataWithDefaults: AddressData = {
+            ...formData,
+            type: formData.type,
+            phone: formData.phone || "",
+          };
+          onComplete({ address: formDataWithDefaults });
         } finally {
           setLocalLoading(false);
         }
       } else {
-        onComplete({ address: formData });
+        // Ensure formData has required fields for PaymentStep
+        const formDataWithDefaults: AddressData = {
+          ...formData,
+          type: formData.type,
+          phone: formData.phone || "",
+        };
+        onComplete({ address: formDataWithDefaults });
       }
     } else {
       // Use selected saved address
       const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId);
       if (selectedAddress) {
-        onComplete({ address: selectedAddress });
+        // Ensure the address has required fields for PaymentStep
+        const addressWithDefaults: AddressData = {
+          ...selectedAddress,
+          type: selectedAddress.type,
+          phone: selectedAddress.phone || "",
+        };
+        onComplete({ address: addressWithDefaults });
       }
     }
   };
@@ -183,6 +216,41 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
   const editAddress = (address: AddressData) => {
     setFormData(address);
     setIsAddingNew(true);
+  };
+
+  const deleteAddress = async (addressId: string) => {
+    if (!confirm('Are you sure you want to delete this address?')) {
+      return;
+    }
+
+    try {
+      setLocalLoading(true);
+      const response = await fetch(`/api/user/addresses/${addressId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setSavedAddresses(prev => prev.filter(addr => addr.id !== addressId));
+        
+        // If this was the selected address, clear selection
+        if (selectedAddressId === addressId) {
+          setSelectedAddressId('');
+          // If no addresses left, show add new form
+          if (savedAddresses.length === 1) {
+            setIsAddingNew(true);
+          }
+        }
+      } else {
+        const errorData = await response.json();
+        onError(errorData.error || 'Failed to delete address');
+      }
+    } catch (error) {
+      console.error('Failed to delete address:', error);
+      onError('Failed to delete address');
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   return (
@@ -246,6 +314,14 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                         onClick={() => editAddress(address)}
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteAddress(address.id!)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

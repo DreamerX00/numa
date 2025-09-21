@@ -5,12 +5,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Search, Menu, ShoppingBag, User, LogOut } from 'lucide-react';
+import { Menu, ShoppingBag, User, LogOut } from 'lucide-react';
 import { useAuth, getAuthDisplayName } from '@/lib/auth/client';
 import { useHybridCartStore } from '@/lib/store/hybridCart';
 import { MiniCart } from '@/components/cart/MiniCart';
+import { SearchBar } from '@/components/search/SearchBar';
 
 interface NavItem { label: string; href: string; }
 const primaryNav: NavItem[] = [
@@ -112,12 +112,10 @@ export function Header() {
           {/* Right side actions */}
           <div className="flex items-center gap-2">
             {/* Search */}
-            <div className="hidden md:flex relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
+            <div className="hidden md:flex">
+              <SearchBar 
                 placeholder="Search jewelry..."
-                className="w-64 pl-8"
+                className="w-64"
               />
             </div>
 
@@ -154,9 +152,7 @@ export function Header() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Button variant="outline" size="sm" className="text-black border-black h-7 w-7 text-[#E7654D] hover:text-white" asChild>
-                    
-                      
+                    <Button variant="outline" size="sm" className="text-black border- hover:bg-[#E7654D] hover:text-white" asChild>
                       <Link href="/login">
                         <User className="h-4 w-4 mr-2" />
                         Login
@@ -167,7 +163,7 @@ export function Header() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Button variant="outline" size="sm" className="text-black border-black hover:bg-orange-700 hover:text-white" asChild>
+                    <Button variant="outline" size="sm" className="text-black border- hover:bg-[#E7654D] hover:text-white" asChild>
                       <Link href="/signup">Sign Up</Link>
                     </Button>
                   </motion.div>

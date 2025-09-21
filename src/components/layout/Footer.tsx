@@ -28,18 +28,18 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </Link>
-              <Link href="" className="text-muted-foreground hover:text-brand transition-colors">
+              {/* <Link href="" className="text-muted-foreground hover:text-brand transition-colors">
                 <Twitter className="h-5 w-5" />
                 <span className="sr-only">Twitter</span>
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-brand transition-colors">
+              </Link> */}
+              {/* <Link href="#" className="text-muted-foreground hover:text-brand transition-colors">
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
-              </Link>
-              <Link href="mailto:shreyaaa4404@gmail.com" className="text-muted-foreground hover:text-brand transition-colors">
+              </Link> */}
+              <a  href="mailto:shreyaaa4404@gmail.com" className="text-muted-foreground hover:text-brand transition-colors">
                 <Mail className="h-5 w-5" />
                 <span className="sr-only">Email</span>
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -51,7 +51,7 @@ export function Footer() {
               <li><Link href="/collection/rings" className="text-muted-foreground hover:text-foreground transition-colors">Rings</Link></li>
               <li><Link href="/collection/necklaces" className="text-muted-foreground hover:text-foreground transition-colors">Necklaces</Link></li>
               <li><Link href="/collection/earrings" className="text-muted-foreground hover:text-foreground transition-colors">Earrings</Link></li>
-              <li><Link href="/new-arrivals" className="text-muted-foreground hover:text-foreground transition-colors">New Arrivals</Link></li>
+              <li><Link href="/new-arrivals" className="text-muted-foreground hover:text-foreground transition-colors">Bangles</Link></li>
             </ul>
           </div>
 
@@ -69,9 +69,9 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-3 text-sm">
               <li><Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
-              <li><Link href="/shipping" className="text-muted-foreground hover:text-foreground transition-colors">Shipping</Link></li>
-              <li><Link href="/returns" className="text-muted-foreground hover:text-foreground transition-colors">Returns</Link></li>
-              <li><Link href="/size-guide" className="text-muted-foreground hover:text-foreground transition-colors">Size Guide</Link></li>
+              <li><Link href="/shipping" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
+              <li><Link href="/returns" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
+              <li><Link href="/size-guide" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
             </ul>
           </div>
         </div>

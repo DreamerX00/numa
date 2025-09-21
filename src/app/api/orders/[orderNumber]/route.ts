@@ -18,12 +18,7 @@ export async function GET(
       include: {
         items: {
           include: {
-            product: {
-              include: {
-                images: true
-              }
-            },
-            variant: true
+            product: true
           }
         },
         shippingAddress: true,
@@ -31,7 +26,12 @@ export async function GET(
         user: {
           select: {
             email: true,
-            displayName: true
+            profile: {
+              select: {
+                displayName: true,
+                phone: true
+              }
+            }
           }
         }
       }
@@ -75,9 +75,9 @@ export async function GET(
       
       // Customer info
       customer: {
-        email: order.guestEmail || order.user?.email,
-        name: order.guestName || order.user?.displayName,
-        phone: order.guestPhone
+        email: order.user?.email,
+        name: order.user?.profile?.displayName,
+        phone: order.user?.profile?.phone
       },
 
       // Items
@@ -87,16 +87,13 @@ export async function GET(
         variantId: item.variantId,
         quantity: item.quantity,
         price: item.price,
-        selectedAttributes: item.selectedAttributes,
+        name: item.name,
+        sku: item.sku,
         product: {
           name: item.product.name,
           slug: item.product.slug,
           images: item.product.images.slice(0, 1) // Just first image
-        },
-        variant: item.variant ? {
-          name: item.variant.name,
-          sku: item.variant.sku
-        } : null
+        }
       })),
 
       // Addresses
@@ -106,10 +103,10 @@ export async function GET(
       // Pricing
       pricing: {
         subtotal: order.subtotal,
-        shipping: order.shipping,
-        tax: order.tax,
-        total: order.total,
-        currency: 'INR'
+        shipping: order.shippingAmount,
+        tax: order.taxAmount,
+        total: order.totalAmount,
+        currency: order.currency
       },
 
       // Payment
@@ -235,7 +232,7 @@ function getStatusTimeline(order: {
         status,
         label: statusLabels[status].label,
         description: statusLabels[status].description,
-        timestamp: null,
+        timestamp: new Date(), // Use current date as placeholder
         completed: false
       });
     }

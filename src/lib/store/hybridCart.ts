@@ -37,7 +37,7 @@ export const useHybridCartStore = create<HybridCartState>((set, get) => ({
   getTotalPrice: () => {
     return get().items.reduce(
       (total, item) => {
-        const itemPrice = item.priceAtAdd;
+        const itemPrice = item.price;
         return total + itemPrice * item.quantity;
       },
       0

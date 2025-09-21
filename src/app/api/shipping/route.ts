@@ -17,7 +17,7 @@ const shippingCalculationSchema = z.object({
   cartItems: z.array(z.object({
     id: z.string(),
     quantity: z.number(),
-    priceAtAdd: z.number(),
+    price: z.number(),
   })).optional(),
 });
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       items = [{
         id: 'total',
         quantity: 1,
-        priceAtAdd: orderTotal,
+        price: orderTotal,
       }];
     }
 
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
           items = cartItems.map(item => ({
             id: item.id,
             quantity: item.quantity,
-            priceAtAdd: item.price,
+            price: item.price,
           }));
         }
       }
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       productId: 'product',
       variantId: null,
       quantity: item.quantity,
-      priceAtAdd: item.priceAtAdd,
+      price: item.price,
       addedAt: new Date(),
       product: { id: 'product', name: 'Product' } as CartItem['product'],
       variant: null,

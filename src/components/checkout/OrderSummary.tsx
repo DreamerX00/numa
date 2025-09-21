@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,81 +23,16 @@ interface OrderSummaryProps {
     cost: number;
     estimatedDays: string;
   };
-}
-
-interface ShippingCalculation {
-  cost: number;
-  qualifiesForFree: boolean;
-  amountNeeded: number;
-  methods: Array<{
-    id: string;
-    name: string;
-    price: number;
-    estimatedDays: string;
-  }>;
+  loading?: boolean;
 }
 
 const DEFAULT_IMAGES = {
   PRODUCT: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop"
 };
 
-export function OrderSummary({ items, subtotal, shipping }: OrderSummaryProps) {
-  const [shippingData, setShippingData] = useState<ShippingCalculation>({
-    cost: 0,
-    qualifiesForFree: false,
-    amountNeeded: 0,
-    methods: []
-  });
-  const [shippingLoading, setShippingLoading] = useState(false);
-
-  const calculateShipping = useCallback(async () => {
-    setShippingLoading(true);
-    try {
-      const response = await fetch('/api/shipping/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: items.map(item => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.shipping) {
-          setShippingData({
-            cost: data.shipping.cost || 0,
-            qualifiesForFree: data.shipping.qualifiesForFreeShipping || false,
-            amountNeeded: data.shipping.amountForFreeShipping || 0,
-            methods: [], // Our new API doesn't return methods array yet
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to calculate shipping:', error);
-      // Fallback to default calculation
-      setShippingData({
-        cost: subtotal >= 500 ? 0 : 50,
-        qualifiesForFree: subtotal >= 500,
-        amountNeeded: Math.max(0, 500 - subtotal),
-        methods: []
-      });
-    } finally {
-      setShippingLoading(false);
-    }
-  }, [items, subtotal]);
-
-  // Calculate shipping when items change
-  useEffect(() => {
-    if (items.length > 0 && subtotal > 0) {
-      calculateShipping();
-    }
-  }, [items, subtotal, calculateShipping]);
-
-  const finalShippingCost = shipping?.cost ?? shippingData.cost;
+export function OrderSummary({ items, subtotal, shipping, loading = false }: OrderSummaryProps) {
+  // Use shipping data passed from parent instead of calculating separately
+  const finalShippingCost = shipping?.cost ?? 0;
   const totalAmount = subtotal + finalShippingCost;
   const taxAmount = totalAmount * 0.18; // 18% GST
   const finalTotal = totalAmount + taxAmount;
@@ -157,10 +91,10 @@ export function OrderSummary({ items, subtotal, shipping }: OrderSummaryProps) {
                 )}
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-muted-foreground">
-                    {formatPriceFromFloat(item.priceAtAdd)} × {item.quantity}
+                    {formatPriceFromFloat(item.price)} × {item.quantity}
                   </span>
                   <span className="font-medium text-sm">
-                    {formatPriceFromFloat(item.priceAtAdd * item.quantity)}
+                    {formatPriceFromFloat(item.price * item.quantity)}
                   </span>
                 </div>
               </div>
@@ -183,7 +117,7 @@ export function OrderSummary({ items, subtotal, shipping }: OrderSummaryProps) {
               <span className="text-sm">Shipping</span>
             </div>
             <div className="text-right">
-              {shippingLoading ? (
+              {loading ? (
                 <Skeleton className="h-4 w-16" />
               ) : finalShippingCost === 0 ? (
                 <div className="flex items-center gap-2">
@@ -198,22 +132,12 @@ export function OrderSummary({ items, subtotal, shipping }: OrderSummaryProps) {
             </div>
           </div>
 
-          {/* Free Shipping Progress */}
-          {!shippingData.qualifiesForFree && shippingData.amountNeeded > 0 && (
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 text-blue-700 text-sm">
+          {/* Show free shipping message if applicable */}
+          {finalShippingCost === 0 && !loading && (
+            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2 text-green-700 text-sm">
                 <Truck className="h-4 w-4" />
-                <span>
-                  Add {formatPriceFromFloat(shippingData.amountNeeded)} more for FREE shipping!
-                </span>
-              </div>
-              <div className="mt-2 bg-blue-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${Math.min(100, (subtotal / (subtotal + shippingData.amountNeeded)) * 100)}%` 
-                  }}
-                />
+                <span>🎉 You qualify for free shipping!</span>
               </div>
             </div>
           )}

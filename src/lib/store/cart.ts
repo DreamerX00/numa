@@ -47,7 +47,7 @@ export const useCartStore = create<CartState>()(
             product,
             variant,
             addedAt: new Date(),
-            priceAtAdd: itemPrice,
+            price: itemPrice,
           };
           set((state) => ({ items: [...state.items, newItem] }));
         }
@@ -80,8 +80,8 @@ export const useCartStore = create<CartState>()(
       getTotalPrice: () => {
         return get().items.reduce(
           (total, item) => {
-            // Use priceAtAdd (stored when item was added) for price consistency
-            const itemPrice = item.priceAtAdd;
+            // Use price (stored when item was added) for price consistency
+            const itemPrice = item.price;
             return total + itemPrice * item.quantity;
           },
           0

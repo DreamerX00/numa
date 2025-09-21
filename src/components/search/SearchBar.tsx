@@ -29,6 +29,7 @@ interface SearchSuggestion {
     price: number;
   }>;
   tags: string[];
+  trending: string[];
 }
 
 interface SearchBarProps {
@@ -51,6 +52,7 @@ export function SearchBar({
   const [suggestions, setSuggestions] = useState<SearchSuggestion | null>(null);
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -58,7 +60,7 @@ export function SearchBar({
   // Debounce search query
   const debouncedQuery = useDebounce(query, 300);
 
-  // Load recent searches from localStorage
+  // Load recent searches and trending searches from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('numa-recent-searches');
     if (stored) {
@@ -68,6 +70,21 @@ export function SearchBar({
         console.error('Failed to parse recent searches:', error);
       }
     }
+
+    // Load trending searches when component mounts
+    const loadTrendingSearches = async () => {
+      try {
+        const response = await fetch('/api/search/suggestions?q=&limit=8');
+        if (response.ok) {
+          const data = await response.json();
+          setTrendingSearches(data.trending || []);
+        }
+      } catch (error) {
+        console.error('Failed to load trending searches:', error);
+      }
+    };
+
+    loadTrendingSearches();
   }, []);
 
   const fetchSuggestions = useCallback(async (searchQuery: string) => {
@@ -184,17 +201,31 @@ export function SearchBar({
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className="w-full h-11 pl-10 pr-10 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+          className="w-full h-11 pl-10 pr-10 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all duration-200"
         />
         {query && (
           <Button
             size="sm"
             variant="ghost"
             onClick={clearSearch}
-            className="absolute right-2 top-1/2 h-6 w-6 p-0 -translate-y-1/2"
+            className="absolute right-2 top-1/2 h-6 w-6 p-0 -translate-y-1/2 hover:bg-muted"
           >
             <X className="h-4 w-4" />
           </Button>
+        )}
+        
+        {/* Search Button for Mobile */}
+        {!query && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 md:hidden">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => inputRef.current?.focus()}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -332,6 +363,28 @@ export function SearchBar({
                         {search}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Trending Searches */}
+                {!suggestions && !loading && (!recentSearches.length || trendingSearches.length > 0) && (
+                  <div className="px-4 py-2">
+                    {recentSearches.length > 0 && <Separator className="mb-2" />}
+                    <h3 className="text-xs font-medium text-muted-foreground mb-2 flex items-center">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      Trending Searches
+                    </h3>
+                    <div className="grid grid-cols-2 gap-1">
+                      {trendingSearches.slice(0, 8).map((search, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSearch(search)}
+                          className="text-left px-2 py-1 text-sm hover:bg-muted rounded transition-colors truncate"
+                        >
+                          {search}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 

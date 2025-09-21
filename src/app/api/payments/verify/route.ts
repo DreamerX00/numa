@@ -20,12 +20,12 @@ export async function POST(req: NextRequest) {
     const validationResult = verifyPaymentSchema.safeParse(body);
     
     if (!validationResult.success) {
-      console.error('Payment verification validation failed:', validationResult.error.errors);
+      console.error('Payment verification validation failed:', validationResult.error.issues);
       return NextResponse.json(
         { 
           success: false,
           error: 'Invalid request data',
-          details: validationResult.error.errors
+          details: validationResult.error.issues
         },
         { status: 400 }
       );

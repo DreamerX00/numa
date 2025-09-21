@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       const { q, limit } = validationResult.data;
 
       // Get suggestions from multiple sources
-      const [productSuggestions, categorySuggestions, tagSuggestions] = await Promise.all([
+      const [productSuggestions, categorySuggestions, tagSuggestions, trendingSearches] = await Promise.all([
         // Product name suggestions
         prisma.product.findMany({
           where: {
@@ -94,7 +94,14 @@ export async function GET(req: NextRequest) {
           },
           select: { tags: true },
           take: 10
-        })
+        }),
+
+        // Get trending/popular search terms (mock data for now)
+        Promise.resolve([
+          'rings', 'necklaces', 'earrings', 'bracelets', 'gold jewelry',
+          'silver jewelry', 'wedding rings', 'diamond earrings', 'pearl necklace',
+          'fashion jewelry'
+        ].filter(term => term.toLowerCase().includes(q.toLowerCase())))
       ]);
 
       // Extract unique tags that contain the query
@@ -103,11 +110,16 @@ export async function GET(req: NextRequest) {
         tag.toLowerCase().includes(q.toLowerCase())
       ))].slice(0, limit);
 
-      // Generate text suggestions
+      // Generate text suggestions with better relevance
       const textSuggestions = [
-        ...productSuggestions.map(p => p.name),
-        ...categorySuggestions.map(c => c.name),
-        ...matchingTags
+        // Trending searches that match query
+        ...trendingSearches.slice(0, 2),
+        // Product names
+        ...productSuggestions.map(p => p.name).slice(0, 2),
+        // Category names
+        ...categorySuggestions.map(c => c.name).slice(0, 2),
+        // Matching tags
+        ...matchingTags.slice(0, 1)
       ]
         .filter((suggestion, index, arr) => arr.indexOf(suggestion) === index) // Remove duplicates
         .slice(0, limit);
@@ -128,7 +140,8 @@ export async function GET(req: NextRequest) {
           image: product.images[0] || null,
           price: product.price
         })),
-        tags: matchingTags
+        tags: matchingTags,
+        trending: trendingSearches.slice(0, 5)
       });
 
     } catch (error) {

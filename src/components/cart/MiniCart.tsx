@@ -160,7 +160,7 @@ export function MiniCart({ children }: MiniCartProps) {
                           </Button>
                         </div>
                         <p className="font-medium text-sm">
-                          {formatPriceFromFloat(item.priceAtAdd * item.quantity)}
+                          {formatPriceFromFloat(item.price * item.quantity)}
                         </p>
                       </div>
                     </div>

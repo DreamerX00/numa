@@ -8,7 +8,7 @@ const syncCartSchema = z.object({
     productId: z.string().min(1),
     variantId: z.string().optional(),
     quantity: z.number().int().positive(),
-    selectedAttributes: z.record(z.any()).optional()
+    selectedAttributes: z.record(z.string(), z.any()).optional()
   }))
 });
 
@@ -35,8 +35,7 @@ export async function POST(req: NextRequest) {
     const existingCartItems = await prisma.cartItem.findMany({
       where: { userId: dbUser.id },
       include: {
-        product: true,
-        variant: true
+        product: true
       }
     });
 
@@ -49,8 +48,7 @@ export async function POST(req: NextRequest) {
       mergedItems.set(key, {
         productId: item.productId,
         variantId: item.variantId,
-        quantity: item.quantity,
-        selectedAttributes: item.selectedAttributes || {}
+        quantity: item.quantity
       });
     });
 
@@ -67,7 +65,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate merged items and check inventory
-    const validatedItems = [];
+    const validatedItems: Array<{
+      productId: string;
+      variantId: string | null;
+      quantity: number;
+      price: number;
+    }> = [];
     for (const item of mergedItems.values()) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
         const variant = product.variants.find(v => v.id === item.variantId);
         if (!variant) continue; // Skip invalid variants
         availableQuantity = variant.quantity;
-        price = variant.price;
+        price = variant.price ?? product.price; // Use product price if variant price is null
       }
 
       // Limit quantity to available stock
@@ -113,8 +116,7 @@ export async function POST(req: NextRequest) {
             productId: item.productId,
             variantId: item.variantId,
             quantity: item.quantity,
-            price: item.price,
-            selectedAttributes: item.selectedAttributes
+            price: item.price
           }))
         });
       }
@@ -126,11 +128,9 @@ export async function POST(req: NextRequest) {
       include: {
         product: {
           include: {
-            images: true,
             variants: true
           }
-        },
-        variant: true
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
