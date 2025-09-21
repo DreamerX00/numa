@@ -4,7 +4,7 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { z } from 'zod';
 
 const addressUpdateSchema = z.object({
-  type: z.enum(['SHIPPING', 'BILLING', 'BOTH']).optional(),
+  type: z.enum(['SHIPPING', 'BILLING']).optional(),
   isDefault: z.boolean().optional(),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),

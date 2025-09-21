@@ -13,6 +13,7 @@ export interface ProductVariant {
   quantity: number;
   attributes: Record<string, unknown>; // JSON attributes like size, color, etc.
   image: string | null;
+  images: string[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,6 +25,7 @@ export interface Product {
   slug: string;
   description: string | null;
   shortDescription: string | null;
+  subtitle: string | null;
   
   // Pricing (using Float, not cents like mock)
   price: number;
@@ -68,6 +70,11 @@ export interface Product {
     slug: string;
   };
   tags: string[];
+  
+  // Product attributes for jewelry/fashion
+  badges: string[];
+  materials: string[];
+  gemstones: string[];
   
   // Product status
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';

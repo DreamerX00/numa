@@ -168,6 +168,7 @@ model Product {
   slug        String   @unique
   description String?
   shortDescription String?
+  subtitle    String?
   
   // Pricing
   price       Float
@@ -199,6 +200,11 @@ model Product {
   brandId     String?  @db.ObjectId
   brand       Brand?   @relation(fields: [brandId], references: [id])
   tags        String[]
+  
+  // Product attributes for jewelry/fashion
+  badges      String[]  @default([])
+  materials   String[]  @default([])
+  gemstones   String[]  @default([])
   
   // Product status
   status      ProductStatus @default(DRAFT)
@@ -268,6 +274,7 @@ model ProductVariant {
   
   // Media
   image     String?
+  images    String[] @default([])
   
   // Status
   isActive  Boolean @default(true)

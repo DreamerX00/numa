@@ -5,9 +5,10 @@ import { prisma } from '@/lib/prisma';
 // Get tracking information for a customer's order
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orderNumber: string } }
+  { params }: { params: Promise<{ orderNumber: string }> }
 ) {
   try {
+    const { orderNumber } = await params;
     const user = await getUserFromRequest(request);
     
     if (!user) {
@@ -16,8 +17,6 @@ export async function GET(
         { status: 401 }
       );
     }
-
-    const orderNumber = params.orderNumber;
 
     // Find the order and verify ownership
     const order = await prisma.order.findFirst({

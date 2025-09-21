@@ -18,12 +18,22 @@ interface Props {
   params: { slug: string } 
 }
 
+interface VariantType {
+  id: string;
+  sku: string;
+  priceCents: number;
+  compareAtCents?: number;
+  stock: number;
+  images: string[];
+}
+
 export default function ProductPage({ params }: Props) {
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState<VariantType | null>(null);
   
   const addItem = useCartStore((state) => state.addItem);
 
@@ -34,6 +44,16 @@ export default function ProductPage({ params }: Props) {
         const foundProduct = await fetchProduct(resolvedParams.slug);
         if (foundProduct) {
           setProduct(foundProduct);
+          // Initialize default variant
+          const defaultVariant = {
+            id: `${foundProduct.id}-default`,
+            sku: foundProduct.sku || `${foundProduct.id}-DEFAULT`,
+            priceCents: foundProduct.price * 100,
+            compareAtCents: foundProduct.comparePrice ? foundProduct.comparePrice * 100 : undefined,
+            stock: foundProduct.quantity,
+            images: foundProduct.images.length > 0 ? foundProduct.images : [DEFAULT_IMAGES.PRODUCT]
+          };
+          setSelectedVariant(defaultVariant);
         }
       } catch (error) {
         console.error('Failed to load product:', error);
@@ -67,43 +87,58 @@ export default function ProductPage({ params }: Props) {
   }
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || !selectedVariant) return;
 
-    // Create a compatible variant for cart compatibility
-    const defaultVariant = {
-      id: `${product.id}-default`,
-      sku: product.sku || `${product.id}-DEFAULT`,
-      size: undefined,
-      metal: undefined,
-      priceCents: product.price * 100,
-      compareAtCents: product.comparePrice ? product.comparePrice * 100 : undefined,
-      stock: 10, // Default stock
-      images: product.images
-    };
-
-    // Convert product to match cart interface
+    // Convert product to match cart interface - ensure date is string and handle nullable fields
     const cartProduct = {
       ...product,
-      subtitle: product.shortDescription || product.description || '',
-      description: product.description || undefined,
-      shortDescription: product.shortDescription || undefined,
-      comparePrice: product.comparePrice || undefined,
-      variants: [defaultVariant],
-      materials: [],
-      gemstones: [],
-      collections: [],
-      badges: [],
-      createdAt: new Date().toISOString()
+      description: product.description || null,
+      shortDescription: product.shortDescription || null,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString()
     };
 
-    addItem(cartProduct, defaultVariant, quantity);
+    // Convert VariantType to ProductVariant for cart
+    const cartVariant = {
+      id: selectedVariant.id,
+      productId: product.id,
+      name: `${product.name} - Variant`,
+      sku: selectedVariant.sku,
+      price: selectedVariant.priceCents / 100, // Convert cents to dollars
+      comparePrice: selectedVariant.compareAtCents ? selectedVariant.compareAtCents / 100 : null,
+      quantity: selectedVariant.stock,
+      attributes: {},
+      image: selectedVariant.images[0] || null,
+      images: selectedVariant.images,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    addItem(cartProduct, cartVariant, quantity);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
 
-  const canAddToCart = product.isActive && product.status === 'PUBLISHED';
-  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
-  const primaryImage = product.images?.[0] || DEFAULT_IMAGES.PRODUCT;
+  const canAddToCart = product.isActive && product.status === 'ACTIVE' && (selectedVariant?.stock || product.quantity) > 0;
+
+  if (!selectedVariant) {
+    return (
+      <Container className="py-6 md:py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="grid gap-6 md:gap-8 lg:grid-cols-2">
+            <div className="aspect-square bg-muted rounded-lg" />
+            <div className="space-y-4">
+              <div className="h-8 w-3/4 bg-muted rounded" />
+              <div className="h-6 w-1/2 bg-muted rounded" />
+              <div className="h-12 w-full bg-muted rounded" />
+            </div>
+          </div>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -113,7 +148,7 @@ export default function ProductPage({ params }: Props) {
           <div className="space-y-4">
             <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
               <Image
-                src={variant.images[0]}
+                src={selectedVariant?.images[0] || product.images[0] || DEFAULT_IMAGES.PRODUCT}
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -131,15 +166,21 @@ export default function ProductPage({ params }: Props) {
             </div>
             
             {/* Thumbnail Gallery */}
-            {variant.images.length > 1 && (
+            {(selectedVariant?.images?.length || product.images.length) > 1 && (
               <div className="grid grid-cols-4 gap-4">
-                {variant.images.map((image: string, index: number) => (
-                  <div key={index} className="relative aspect-square overflow-hidden rounded-md bg-muted">
+                {(selectedVariant?.images || product.images).map((image: string, index: number) => (
+                  <div 
+                    key={index} 
+                    className={`relative aspect-square overflow-hidden rounded-md bg-muted cursor-pointer hover:opacity-80 transition-opacity ${
+                      index === selectedImageIndex ? 'ring-2 ring-brand' : ''
+                    }`}
+                  >
                     <Image
                       src={image}
                       alt={`${product.name} view ${index + 1}`}
                       fill
-                      className="object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      className="object-cover"
+                      onClick={() => setSelectedImageIndex(index)}
                     />
                   </div>
                 ))}
@@ -170,16 +211,16 @@ export default function ProductPage({ params }: Props) {
             <div className="space-y-2">
               <div className="flex items-center gap-4">
                 <span className="text-3xl font-bold text-brand">
-                  {formatPrice(variant.priceCents)}
+                  {formatPrice(selectedVariant?.priceCents || product.price * 100)}
                 </span>
-                {variant.compareAtCents && (
+                {(selectedVariant?.compareAtCents || product.comparePrice) && (
                   <span className="text-lg text-muted-foreground line-through">
-                    {formatPrice(variant.compareAtCents)}
+                    {formatPrice(selectedVariant?.compareAtCents || (product.comparePrice ? product.comparePrice * 100 : 0))}
                   </span>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {variant.stock > 0 ? `${variant.stock} in stock` : 'Out of stock'}
+                {(selectedVariant?.stock || product.quantity) > 0 ? `${selectedVariant?.stock || product.quantity} in stock` : 'Out of stock'}
               </p>
             </div>
 
@@ -215,29 +256,6 @@ export default function ProductPage({ params }: Props) {
                 </div>
               )}
             </div>
-
-            {/* Size Selection (if applicable) */}
-            {product.variants.length > 1 && (
-              <div>
-                <h4 className="font-medium mb-3">Options</h4>
-                <div className="flex gap-2 flex-wrap">
-                  {product.variants.map((v) => (
-                    <Button 
-                      key={v.id}
-                      variant={selectedVariant?.id === v.id ? "default" : "outline"} 
-                      size="sm" 
-                      className="min-w-12"
-                      onClick={() => setSelectedVariant(v)}
-                      disabled={v.stock <= 0}
-                    >
-                      {v.size && `Size ${v.size}`}
-                      {v.metal && v.metal}
-                      {v.stock <= 0 && " (Out of Stock)"}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Quantity */}
             <div>
@@ -278,7 +296,7 @@ export default function ProductPage({ params }: Props) {
             <div className="space-y-4">
               <div className="flex gap-4">
                 <CheckoutButton 
-                  amount={variant.priceCents / 100}
+                  amount={(selectedVariant?.priceCents || product.price * 100) / 100}
                   label="Buy Now"
                   className="flex-1"
                 />

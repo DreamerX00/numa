@@ -14,20 +14,21 @@ const updateOrderStatusSchema = z.object({
 })
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params
     // Check admin permissions
     const adminCheck = await requireAdmin(request)
     if (adminCheck instanceof NextResponse) return adminCheck
 
     const body = await request.json()
     const validatedData = updateOrderStatusSchema.parse(body)
-    const orderId = params.id
+    const orderId = id
 
     // Get current order
     const existingOrder = await prisma.order.findUnique({
@@ -228,11 +229,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params
     // Check admin permissions
     const adminCheck = await requireAdmin(request)
     if (adminCheck instanceof NextResponse) return adminCheck
 
-    const orderId = params.id
+    const orderId = id
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },

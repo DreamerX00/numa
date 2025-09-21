@@ -142,7 +142,13 @@ export default function EditProductPage() {
 
   // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: (data: Partial<FormData>) => adminApi.updateProduct(productId, data),
+    mutationFn: (data: Partial<FormData>) => {
+      const transformedData = {
+        ...data,
+        tags: typeof data.tags === 'string' ? data.tags.split(',').map(tag => tag.trim()) : data.tags
+      };
+      return adminApi.updateProduct(productId, transformedData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] });
@@ -632,7 +638,7 @@ export default function EditProductPage() {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((category) => (
+                        {categories.map((category: Category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
                           </SelectItem>

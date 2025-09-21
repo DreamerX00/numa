@@ -217,7 +217,7 @@ export default function CartPage() {
                       <div className="flex-shrink-0">
                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
                           <Image
-                            src={item.variant.images[0]}
+                            src={item.variant?.images?.[0] || item.product.images[0] || '/default-product.jpg'}
                             alt={item.product.name}
                             width={80}
                             height={80}
@@ -238,19 +238,21 @@ export default function CartPage() {
                                 {item.product.name}
                               </Link>
                             </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {item.product.subtitle}
-                            </p>
-                            {(item.variant.size || item.variant.metal) && (
+                            {item.product.subtitle && (
+                              <p className="text-sm text-muted-foreground">
+                                {item.product.subtitle}
+                              </p>
+                            )}
+                            {item.variant && item.variant.attributes && (
                               <div className="flex gap-2 mt-1">
-                                {item.variant.size && (
+                                {String(item.variant.attributes.size || '') && (
                                   <Badge variant="secondary" className="text-xs">
-                                    Size {item.variant.size}
+                                    Size {String(item.variant.attributes.size)}
                                   </Badge>
                                 )}
-                                {item.variant.metal && (
+                                {String(item.variant.attributes.metal || '') && (
                                   <Badge variant="secondary" className="text-xs">
-                                    {item.variant.metal}
+                                    {String(item.variant.attributes.metal)}
                                   </Badge>
                                 )}
                               </div>
@@ -287,12 +289,12 @@ export default function CartPage() {
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                disabled={item.quantity >= item.variant.stock}
+                                disabled={item.quantity >= (item.variant?.quantity || item.product.quantity)}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
-                            {item.quantity >= item.variant.stock && (
+                            {item.quantity >= (item.variant?.quantity || item.product.quantity) && (
                               <span className="text-xs text-amber-600">
                                 Max stock reached
                               </span>
@@ -300,11 +302,11 @@ export default function CartPage() {
                           </div>
                           <div className="text-right">
                             <p className="font-medium">
-                              {formatPrice(item.variant.priceCents * item.quantity)}
+                              {formatPriceFromFloat((item.variant?.price || item.product.price) * item.quantity)}
                             </p>
                             {item.quantity > 1 && (
                               <p className="text-xs text-muted-foreground">
-                                {formatPrice(item.variant.priceCents)} each
+                                {formatPriceFromFloat(item.variant?.price || item.product.price)} each
                               </p>
                             )}
                           </div>
@@ -326,12 +328,12 @@ export default function CartPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span>Subtotal ({totalItems} items)</span>
-                    <span>{formatPrice(totalPrice)}</span>
+                    <span>{formatPriceFromFloat(totalPrice)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
                     <span className={shippingCost === 0 ? "text-green-600" : ""}>
-                      {shippingCost === 0 ? "Free" : formatPrice(shippingCost)}
+                      {shippingCost === 0 ? "Free" : formatPriceFromFloat(shippingCost)}
                     </span>
                   </div>
                   {shippingCost === 0 && (
@@ -342,7 +344,7 @@ export default function CartPage() {
                   <Separator />
                   <div className="flex justify-between font-medium text-base">
                     <span>Total</span>
-                    <span>{formatPrice(finalTotal)}</span>
+                    <span>{formatPriceFromFloat(finalTotal)}</span>
                   </div>
                 </div>
 

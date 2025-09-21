@@ -5,11 +5,12 @@ import { verifyAdminAuth } from '@/lib/auth/admin';
 // GET /api/admin/carousel/[id] - Get specific carousel slide
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const slide = await prisma.carouselSlide.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!slide) {
@@ -32,9 +33,10 @@ export async function GET(
 // PUT /api/admin/carousel/[id] - Update carousel slide
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Verify admin access
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
@@ -66,7 +68,7 @@ export async function PUT(
     }
 
     const slide = await prisma.carouselSlide.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title,
         subtitle,

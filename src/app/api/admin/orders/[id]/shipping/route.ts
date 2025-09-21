@@ -7,9 +7,10 @@ import { OrderStatus } from '@prisma/client';
 // Update shipping information for an order
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authResult = await verifyAdminAuth(request);
     
     if (!authResult.success || !authResult.user) {
@@ -19,7 +20,7 @@ export async function PATCH(
       );
     }
 
-    const orderId = params.id;
+    const orderId = id;
     const body = await request.json();
     
     const { 
@@ -177,9 +178,10 @@ export async function PATCH(
 // Get shipping information for an order
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authResult = await verifyAdminAuth(request);
     
     if (!authResult.success || !authResult.user) {
@@ -189,7 +191,7 @@ export async function GET(
       );
     }
 
-    const orderId = params.id;
+    const orderId = id;
 
     // Get shipping logs for the order
     const shippingLogs = await prisma.shippingLog.findMany({
