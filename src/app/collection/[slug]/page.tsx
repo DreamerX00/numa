@@ -1,4 +1,4 @@
-import { fetchProductsByCollection, fetchCollections } from '../../../lib/services/catalog';
+import { fetchProductsByCollection } from '../../../lib/services/catalog';
 import ProductCard from '../../../components/product/ProductCard';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -9,17 +9,20 @@ interface Props {
   params: Promise<{ slug: string }> 
 }
 
-export async function generateStaticParams() {
-  const cols = await fetchCollections();
-  return cols.map((c: { slug: string }) => ({ slug: c.slug }));
-}
+// Force dynamic rendering instead of static generation
+export const dynamic = 'force-dynamic';
 
 export default async function CollectionPage({ params }: Props) {
   const { slug } = await params;
-  const products = await fetchProductsByCollection(slug);
-  if (!products.length) return notFound();
   
-  const categoryName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  try {
+    const products = await fetchProductsByCollection(slug);
+    if (!products || products.length === 0) {
+      console.log(`No products found for collection: ${slug}`);
+      return notFound();
+    }
+  
+    const categoryName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-light/30 to-white">
@@ -93,4 +96,8 @@ export default async function CollectionPage({ params }: Props) {
       </div>
     </div>
   );
+  } catch (error) {
+    console.error(`Error loading collection ${slug}:`, error);
+    return notFound();
+  }
 }
