@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { ChevronRight, Filter, SortAsc } from 'lucide-react';
 import type { Product } from '@prisma/client';
 
-interface Props { params: { slug: string } }
+interface Props { 
+  params: Promise<{ slug: string }> 
+}
 
 export async function generateStaticParams() {
   const cols = await fetchCollections();

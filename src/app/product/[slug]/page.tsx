@@ -17,7 +17,7 @@ import { sanitizeProductDates } from '@/lib/utils/dates';
 import type { Product } from '@prisma/client';
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 interface VariantType {
