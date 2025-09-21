@@ -22,7 +22,8 @@ const updateProductSchema = z.object({
   metaDescription: z.string().nullish(),
   categoryId: z.string().optional(),
   brandId: z.string().nullish(),
-  tags: z.string().optional(),
+  tags: z.union([z.string(), z.array(z.string())]).optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
 });
@@ -82,7 +83,9 @@ export async function PUT(
 
   try {
     const body = await request.json();
+    console.log('Update request body:', JSON.stringify(body, null, 2));
     const validatedData = updateProductSchema.parse(body);
+    console.log('Validated data:', JSON.stringify(validatedData, null, 2));
 
     // Prepare the update object
     const updateFields: {
@@ -105,6 +108,7 @@ export async function PUT(
       categoryId?: string;
       brandId?: string | null;
       tags?: string[];
+      status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
       isActive?: boolean;
       isFeatured?: boolean;
     } = {};
@@ -128,12 +132,17 @@ export async function PUT(
     if (validatedData.metaDescription !== undefined) updateFields.metaDescription = validatedData.metaDescription;
     if (validatedData.categoryId !== undefined) updateFields.categoryId = validatedData.categoryId;
     if (validatedData.brandId !== undefined) updateFields.brandId = validatedData.brandId;
+    if (validatedData.status !== undefined) updateFields.status = validatedData.status;
     if (validatedData.isActive !== undefined) updateFields.isActive = validatedData.isActive;
     if (validatedData.isFeatured !== undefined) updateFields.isFeatured = validatedData.isFeatured;
     
-    // Handle tags - convert string to array
-    if (validatedData.tags !== undefined) {
-      updateFields.tags = validatedData.tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    // Handle tags - convert string to array or use array directly
+    if (validatedData.tags !== undefined && validatedData.tags !== null) {
+      if (Array.isArray(validatedData.tags)) {
+        updateFields.tags = validatedData.tags;
+      } else {
+        updateFields.tags = validatedData.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+      }
     }
 
     const product = await prisma.product.update({
@@ -175,15 +184,16 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const adminCheck = await requireAdmin(request);
   if (adminCheck instanceof NextResponse) return adminCheck;
 
   try {
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingProduct) {
@@ -195,7 +205,7 @@ export async function DELETE(
 
     // Delete the product
     await prisma.product.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ success: true });

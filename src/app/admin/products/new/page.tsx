@@ -54,6 +54,7 @@ interface FormData {
   categoryId: string;
   sponsors: string; // Comma-separated sponsor names
   tags: string;
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   isActive: boolean;
   isFeatured: boolean;
 }
@@ -82,6 +83,7 @@ export default function NewProductPage() {
     categoryId: '',
     sponsors: '', // Comma-separated sponsor names
     tags: '',
+    status: 'ACTIVE', // Default to ACTIVE for new products
     isActive: true,
     isFeatured: false,
   });
@@ -541,6 +543,24 @@ export default function NewProductPage() {
                   <CardTitle>Status</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="status">Publication Status</Label>
+                    <Select 
+                      value={formData.status} 
+                      onValueChange={(value) => handleInputChange('status', value as 'DRAFT' | 'ACTIVE' | 'ARCHIVED')}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DRAFT">Draft</SelectItem>
+                        <SelectItem value="ACTIVE">Active</SelectItem>
+                        <SelectItem value="ARCHIVED">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Products must be Active to appear in the store</p>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <Label htmlFor="isActive">Active</Label>
                     <Switch

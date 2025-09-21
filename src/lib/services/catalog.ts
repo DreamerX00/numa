@@ -6,6 +6,7 @@ interface Category {
   slug: string;
   description: string | null;
   image: string | null;
+  latestProductImage?: string | null;
   _count?: {
     products: number;
   };
@@ -43,8 +44,8 @@ export async function fetchCollections() {
       name: category.name,
       slug: category.slug,
       description: category.description,
-      image: category.image,
-      heroImage: category.image, // Use same image for hero
+      image: category.latestProductImage || category.image,
+      heroImage: category.latestProductImage || category.image,
       productCount: category._count?.products || 0
     }));
   } catch (error) {

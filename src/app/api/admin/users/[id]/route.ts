@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, logAdminAction, verifyAdminAuth } from '@/lib/auth/admin';
+import { logAdminAction, verifyAdminAuth } from '@/lib/auth/admin';
 import { AdminLogAction } from '@prisma/client';
 
 export async function DELETE(
@@ -9,10 +9,14 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const adminCheck = await requireAdmin(request);
-    if (adminCheck) return adminCheck;
+    // Get admin authentication details
+    const adminAuth = await verifyAdminAuth(request);
+    if (!adminAuth.success || !adminAuth.user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
 
     const userId = id;
+    const currentAdminRole = adminAuth.user.role;
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -28,6 +32,24 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
+      );
+    }
+
+    // SECURITY: Only SUPER_ADMIN can delete ADMIN or SUPER_ADMIN users
+    if (existingUser.role === 'ADMIN' || existingUser.role === 'SUPER_ADMIN') {
+      if (currentAdminRole !== 'SUPER_ADMIN') {
+        return NextResponse.json(
+          { error: 'Only Super Admins can delete Admin or Super Admin users' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Prevent Super Admins from deleting themselves
+    if (userId === adminAuth.user.id) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own account' },
+        { status: 403 }
       );
     }
 
@@ -52,21 +74,18 @@ export async function DELETE(
     });
 
     // Log admin action
-    const adminAuth = await verifyAdminAuth(request);
-    if (adminAuth.success && adminAuth.user) {
-      await logAdminAction(
-        adminAuth.user.id,
-        AdminLogAction.DELETE,
-        'user',
-        userId,
-        { 
-          deletedUser: {
-            email: existingUser.email,
-            role: existingUser.role
-          }
+    await logAdminAction(
+      adminAuth.user.id,
+      AdminLogAction.DELETE,
+      'user',
+      userId,
+      { 
+        deletedUser: {
+          email: existingUser.email,
+          role: existingUser.role
         }
-      );
-    }
+      }
+    );
 
     return NextResponse.json({
       message: 'User deleted successfully'

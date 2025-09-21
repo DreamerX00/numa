@@ -459,7 +459,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" className="bg-brand hover:bg-brand-dark text-white shadow-lg pulse-glow" asChild>
+                  <Button size="lg" className="bg-brand hover:bg-brand-dark text-black shadow-lg pulse-glow hover:text-orange-500" asChild>
                     <Link href="/collections">
                       Shop Collections
                       <motion.div
@@ -480,7 +480,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" variant="outline" className="border-brand text-brand hover:bg-brand hover:text-white" asChild>
+                  <Button size="lg" variant="outline" className="border-brand text-brand hover:bg-brand hover:text-orange-500" asChild>
                     <Link href="/about">
                       Our Story
                     </Link>
@@ -519,7 +519,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.5 }}
                 >
-                  Trusted by 10,000+ customers
+                  Trusted by 500+ customers
                 </motion.p>
               </motion.div>
             </motion.div>

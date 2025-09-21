@@ -167,7 +167,7 @@ export default function ProductPage({ params }: Props) {
             
             {/* Thumbnail Gallery */}
             {(selectedVariant?.images?.length || product.images.length) > 1 && (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {(selectedVariant?.images || product.images).map((image: string, index: number) => (
                   <div 
                     key={index} 

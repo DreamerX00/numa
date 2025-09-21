@@ -3,31 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Loader2 } from "lucide-react";
-
-// Minimal type declarations (avoid installing @types for now)
-interface RazorpayOptions {
-  key: string;
-  amount: number; // in paise
-  currency: string;
-  name?: string;
-  description?: string;
-  order_id: string;
-  handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
-  prefill?: { name?: string; email?: string; contact?: string };
-  notes?: Record<string, string>;
-  theme?: { color?: string };
-}
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => { open: () => void };
-  }
-}
+import type { RazorpayOptions } from "@/lib/types/razorpay";
 
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
 function loadScript(src: string) {
   return new Promise<boolean>((resolve) => {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      resolve(false);
+      return;
+    }
+    
     if (document.querySelector(`script[src="${src}"]`)) {
       resolve(true);
       return;
@@ -64,13 +51,26 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
   const createOrder = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/razorpay/order", {
+      const res = await fetch("/api/razorpay/quick-buy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Math.round(amount * 100) }) // server expects amount in paise or will convert
+        body: JSON.stringify({ 
+          amount: amount, // Send amount in INR
+          currency: "INR",
+          receipt: `demo_${Date.now()}`
+        })
       });
-      if (!res.ok) throw new Error("Failed to create order");
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error('Order creation failed:', errorData);
+        throw new Error(errorData.error || "Failed to create order");
+      }
+      
       return await res.json();
+    } catch (error) {
+      console.error('Order creation error:', error);
+      throw error;
     } finally {
       if (mounted.current) setLoading(false);
     }
@@ -83,15 +83,68 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
       key: order.key_id,
       amount: order.amount, // already in paise from backend
       currency: order.currency,
-      name: "Numa Demo",
-      description: "Razorpay Integration Test Payment",
+      name: "NUMA",
+      description: "Single Product Purchase",
       order_id: order.id,
-      handler: (response) => {
+      handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
         // For now just log; future phase: optimistic UI, poll status
         console.log("Payment success", response);
-        // Optionally show a toast (not yet implemented)
+        // Show success message
+        alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
       },
-      theme: { color: "#E7654D" }
+      theme: { 
+        color: "#E7654D",
+        backdrop_color: "#000000"
+      },
+      modal: {
+        ondismiss: () => {
+          console.log('Payment cancelled by user');
+        },
+        escape: true,
+        backdropclose: false
+      },
+      config: {
+        display: {
+          blocks: {
+            banks: {
+              name: 'Pay using Bank Account',
+              instruments: [
+                {
+                  method: 'netbanking'
+                },
+                {
+                  method: 'upi'
+                }
+              ]
+            },
+            other: {
+              name: 'Other Payment Modes', 
+              instruments: [
+                {
+                  method: 'card'
+                },
+                {
+                  method: 'wallet'
+                }
+              ]
+            }
+          },
+          hide: [
+            // Don't hide any payment methods
+          ],
+          preferences: {
+            show_default_blocks: true
+          }
+        }
+      },
+      method: {
+        netbanking: true,
+        card: true,
+        upi: true,
+        wallet: true,
+        emi: true,
+        paylater: true
+      }
     };
     const rz = new window.Razorpay!(opts);
     rz.open();

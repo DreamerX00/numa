@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -20,31 +20,18 @@ import {
   CreditCard,
   Loader2
 } from "lucide-react";
-
-// Razorpay checkout integration
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => { open: () => void };
-  }
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name?: string;
-  description?: string;
-  order_id: string;
-  handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
-  prefill?: { name?: string; email?: string; contact?: string };
-  notes?: Record<string, string>;
-  theme?: { color?: string };
-}
+import type { RazorpayOptions } from "@/lib/types/razorpay";
 
 const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
 function loadScript(src: string) {
   return new Promise<boolean>((resolve) => {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      resolve(false);
+      return;
+    }
+    
     if (document.querySelector(`script[src="${src}"]`)) {
       resolve(true);
       return;
@@ -68,9 +55,9 @@ export default function CartPage() {
   const finalTotal = totalPrice + shippingCost;
 
   // Load Razorpay script on mount
-  useState(() => {
+  useEffect(() => {
     loadScript(RAZORPAY_SCRIPT).then(setRazorpayReady);
-  });
+  }, []);
 
   const createOrder = async () => {
     setLoading(true);
@@ -109,8 +96,44 @@ export default function CartPage() {
     }
   };
 
+  const verifyPayment = async (paymentData: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  }) => {
+    try {
+      const response = await fetch('/api/razorpay/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Payment verification failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Payment verified successfully
+        clearCart();
+        if (typeof window !== 'undefined') {
+          window.location.href = `/order-success?payment_id=${paymentData.razorpay_payment_id}&order_id=${result.order.orderNumber}`;
+        }
+      } else {
+        throw new Error('Payment verification failed');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      // Redirect to failure page or show error
+      if (typeof window !== 'undefined') {
+        window.location.href = `/payment-failed?error=verification_failed`;
+      }
+    }
+  };
+
   const handlePayment = async () => {
-    if (!window.Razorpay || !razorpayReady) return;
+    if (typeof window === 'undefined' || !window.Razorpay || !razorpayReady) return;
     
     try {
       const order = await createOrder();
@@ -121,30 +144,84 @@ export default function CartPage() {
         name: "NUMA",
         description: `Payment for ${totalItems} item${totalItems !== 1 ? 's' : ''}`,
         order_id: order.razorpayOrderId,
-        handler: (response) => {
-          // Payment successful
-          console.log("Payment success", response);
-          clearCart();
-          // Redirect to success page or show success message
-          window.location.href = `/order-success?payment_id=${response.razorpay_payment_id}&order_id=${order.orderNumber}`;
+        handler: async (response) => {
+          // Payment successful, now verify it
+          await verifyPayment(response);
         },
         prefill: {
           name: "",
           email: "",
           contact: "",
         },
-        theme: { color: "#E7654D" },
+        theme: { 
+          color: "#E7654D",
+          backdrop_color: "#000000"
+        },
         notes: {
           orderNumber: order.orderNumber,
           items: items.map(item => `${item.product.name} x${item.quantity}`).join(', ')
+        },
+        modal: {
+          ondismiss: () => {
+            // Payment was cancelled or failed
+            console.log('Payment cancelled by user');
+          },
+          escape: true,
+          backdropclose: false
+        },
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: 'Pay using Bank Account',
+                instruments: [
+                  {
+                    method: 'netbanking'
+                  },
+                  {
+                    method: 'upi'
+                  }
+                ]
+              },
+              other: {
+                name: 'Other Payment Modes', 
+                instruments: [
+                  {
+                    method: 'card'
+                  },
+                  {
+                    method: 'wallet'
+                  }
+                ]
+              }
+            },
+            hide: [
+              // Don't hide any payment methods
+            ],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
+        },
+        method: {
+          netbanking: true,
+          card: true,
+          upi: true,
+          wallet: true,
+          emi: true,
+          paylater: true
         }
       };
       
+      // Use the already typed Razorpay constructor
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
       console.error("Payment failed:", error);
-      // Show error toast
+      // Show error message or redirect to failure page
+      if (typeof window !== 'undefined') {
+        window.location.href = `/payment-failed?error=order_creation_failed`;
+      }
     }
   };
 

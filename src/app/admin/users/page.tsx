@@ -3,6 +3,7 @@
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/auth/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -136,7 +137,22 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [limit] = useState(20);
   
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Get current user's role from database to verify permissions
+  const { data: currentUserData } = useQuery({
+    queryKey: ['current-user-role'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/current-user');
+      if (!response.ok) throw new Error('Failed to get current user');
+      return response.json();
+    },
+    enabled: !!user,
+  });
+  
+  const currentUserRole = currentUserData?.role;
+  const isSuperAdmin = currentUserRole === 'SUPER_ADMIN';
 
   // Fetch users
   const { data, isLoading, error } = useQuery({
@@ -402,7 +418,9 @@ export default function AdminUsersPage() {
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit Profile
                                 </DropdownMenuItem>
-                                {user.role === 'CUSTOMER' && (
+                                
+                                {/* Only Super Admins can promote users to Admin role */}
+                                {user.role === 'CUSTOMER' && isSuperAdmin && (
                                   <DropdownMenuItem
                                     onClick={() => handleRoleUpdate(user.id, 'ADMIN')}
                                   >
@@ -410,7 +428,9 @@ export default function AdminUsersPage() {
                                     Make Admin
                                   </DropdownMenuItem>
                                 )}
-                                {user.role === 'ADMIN' && (
+                                
+                                {/* Only Super Admins can modify Admin users */}
+                                {user.role === 'ADMIN' && isSuperAdmin && (
                                   <>
                                     <DropdownMenuItem
                                       onClick={() => handleRoleUpdate(user.id, 'CUSTOMER')}
@@ -425,18 +445,38 @@ export default function AdminUsersPage() {
                                     </DropdownMenuItem>
                                   </>
                                 )}
+                                
+                                {/* Show restricted message for regular admins */}
+                                {(user.role === 'CUSTOMER' || user.role === 'ADMIN') && !isSuperAdmin && (
+                                  <DropdownMenuItem disabled>
+                                    <Shield className="h-4 w-4 mr-2 opacity-50" />
+                                    Manage Role (Super Admin Only)
+                                  </DropdownMenuItem>
+                                )}
+                                
                                 <DropdownMenuItem
                                   onClick={() => handleStatusUpdate(user.id, !user.isActive)}
                                 >
                                   <Ban className="h-4 w-4 mr-2" />
                                   {user.isActive ? 'Deactivate' : 'Activate'}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-600"
-                                  onClick={() => handleDeleteUser(user.id)}
-                                >
-                                  Delete User
-                                </DropdownMenuItem>
+                                
+                                {/* Only Super Admins can delete admin users */}
+                                {(user.role === 'CUSTOMER' || isSuperAdmin) && (
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => handleDeleteUser(user.id)}
+                                  >
+                                    Delete User
+                                  </DropdownMenuItem>
+                                )}
+                                
+                                {/* Show restricted message for deleting admin users */}
+                                {(user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && !isSuperAdmin && (
+                                  <DropdownMenuItem disabled className="text-gray-400">
+                                    Delete User (Super Admin Only)
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

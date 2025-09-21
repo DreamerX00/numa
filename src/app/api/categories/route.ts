@@ -8,12 +8,7 @@ export async function GET(request: NextRequest) {
 
     const categories = await prisma.category.findMany({
       where: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        image: true,
+      include: {
         _count: includeCounts ? {
           select: {
             products: {
@@ -23,12 +18,34 @@ export async function GET(request: NextRequest) {
               }
             }
           }
-        } : false
+        } : false,
+        // Get the latest product from each category for the image
+        products: {
+          where: {
+            isActive: true,
+            status: 'ACTIVE'
+          },
+          select: {
+            images: true
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1
+        }
       },
       orderBy: { name: 'asc' }
     });
 
-    return NextResponse.json(categories);
+    // Transform categories to include latest product image
+    const categoriesWithImages = categories.map(category => ({
+      ...category,
+      // Use latest product image if available and has images, otherwise fall back to category image
+      latestProductImage: (category.products[0]?.images?.length > 0) ? category.products[0].images[0] : null,
+      products: undefined // Remove products array from response
+    }));
+
+    return NextResponse.json(categoriesWithImages);
 
   } catch (error) {
     console.error('Public categories fetch error:', error);

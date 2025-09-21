@@ -21,6 +21,7 @@ interface ProductData {
   categoryId?: string;
   brandId?: string;
   tags?: string[]; // Array of strings to match backend schema
+  status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   isActive?: boolean;
   isFeatured?: boolean;
 }

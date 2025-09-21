@@ -95,9 +95,10 @@ export async function PUT(
 // DELETE /api/admin/carousel/[id] - Delete carousel slide
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Verify admin access
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
@@ -108,7 +109,7 @@ export async function DELETE(
     }
 
     await prisma.carouselSlide.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ success: true });
