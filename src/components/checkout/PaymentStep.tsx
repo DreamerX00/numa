@@ -189,10 +189,6 @@ export function PaymentStep({
         currency: 'INR'
       };
       
-      console.log('Creating order with data:', orderData);
-      console.log('Cart items structure:', cartItems);
-      console.log('Address details:', checkoutData.address);
-
       // Create order on server
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -223,7 +219,6 @@ export function PaymentStep({
       }
 
       const orderResult = await response.json();
-      console.log('Order creation successful:', orderResult);
       
       if (!orderResult.success) {
         throw new Error(orderResult.error || 'Failed to create order');

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { XCircle, ShoppingCart, Home, RefreshCw } from "lucide-react";
 
-export default function PaymentFailedPage() {
+function PaymentFailedPageContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const [mounted, setMounted] = useState(false);
@@ -104,5 +104,17 @@ export default function PaymentFailedPage() {
         </div>
       </motion.div>
     </Container>
+  );
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+      </div>
+    }>
+      <PaymentFailedPageContent />
+    </Suspense>
   );
 }

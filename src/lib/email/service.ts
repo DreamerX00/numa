@@ -99,7 +99,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 export async function verifyEmailConfig() {
   try {
     await transporter.verify();
-    console.log('Email server is ready to take our messages');
+    // Email server connection established
     return true;
   } catch (error) {
     console.error('Email server configuration error:', error);

@@ -67,7 +67,7 @@ async function main() {
   console.log('✅ Categories created');
 
   // Create Sponsors (instead of brands)
-  const sponsors = await Promise.all([
+  await Promise.all([
     prisma.brand.upsert({
       where: { slug: 'de-beers' },
       update: {},

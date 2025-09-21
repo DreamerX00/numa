@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Container } from '@/components/ui/container';
 import { Card } from '@/components/ui/card';
@@ -67,7 +67,7 @@ function SearchResults() {
     featured: searchParams.get('featured') === 'true'
   });
 
-  const fetchSearchResults = async () => {
+  const fetchSearchResults = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
@@ -87,11 +87,11 @@ function SearchResults() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchSearchResults();
-  }, [filters]);
+  }, [filters, fetchSearchResults]);
 
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
@@ -112,7 +112,7 @@ function SearchResults() {
     { value: 'newest', label: 'Newest' }
   ];
 
-  const activeSortLabel = sortOptions.find(opt => opt.value === filters.sortBy)?.label;
+  // const activeSortLabel = sortOptions.find(opt => opt.value === filters.sortBy)?.label;
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,7 +131,7 @@ function SearchResults() {
                 <p>
                   Showing {searchResults.searchMeta.resultsCount} results for{' '}
                   <span className="font-medium text-foreground">
-                    "{searchResults.searchMeta.query}"
+                    &quot;{searchResults.searchMeta.query}&quot;
                   </span>
                   {' '}in {searchResults.searchMeta.processingTime}
                 </p>

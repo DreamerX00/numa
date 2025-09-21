@@ -29,11 +29,6 @@ interface Category {
   name: string;
 }
 
-interface Brand {
-  id: string;
-  name: string;
-}
-
 interface FormData {
   name: string;
   slug: string;

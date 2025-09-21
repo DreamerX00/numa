@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Package, Home } from "lucide-react";
 
-export default function OrderSuccessPage() {
+function OrderSuccessPageContent() {
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("payment_id");
   const [mounted, setMounted] = useState(false);
@@ -80,5 +80,17 @@ export default function OrderSuccessPage() {
         </div>
       </motion.div>
     </Container>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+      </div>
+    }>
+      <OrderSuccessPageContent />
+    </Suspense>
   );
 }

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         }
 
         let weight = product.weight || 0;
-        let dimensions = {
+        const dimensions = {
           length: product.shippingLength || 0,
           width: product.shippingWidth || 0,
           height: product.shippingHeight || 0

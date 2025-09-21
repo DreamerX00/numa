@@ -146,7 +146,7 @@ async function handleUserWelcomeEmail(userId: string) {
   }
 
   // You can implement welcome email template here
-  console.log(`Welcome email should be sent to: ${user.email}`);
+  // TODO: Send welcome email notification
 }
 
 // Helper function to queue email for background processing

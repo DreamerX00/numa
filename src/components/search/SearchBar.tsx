@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Search, X, Clock, TrendingUp, Package, Tag } from 'lucide-react';
@@ -39,7 +39,7 @@ interface SearchBarProps {
   onSearch?: (query: string) => void;
 }
 
-export function SearchBar({ 
+function SearchBarContent({ 
   placeholder = "Search products, categories...", 
   className,
   autoFocus = false,
@@ -412,5 +412,23 @@ export function SearchBar({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export function SearchBar(props: SearchBarProps) {
+  return (
+    <Suspense fallback={
+      <div className={cn(
+        "relative w-full max-w-md bg-background border rounded-lg px-4 py-3",
+        props.className
+      )}>
+        <div className="flex items-center space-x-2 text-muted-foreground">
+          <Search className="h-5 w-5" />
+          <span className="text-sm">Search...</span>
+        </div>
+      </div>
+    }>
+      <SearchBarContent {...props} />
+    </Suspense>
   );
 }

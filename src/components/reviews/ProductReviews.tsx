@@ -99,10 +99,10 @@ export default function ProductReviews({ productId, productName, showWriteReview
     fetchReviews(1, sortBy) // Refresh reviews
   }
 
-  const handleHelpful = async (reviewId: string) => {
-    // TODO: Implement helpful vote functionality
-    console.log('Marking review as helpful:', reviewId)
-  }
+  // TODO: Implement helpful vote functionality
+  // const handleHelpful = async (reviewId: string) => {
+  //   // Implementation pending
+  // }
 
   if (loading && !reviewsData) {
     return (
@@ -211,7 +211,7 @@ export default function ProductReviews({ productId, productName, showWriteReview
             <ReviewCard
               key={review.id}
               review={review}
-              onHelpful={handleHelpful}
+              // onHelpful={handleHelpful} // TODO: Implement helpful vote functionality
             />
           ))}
 

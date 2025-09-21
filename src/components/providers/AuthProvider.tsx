@@ -27,18 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { auth } = getFirebaseClient();
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("AuthProvider: onAuthStateChanged triggered", {
-        firebaseUser: firebaseUser ? { uid: firebaseUser.uid, email: firebaseUser.email } : null
-      });
+      // Auth state change triggered
       
       if (firebaseUser) {
         // Verify that we also have a valid server-side session
         try {
-          console.log("AuthProvider: Verifying server session...");
           const response = await fetch('/api/auth/verify');
           const { authenticated } = await response.json();
-          
-          console.log("AuthProvider: Server verification result:", { authenticated });
           
           if (authenticated) {
             setUser({
@@ -47,10 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
             });
-            console.log("AuthProvider: User set from existing session");
+            // User set from existing session
           } else {
             // Firebase auth is valid but no server session - create one
-            console.log("AuthProvider: Creating new server session...");
             const idToken = await firebaseUser.getIdToken();
             await fetch('/api/auth/login', {
               method: 'POST',
@@ -64,18 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
             });
-            console.log("AuthProvider: User set from new session");
+            // User set from new session
           }
         } catch (error) {
           console.error('AuthProvider: Session verification error:', error);
           setUser(null);
         }
       } else {
-        console.log("AuthProvider: No firebase user, setting user to null");
+        // No firebase user, setting user to null
         setUser(null);
       }
       setLoading(false);
-      console.log("AuthProvider: Loading set to false");
+      // Loading set to false
     });
 
     return () => unsubscribe();

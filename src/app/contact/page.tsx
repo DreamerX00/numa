@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Phone, 
   Mail, 
-  MapPin, 
   Clock, 
   MessageCircle, 
   Send,
@@ -148,7 +147,7 @@ export default function ContactPage() {
               Get in <span className="text-brand">Touch</span>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              We're here to help you find the perfect piece or answer any questions about our jewelry collections. 
+              We&apos;re here to help you find the perfect piece or answer any questions about our jewelry collections. 
               Reach out to our dedicated team for personalized assistance.
             </p>
           </motion.div>
@@ -165,7 +164,7 @@ export default function ContactPage() {
           {/* Contact Methods Grid */}
           <motion.section variants={itemVariants}>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-              {contactMethods.map((method, index) => (
+              {contactMethods.map((method) => (
                 <motion.div
                   key={method.title}
                   variants={itemVariants}
@@ -202,7 +201,7 @@ export default function ContactPage() {
                     Send us a Message
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Fill out the form below and we'll get back to you within 24 hours.
+                    Fill out the form below and we&apos;ll get back to you within 24 hours.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -215,7 +214,7 @@ export default function ContactPage() {
                       <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold mb-2">Message Sent!</h3>
                       <p className="text-muted-foreground">
-                        Thank you for reaching out. We'll get back to you soon.
+                        Thank you for reaching out. We&apos;ll get back to you soon.
                       </p>
                       <Button
                         onClick={() => setIsSubmitted(false)}

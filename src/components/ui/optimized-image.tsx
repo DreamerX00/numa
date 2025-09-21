@@ -27,7 +27,7 @@ export function OptimizedImage({
   const [error, setError] = useState(false)
 
   // Fallback placeholder for jewelry images
-  const fallbackSrc = `https://picsum.photos/${width || 600}/${height || 600}?random=${Math.floor(Math.random() * 1000)}`
+  // const fallbackSrc = `https://picsum.photos/${width || 600}/${height || 600}?random=${Math.floor(Math.random() * 1000)}`
 
   if (error) {
     return (

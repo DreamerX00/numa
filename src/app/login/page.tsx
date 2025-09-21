@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -24,7 +24,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginPageContent() {
   const search = useSearchParams();
   const redirect = search.get("redirect") || "/";
   const [loading, setLoading] = useState(false);
@@ -86,25 +86,16 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      console.log("Starting Google sign-in...");
       const { auth, googleProvider } = getFirebaseClient();
-      console.log("Firebase client initialized:", { auth: !!auth, googleProvider: !!googleProvider });
       
-      console.log("Opening Google popup...");
       const cred = await signInWithPopup(auth, googleProvider);
-      console.log("Google sign-in successful:", cred.user.email);
-      
-      console.log("Getting ID token...");
       const idToken = await cred.user.getIdToken();
-      console.log("ID token obtained, length:", idToken.length);
       
-      console.log("Calling login API...");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
-      console.log("Login API response:", res.status, res.statusText);
       
       if (!res.ok) {
         const errorText = await res.text();
@@ -115,7 +106,6 @@ export default function LoginPage() {
       // Force a small delay to ensure state updates
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      console.log("Redirecting to:", redirect);
       // Redirect to the desired page
       window.location.href = redirect;
     } catch (err: unknown) {
@@ -334,5 +324,17 @@ export default function LoginPage() {
       </Card>
       </motion.div>
     </Container>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }

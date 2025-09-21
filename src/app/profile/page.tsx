@@ -55,20 +55,10 @@ export default function ProfilePage() {
   } = useUserProfile();
   
   const { 
-    data: addressesData, 
-    isLoading: addressesLoading,
-    error: addressesError 
-  } = useAddresses();
-
-  const updateProfileMutation = useUpdateUserProfile();
-
-  // Temporary debugging to see what's happening with API calls
-  console.log("Profile page state:", {
-    profileLoading,
-    profileError,
-    profileData: profileData ? "Data loaded" : "No data",
-    hasAddressesData: addressesData ? "Has addresses" : "No addresses"
-  });
+    data: addressesData,
+    // isLoading: addressesLoading,
+    // error: addressesError 
+  } = useAddresses();  const updateProfileMutation = useUpdateUserProfile();
 
   // ProtectedRoute already handles authentication, so user is guaranteed to be authenticated here
 

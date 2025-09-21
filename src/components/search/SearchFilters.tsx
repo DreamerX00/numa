@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { X, Filter } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface SearchFiltersProps {
   filters: {

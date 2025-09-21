@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Container } from '@/components/ui/container';
-import { Instagram, Twitter, Facebook, Mail } from 'lucide-react';
+import { Instagram, Mail } from 'lucide-react';
 
 export function Footer() {
   return (

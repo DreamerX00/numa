@@ -17,7 +17,7 @@ export function getFirebaseAdmin() {
         adminApp = initializeApp({
           credential: cert(serviceAccount),
         });
-        console.log("Firebase Admin initialized with service account file");
+        // Firebase Admin initialized with service account file
         return { adminApp: adminApp!, adminAuth: getAuth() };
       } catch (error) {
         console.error("Error reading service account file:", error);
@@ -50,7 +50,7 @@ Current values:
       credential: cert({ projectId, clientEmail, privateKey }),
     });
     
-    console.log("Firebase Admin initialized with environment variables");
+    // Firebase Admin initialized with environment variables
   }
   return { adminApp: adminApp!, adminAuth: getAuth() };
 }

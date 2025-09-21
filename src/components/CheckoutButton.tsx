@@ -91,9 +91,7 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
       description: productDescription,
       order_id: order.id,
       handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
-        // For now just log; future phase: optimistic UI, poll status
-        console.log("Payment success", response);
-        // Show success message
+        // Payment successful - show success message
         alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
       },
       prefill: {
@@ -113,7 +111,7 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
       },
       modal: {
         ondismiss: () => {
-          console.log('Payment cancelled by user');
+          // Payment cancelled by user
         },
         escape: true,
         backdropclose: false
