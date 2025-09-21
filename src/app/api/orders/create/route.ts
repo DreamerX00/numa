@@ -135,15 +135,31 @@ export async function POST(req: NextRequest) {
         }
 
         const razorpay = new Razorpay({ key_id, key_secret });
+        
+        // Create detailed order description with pricing
+        const productDetails = validatedItems.slice(0, 2).map(item => {
+          const itemTotal = item.price * item.quantity;
+          return `${item.name} (₹${item.price} x${item.quantity} = ₹${itemTotal.toFixed(2)})`;
+        });
+        
+        const orderDescription = validatedItems.length <= 2 
+          ? productDetails.join(', ')
+          : `${productDetails.join(', ')} + ${validatedItems.length - 2} more`;
+        
         const razorpayOrder = await razorpay.orders.create({
           amount: Math.round(totalAmount * 100), // amount in paise
           currency: 'INR',
           receipt: orderNumber,
           notes: {
             orderNumber,
-            userId: dbUser.id,
+            customerEmail: dbUser.email,
+            description: orderDescription,
             itemCount: validatedItems.length.toString(),
-            ...notes
+            subtotal: `₹${subtotal.toFixed(2)}`,
+            shipping: `₹${shippingAmount.toFixed(2)}`,
+            total: `₹${totalAmount.toFixed(2)}`,
+            products: validatedItems.map(item => `${item.name} x${item.quantity}`).join(', '),
+            source: notes?.source || 'web_checkout'
           }
         });
 

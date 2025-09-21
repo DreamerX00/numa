@@ -4,6 +4,23 @@ import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email/service';
 import { OrderStatus } from '@prisma/client';
 
+// Enhanced tracking URL generation
+function generateTrackingUrl(carrier: string, trackingNumber: string): string {
+  const trackingUrls: Record<string, string> = {
+    'FedEx': `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`,
+    'UPS': `https://www.ups.com/track?loc=en_US&tracknum=${trackingNumber}`,
+    'DHL': `https://www.dhl.com/in-en/home/tracking/tracking-express.html?submit=1&tracking-id=${trackingNumber}`,
+    'India Post': `https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackingparcel.aspx?pnumber=${trackingNumber}`,
+    'BlueDart': `https://www.bluedart.com/web/guest/trackdartresult?trackFor=0&trackNo=${trackingNumber}`,
+    'DTDC': `https://www.dtdc.in/tracking/tracking_results.asp?Ttype=awb_no&strTtype=AWB%20No.&TrkType=awb_no&strCnno=${trackingNumber}`,
+    'Ecom Express': `https://ecomexpress.in/tracking/?awb_field=${trackingNumber}`,
+    'Delhivery': `https://www.delhivery.com/track?waybill=${trackingNumber}`,
+    'Xpressbees': `https://www.xpressbees.com/courier-tracking?awb=${trackingNumber}`,
+  };
+  
+  return trackingUrls[carrier] || `https://google.com/search?q=${carrier}+tracking+${trackingNumber}`;
+}
+
 // Update shipping information for an order
 export async function PATCH(
   request: NextRequest,
@@ -163,7 +180,10 @@ export async function PATCH(
 
     return NextResponse.json({
       message: 'Shipping information updated successfully',
-      order: updatedOrder
+      order: {
+        ...updatedOrder,
+        trackingUrl: generateTrackingUrl(carrier, trackingNumber)
+      }
     });
 
   } catch (error) {
@@ -221,7 +241,12 @@ export async function GET(
     }
 
     return NextResponse.json({
-      order,
+      order: {
+        ...order,
+        trackingUrl: order.trackingNumber && order.carrier 
+          ? generateTrackingUrl(order.carrier, order.trackingNumber)
+          : null
+      },
       shippingLogs
     });
 

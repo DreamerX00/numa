@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useHybridCartStore } from "@/lib/store/hybridCart";
 import { useCartService } from "@/hooks/useCartService";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
-import { calculateShippingCost, amountNeededForFreeShipping, defaultShippingConfig } from "@/lib/config/shipping";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,214 +19,80 @@ import {
   Trash2, 
   ShoppingBag, 
   ArrowLeft,
-  CreditCard,
+  ArrowRight,
   Loader2
 } from "lucide-react";
-import type { RazorpayOptions } from "@/lib/types/razorpay";
-
-const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
-
-function loadScript(src: string) {
-  return new Promise<boolean>((resolve) => {
-    // Check if we're in browser environment
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      resolve(false);
-      return;
-    }
-    
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
 
 export default function CartPage() {
-  const { items, getTotalPrice, getTotalItems, clearCart } = useHybridCartStore();
+  const router = useRouter();
+  const { items, getTotalPrice, getTotalItems } = useHybridCartStore();
   const { updateQuantity, removeItem } = useCartService();
-  const [loading, setLoading] = useState(false);
-  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [shippingData, setShippingData] = useState({
+    cost: 0,
+    qualifiesForFree: false,
+    amountNeeded: 0,
+    loading: true,
+  });
 
   const totalPrice = getTotalPrice();
   const totalItems = getTotalItems();
-  const shippingCost = calculateShippingCost(totalPrice);
-  const finalTotal = totalPrice + shippingCost;
-  const amountForFreeShipping = amountNeededForFreeShipping(totalPrice);
+  const finalTotal = totalPrice + shippingData.cost;
 
-  // Load Razorpay script on mount
-  useEffect(() => {
-    loadScript(RAZORPAY_SCRIPT).then(setRazorpayReady);
-  }, []);
-
-  const createOrder = async () => {
-    setLoading(true);
-    try {
-      // Prepare cart items for order creation
-      const cartItems = items.map(item => ({
-        productId: item.product.id,
-        variantId: item.variant?.id,
-        quantity: item.quantity,
-        price: item.product.price
-      }));
-
-      const res = await fetch("/api/orders/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          cartItems,
-          notes: {
-            source: 'web_checkout',
-            items: items.map(item => `${item.product.name} x${item.quantity}`).join(', ')
-          }
-        }),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to create order");
-      }
-      
-      return await res.json();
-    } catch (error) {
-      console.error('Order creation failed:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyPayment = async (paymentData: {
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-  }) => {
-    try {
-      const response = await fetch('/api/razorpay/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Payment verification failed');
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Payment verified successfully
-        clearCart();
-        if (typeof window !== 'undefined') {
-          window.location.href = `/order-success?payment_id=${paymentData.razorpay_payment_id}&order_id=${result.order.orderNumber}`;
-        }
-      } else {
-        throw new Error('Payment verification failed');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      // Redirect to failure page or show error
-      if (typeof window !== 'undefined') {
-        window.location.href = `/payment-failed?error=verification_failed`;
-      }
-    }
-  };
-
-  const handlePayment = async () => {
-    if (typeof window === 'undefined' || !window.Razorpay || !razorpayReady) return;
+  const calculateShipping = useCallback(async () => {
+    if (items.length === 0) return;
+    
+    setShippingData(prev => ({ ...prev, loading: true }));
     
     try {
-      const order = await createOrder();
-      const options: RazorpayOptions = {
-        key: order.key_id,
-        amount: order.amount,
-        currency: order.currency,
-        name: "NUMA",
-        description: `Payment for ${totalItems} item${totalItems !== 1 ? 's' : ''}`,
-        order_id: order.razorpayOrderId,
-        handler: async (response) => {
-          // Payment successful, now verify it
-          await verifyPayment(response);
-        },
-        prefill: {
-          name: "",
-          email: "",
-          contact: "",
-        },
-        theme: { 
-          color: "#E7654D",
-          backdrop_color: "#000000"
-        },
-        notes: {
-          orderNumber: order.orderNumber,
-          items: items.map(item => `${item.product.name} x${item.quantity}`).join(', ')
-        },
-        modal: {
-          ondismiss: () => {
-            // Payment was cancelled or failed
-            console.log('Payment cancelled by user');
-          },
-          escape: true,
-          backdropclose: false
-        },
-        config: {
-          display: {
-            blocks: {
-              banks: {
-                name: 'Pay using Bank Account',
-                instruments: [
-                  {
-                    method: 'netbanking'
-                  },
-                  {
-                    method: 'upi'
-                  }
-                ]
-              },
-              other: {
-                name: 'Other Payment Modes', 
-                instruments: [
-                  {
-                    method: 'card'
-                  },
-                  {
-                    method: 'wallet'
-                  }
-                ]
-              }
-            },
-            hide: [
-              // Don't hide any payment methods
-            ],
-            preferences: {
-              show_default_blocks: true
-            }
-          }
-        },
-        method: {
-          netbanking: true,
-          card: true,
-          upi: true,
-          wallet: true,
-          emi: true,
-          paylater: true
-        }
-      };
-      
-      // Use the already typed Razorpay constructor
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.error("Payment failed:", error);
-      // Show error message or redirect to failure page
-      if (typeof window !== 'undefined') {
-        window.location.href = `/payment-failed?error=order_creation_failed`;
+      const response = await fetch('/api/shipping/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(item => ({
+            productId: item.product.id,
+            variantId: item.variant?.id,
+            quantity: item.quantity
+          }))
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShippingData({
+          cost: data.shipping.cost || 0,
+          qualifiesForFree: data.shipping.qualifiesForFreeShipping || false,
+          amountNeeded: data.shipping.amountForFreeShipping || 0,
+          loading: false,
+        });
+      } else {
+        // Fallback calculation
+        setShippingData({
+          cost: totalPrice >= 500 ? 0 : 50,
+          qualifiesForFree: totalPrice >= 500,
+          amountNeeded: Math.max(0, 500 - totalPrice),
+          loading: false,
+        });
       }
+    } catch (error) {
+      console.error('Failed to calculate shipping:', error);
+      // Fallback to default values
+      setShippingData({
+        cost: totalPrice >= 500 ? 0 : 50,
+        qualifiesForFree: totalPrice >= 500,
+        amountNeeded: Math.max(0, 500 - totalPrice),
+        loading: false,
+      });
     }
+  }, [items, totalPrice]);
+
+  // Load shipping data
+  useEffect(() => {
+    calculateShipping();
+  }, [calculateShipping]);
+
+  const handleCheckout = () => {
+    // Redirect to the new 3-step checkout flow
+    router.push('/checkout');
   };
 
   if (items.length === 0) {
@@ -413,18 +279,24 @@ export default function CartPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span className={shippingCost === 0 ? "text-green-600" : ""}>
-                      {shippingCost === 0 ? "Free" : formatPriceFromFloat(shippingCost)}
-                    </span>
+                    {shippingData.loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <span className={shippingData.cost === 0 ? "text-green-600" : ""}>
+                        {shippingData.cost === 0 ? "Free" : formatPriceFromFloat(shippingData.cost)}
+                      </span>
+                    )}
                   </div>
-                  {shippingCost === 0 ? (
-                    <p className="text-xs text-green-600">
-                      🎉 You qualify for free shipping!
-                    </p>
-                  ) : (
-                    <p className="text-xs text-blue-600">
-                      Add {formatPriceFromFloat(amountForFreeShipping)} more for free shipping
-                    </p>
+                  {!shippingData.loading && (
+                    shippingData.qualifiesForFree ? (
+                      <p className="text-xs text-green-600">
+                        🎉 You qualify for free shipping!
+                      </p>
+                    ) : shippingData.amountNeeded > 0 ? (
+                      <p className="text-xs text-blue-600">
+                        Add {formatPriceFromFloat(shippingData.amountNeeded)} more for free shipping
+                      </p>
+                    ) : null
                   )}
                   <Separator />
                   <div className="flex justify-between font-medium text-base">
@@ -436,24 +308,14 @@ export default function CartPage() {
                 <Button 
                   className="w-full bg-brand hover:bg-brand-dark text-white"
                   size="lg"
-                  onClick={handlePayment}
-                  disabled={loading || !razorpayReady}
+                  onClick={handleCheckout}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Proceed to Pay
-                    </>
-                  )}
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Proceed to Checkout
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Secure payment powered by Razorpay
+                  Secure 3-step checkout process
                 </p>
               </CardContent>
             </Card>
@@ -469,7 +331,7 @@ export default function CartPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>Free shipping on orders above ₹{defaultShippingConfig.freeShippingThreshold}</span>
+                    <span>Free shipping on orders above ₹500</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-purple-500" />

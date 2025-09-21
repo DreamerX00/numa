@@ -57,6 +57,17 @@ interface FormData {
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   isActive: boolean;
   isFeatured: boolean;
+  // Shipping configuration
+  shippingWeight: number;
+  shippingLength: number;
+  shippingWidth: number;
+  shippingHeight: number;
+  shippingClass: string;
+  requiresSpecialHandling: boolean;
+  domesticOnly: boolean;
+  individualShippingRate: number | null;
+  fragile: boolean;
+  requiresSignature: boolean;
 }
 
 export default function NewProductPage() {
@@ -86,6 +97,17 @@ export default function NewProductPage() {
     status: 'ACTIVE', // Default to ACTIVE for new products
     isActive: true,
     isFeatured: false,
+    // Shipping configuration defaults
+    shippingWeight: 0,
+    shippingLength: 0,
+    shippingWidth: 0,
+    shippingHeight: 0,
+    shippingClass: 'standard',
+    requiresSpecialHandling: false,
+    domesticOnly: false,
+    individualShippingRate: null,
+    fragile: false,
+    requiresSignature: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,7 +132,7 @@ export default function NewProductPage() {
     },
   });
 
-  const handleInputChange = (field: keyof FormData, value: string | number | boolean | string[]) => {
+  const handleInputChange = (field: keyof FormData, value: string | number | boolean | string[] | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -533,6 +555,149 @@ export default function NewProductPage() {
                       placeholder="0"
                       min="0"
                     />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shipping Configuration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Shipping Weight */}
+                  <div>
+                    <Label htmlFor="shippingWeight">Shipping Weight (grams)</Label>
+                    <Input
+                      id="shippingWeight"
+                      type="number"
+                      value={formData.shippingWeight}
+                      onChange={(e) => handleInputChange('shippingWeight', parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      min="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Weight used for shipping calculations (may differ from product weight due to packaging)</p>
+                  </div>
+
+                  {/* Dimensions */}
+                  <div>
+                    <Label>Package Dimensions (cm)</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      <div>
+                        <Input
+                          type="number"
+                          value={formData.shippingLength}
+                          onChange={(e) => handleInputChange('shippingLength', parseFloat(e.target.value) || 0)}
+                          placeholder="Length"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          type="number"
+                          value={formData.shippingWidth}
+                          onChange={(e) => handleInputChange('shippingWidth', parseFloat(e.target.value) || 0)}
+                          placeholder="Width"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          type="number"
+                          value={formData.shippingHeight}
+                          onChange={(e) => handleInputChange('shippingHeight', parseFloat(e.target.value) || 0)}
+                          placeholder="Height"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Package dimensions for accurate shipping calculations</p>
+                  </div>
+
+                  {/* Shipping Class */}
+                  <div>
+                    <Label htmlFor="shippingClass">Shipping Class</Label>
+                    <Select value={formData.shippingClass} onValueChange={(value) => handleInputChange('shippingClass', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select shipping class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="expedited">Expedited</SelectItem>
+                        <SelectItem value="overnight">Overnight</SelectItem>
+                        <SelectItem value="heavy">Heavy Items</SelectItem>
+                        <SelectItem value="fragile">Fragile Items</SelectItem>
+                        <SelectItem value="jewelry">Jewelry (Secure)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Shipping class affects available shipping methods and rates</p>
+                  </div>
+
+                  {/* Individual Shipping Rate Override */}
+                  <div>
+                    <Label htmlFor="individualShippingRate">Individual Shipping Rate (₹)</Label>
+                    <Input
+                      id="individualShippingRate"
+                      type="number"
+                      value={formData.individualShippingRate || ''}
+                      onChange={(e) => handleInputChange('individualShippingRate', e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="Leave empty to use standard rates"
+                      min="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Override default shipping calculation with fixed rate for this product</p>
+                  </div>
+
+                  {/* Special Handling Options */}
+                  <div className="space-y-3">
+                    <Label>Special Handling</Label>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="fragile" className="font-normal">Fragile Item</Label>
+                        <p className="text-xs text-gray-500">Requires careful handling and special packaging</p>
+                      </div>
+                      <Switch
+                        id="fragile"
+                        checked={formData.fragile}
+                        onCheckedChange={(checked) => handleInputChange('fragile', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="requiresSignature" className="font-normal">Requires Signature</Label>
+                        <p className="text-xs text-gray-500">Delivery requires recipient signature</p>
+                      </div>
+                      <Switch
+                        id="requiresSignature"
+                        checked={formData.requiresSignature}
+                        onCheckedChange={(checked) => handleInputChange('requiresSignature', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="requiresSpecialHandling" className="font-normal">Special Handling Required</Label>
+                        <p className="text-xs text-gray-500">Requires additional handling fees and processing time</p>
+                      </div>
+                      <Switch
+                        id="requiresSpecialHandling"
+                        checked={formData.requiresSpecialHandling}
+                        onCheckedChange={(checked) => handleInputChange('requiresSpecialHandling', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="domesticOnly" className="font-normal">Domestic Shipping Only</Label>
+                        <p className="text-xs text-gray-500">Restrict shipping to domestic addresses only</p>
+                      </div>
+                      <Switch
+                        id="domesticOnly"
+                        checked={formData.domesticOnly}
+                        onCheckedChange={(checked) => handleInputChange('domesticOnly', checked)}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

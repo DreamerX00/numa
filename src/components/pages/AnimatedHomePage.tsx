@@ -437,7 +437,8 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                       ease: "easeInOut"
                     }}
                   >
-                    𝙔𝙤𝙪𝙧 𝙚𝙣𝙚𝙧𝙜𝙮. 𝙊𝙪𝙧 𝙚𝙡𝙚𝙢𝙚𝙣𝙩 🫶🏻
+                    𝙔𝙤𝙪𝙧 𝙚𝙣𝙚𝙧𝙜𝙮,
+                    <p> 𝙊𝙪𝙧 𝙚𝙡𝙚𝙢𝙚𝙣𝙩 🫶🏻</p>
                   </motion.span>
                 </motion.h1>
                 
@@ -519,7 +520,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.5 }}
                 >
-                  Trusted by 500+ customers
+                  
                 </motion.p>
               </motion.div>
             </motion.div>

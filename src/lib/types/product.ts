@@ -48,6 +48,18 @@ export interface Product {
     unit?: string;
   } | null;
   
+  // Shipping configuration
+  shippingWeight: number | null;
+  shippingLength: number | null;
+  shippingWidth: number | null;
+  shippingHeight: number | null;
+  shippingClass: string;
+  requiresSpecialHandling: boolean;
+  domesticOnly: boolean;
+  individualShippingRate: number | null;
+  fragile: boolean;
+  requiresSignature: boolean;
+  
   // Media
   images: string[];
   videos: string[];

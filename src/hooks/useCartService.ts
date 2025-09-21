@@ -5,11 +5,13 @@ import { useAuth } from '@/lib/auth/client';
 import { cartService, type CartOperationResult } from '@/lib/services/cart';
 import { toast } from 'sonner';
 import type { Product, ProductVariant } from '@/lib/types/product';
+import { useHybridCartStore } from '@/lib/store/hybridCart';
 
 export function useCartService() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Using store via getState() to avoid unnecessary re-renders here
 
   const isAuthenticated = !!user;
 
@@ -26,6 +28,16 @@ export function useCartService() {
       
       if (!result.success) {
         setError(result.error || 'Failed to add to cart');
+      } else if (result.cartItem) {
+        // Upsert item into store so MiniCart reflects immediately
+        const { items, setItems } = useHybridCartStore.getState();
+        const idx = items.findIndex((i) => i.id === result.cartItem!.id);
+        if (idx >= 0) {
+          const updated = items.map((i) => (i.id === result.cartItem!.id ? result.cartItem! : i));
+          setItems(updated);
+        } else {
+          setItems([result.cartItem, ...items]);
+        }
       }
       
       return result;
@@ -50,12 +62,22 @@ export function useCartService() {
       
       if (!result.success) {
         setError(result.error || 'Failed to update quantity');
+        toast.error('Failed to update quantity', { description: result.error || 'Please try again.' });
+      } else {
+        // Update local store with new qty
+        if (result.cartItem) {
+          useHybridCartStore.getState().updateItemQuantity(itemId, result.cartItem.quantity);
+        } else {
+          useHybridCartStore.getState().updateItemQuantity(itemId, quantity);
+        }
+        toast.success('Quantity updated');
       }
       
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update quantity';
       setError(errorMessage);
+      toast.error('Failed to update quantity', { description: errorMessage });
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
@@ -75,6 +97,8 @@ export function useCartService() {
           description: result.error || 'Please try again.',
         });
       } else {
+        // Reflect removal locally
+        useHybridCartStore.getState().removeItem(itemId);
         toast.success('Item removed from cart');
       }
       

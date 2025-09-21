@@ -77,6 +77,25 @@ export async function GET(request: NextRequest) {
       prisma.order.count({ where })
     ]);
 
+    // Calculate stats
+    const [totalRevenue, orderCounts] = await Promise.all([
+      prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: { paymentStatus: PaymentStatus.PAID }
+      }),
+      prisma.order.groupBy({
+        by: ['status'],
+        _count: { status: true }
+      })
+    ]);
+
+    const stats = {
+      totalRevenue: totalRevenue._sum?.totalAmount || 0,
+      totalOrders: totalCount,
+      pendingOrders: orderCounts.find(c => c.status === 'PENDING')?._count.status || 0,
+      shippedOrders: orderCounts.find(c => c.status === 'SHIPPED')?._count.status || 0
+    };
+
     const totalPages = Math.ceil(totalCount / limit);
 
     // Get filter options
@@ -93,6 +112,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       orders,
+      stats,
       pagination: {
         page,
         limit,

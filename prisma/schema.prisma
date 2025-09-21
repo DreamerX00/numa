@@ -186,6 +186,18 @@ model Product {
   weight      Float?
   dimensions  ProductDimensions?
   
+  // Shipping configuration
+  shippingWeight      Float?
+  shippingLength      Float?
+  shippingWidth       Float?
+  shippingHeight      Float?
+  shippingClass       String    @default("standard")
+  requiresSpecialHandling Boolean @default(false)
+  domesticOnly        Boolean   @default(false)
+  individualShippingRate Float?
+  fragile             Boolean   @default(false)
+  requiresSignature   Boolean   @default(false)
+  
   // Media
   images      String[]
   videos      String[]

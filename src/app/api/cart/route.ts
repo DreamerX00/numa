@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
             include: {
               category: true,
               brand: true,
+              variants: true,
             },
           },
         },
@@ -184,6 +185,7 @@ export async function POST(req: NextRequest) {
               include: {
                 category: true,
                 brand: true,
+                variants: true,
               },
             },
           },
@@ -207,6 +209,7 @@ export async function POST(req: NextRequest) {
                 include: {
                   category: true,
                   brand: true,
+                  variants: true,
                 },
               },
             },
@@ -300,7 +303,8 @@ export async function PUT(req: NextRequest) {
             product: {
               include: {
                 category: true,
-                brand: true
+                brand: true,
+                variants: true,
               }
             }
           }

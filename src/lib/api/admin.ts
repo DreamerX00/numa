@@ -24,6 +24,17 @@ interface ProductData {
   status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   isActive?: boolean;
   isFeatured?: boolean;
+  // Shipping configuration
+  shippingWeight?: number;
+  shippingLength?: number;
+  shippingWidth?: number;
+  shippingHeight?: number;
+  shippingClass?: string;
+  requiresSpecialHandling?: boolean;
+  domesticOnly?: boolean;
+  individualShippingRate?: number | null;
+  fragile?: boolean;
+  requiresSignature?: boolean;
 }
 
 export const api = {

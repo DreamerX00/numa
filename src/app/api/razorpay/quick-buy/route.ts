@@ -64,7 +64,10 @@ export async function POST(req: NextRequest) {
         receipt: finalReceipt,
         notes: {
           type: 'quick_buy',
-          source: 'product_page'
+          source: 'product_page',
+          amount: `₹${amount.toFixed(2)}`,
+          currency: currency,
+          orderType: 'Single Product Purchase'
         }
       });
 

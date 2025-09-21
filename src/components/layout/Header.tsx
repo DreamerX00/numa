@@ -154,7 +154,9 @@ export function Header() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="outline" size="sm" className="text-black border-black h-7 w-7 text-[#E7654D] hover:text-white" asChild>
+                    
+                      
                       <Link href="/login">
                         <User className="h-4 w-4 mr-2" />
                         Login
@@ -165,7 +167,7 @@ export function Header() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Button size="sm" className="bg-brand hover:bg-brand-dark text-white" asChild>
+                    <Button variant="outline" size="sm" className="text-black border-black hover:bg-orange-700 hover:text-white" asChild>
                       <Link href="/signup">Sign Up</Link>
                     </Button>
                   </motion.div>

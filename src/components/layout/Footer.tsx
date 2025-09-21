@@ -24,11 +24,11 @@ export function Footer() {
               Timeless jewelry crafted for your energy. Discover limited signature releases and elevated everyday forms that resonate with who you are.
             </p>
             <div className="flex space-x-4">
-              <Link href="#" className="text-muted-foreground hover:text-brand transition-colors">
+              <Link href="https://www.instagram.com/numa.iin/" className="text-muted-foreground hover:text-brand transition-colors">
                 <Instagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </Link>
-              <Link href="https://www.instagram.com/numa.iin/" className="text-muted-foreground hover:text-brand transition-colors">
+              <Link href="" className="text-muted-foreground hover:text-brand transition-colors">
                 <Twitter className="h-5 w-5" />
                 <span className="sr-only">Twitter</span>
               </Link>
@@ -59,9 +59,9 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Brand</h4>
             <ul className="space-y-3 text-sm">
               <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link></li>
-              <li><Link href="/lookbook" className="text-muted-foreground hover:text-foreground transition-colors">Lookbook</Link></li>
-              <li><Link href="/sustainability" className="text-muted-foreground hover:text-foreground transition-colors">Sustainability</Link></li>
-              <li><Link href="/care" className="text-muted-foreground hover:text-foreground transition-colors">Care Guide</Link></li>
+              <li><Link href="/lookbook" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
+              <li><Link href="/sustainability" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
+              <li><Link href="/care" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
             </ul>
           </div>
 

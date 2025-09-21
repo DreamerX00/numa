@@ -28,7 +28,18 @@ const productSchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).default('DRAFT'),
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
-  hasVariants: z.boolean().default(false)
+  hasVariants: z.boolean().default(false),
+  // Shipping configuration fields
+  shippingWeight: z.number().min(0).optional(),
+  shippingLength: z.number().min(0).optional(),
+  shippingWidth: z.number().min(0).optional(),
+  shippingHeight: z.number().min(0).optional(),
+  shippingClass: z.string().default('standard'),
+  requiresSpecialHandling: z.boolean().default(false),
+  domesticOnly: z.boolean().default(false),
+  individualShippingRate: z.number().min(0).optional(),
+  fragile: z.boolean().default(false),
+  requiresSignature: z.boolean().default(false),
 });
 
 export async function GET(req: NextRequest) {

@@ -79,18 +79,33 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
   const openCheckout = useCallback(async () => {
     if (!window.Razorpay) return;
     const order = await createOrder();
+    
+    // Create descriptive text for the quick buy checkout
+    const productDescription = `Quick Purchase | Amount: ₹${amount.toFixed(2)}`;
+    
     const opts: RazorpayOptions = {
       key: order.key_id,
       amount: order.amount, // already in paise from backend
       currency: order.currency,
       name: "NUMA",
-      description: "Single Product Purchase",
+      description: productDescription,
       order_id: order.id,
       handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
         // For now just log; future phase: optimistic UI, poll status
         console.log("Payment success", response);
         // Show success message
         alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
+      },
+      prefill: {
+        name: "",
+        email: "",
+        contact: "",
+      },
+      notes: {
+        type: 'quick_buy',
+        amount: `₹${amount.toFixed(2)}`,
+        currency: order.currency,
+        source: 'product_page'
       },
       theme: { 
         color: "#E7654D",
@@ -148,7 +163,7 @@ export function CheckoutButton({ amount, label = "Live Checkout Demo", className
     };
     const rz = new window.Razorpay!(opts);
     rz.open();
-  }, [createOrder]);
+  }, [createOrder, amount]);
 
   return (
     <Button

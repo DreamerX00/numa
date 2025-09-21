@@ -26,6 +26,17 @@ const updateProductSchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  // Shipping configuration fields
+  shippingWeight: z.number().min(0).nullish(),
+  shippingLength: z.number().min(0).nullish(),
+  shippingWidth: z.number().min(0).nullish(),
+  shippingHeight: z.number().min(0).nullish(),
+  shippingClass: z.string().optional(),
+  requiresSpecialHandling: z.boolean().optional(),
+  domesticOnly: z.boolean().optional(),
+  individualShippingRate: z.number().min(0).nullish(),
+  fragile: z.boolean().optional(),
+  requiresSignature: z.boolean().optional(),
 });
 
 export async function GET(
@@ -111,6 +122,17 @@ export async function PUT(
       status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
       isActive?: boolean;
       isFeatured?: boolean;
+      // Shipping configuration fields
+      shippingWeight?: number | null;
+      shippingLength?: number | null;
+      shippingWidth?: number | null;
+      shippingHeight?: number | null;
+      shippingClass?: string;
+      requiresSpecialHandling?: boolean;
+      domesticOnly?: boolean;
+      individualShippingRate?: number | null;
+      fragile?: boolean;
+      requiresSignature?: boolean;
     } = {};
 
     // Safely copy fields
@@ -135,6 +157,18 @@ export async function PUT(
     if (validatedData.status !== undefined) updateFields.status = validatedData.status;
     if (validatedData.isActive !== undefined) updateFields.isActive = validatedData.isActive;
     if (validatedData.isFeatured !== undefined) updateFields.isFeatured = validatedData.isFeatured;
+    
+    // Shipping configuration fields
+    if (validatedData.shippingWeight !== undefined) updateFields.shippingWeight = validatedData.shippingWeight;
+    if (validatedData.shippingLength !== undefined) updateFields.shippingLength = validatedData.shippingLength;
+    if (validatedData.shippingWidth !== undefined) updateFields.shippingWidth = validatedData.shippingWidth;
+    if (validatedData.shippingHeight !== undefined) updateFields.shippingHeight = validatedData.shippingHeight;
+    if (validatedData.shippingClass !== undefined) updateFields.shippingClass = validatedData.shippingClass;
+    if (validatedData.requiresSpecialHandling !== undefined) updateFields.requiresSpecialHandling = validatedData.requiresSpecialHandling;
+    if (validatedData.domesticOnly !== undefined) updateFields.domesticOnly = validatedData.domesticOnly;
+    if (validatedData.individualShippingRate !== undefined) updateFields.individualShippingRate = validatedData.individualShippingRate;
+    if (validatedData.fragile !== undefined) updateFields.fragile = validatedData.fragile;
+    if (validatedData.requiresSignature !== undefined) updateFields.requiresSignature = validatedData.requiresSignature;
     
     // Handle tags - convert string to array or use array directly
     if (validatedData.tags !== undefined && validatedData.tags !== null) {

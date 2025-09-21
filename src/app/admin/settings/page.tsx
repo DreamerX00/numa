@@ -57,9 +57,18 @@ export default function AdminSettingsPage() {
     expeditedRate: 150,
     sameDay: false,
     sameDayRate: 300,
+    sameDayMinOrder: 1000,
     internationalShipping: false,
+    internationalRate: 500,
+    internationalProcessingTime: 7,
     codEnabled: true,
     codCharges: 25,
+    codMaxAmount: 10000,
+    freeShippingMethod: 'standard',
+    defaultProcessingTime: 2,
+    trackingEmailTemplate: 'default',
+    autoTrackingEmails: true,
+    smsNotifications: false,
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -462,108 +471,291 @@ export default function AdminSettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Other Settings (Simplified placeholders) */}
+          {/* Enhanced Shipping Settings */}
           <TabsContent value="shipping">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Truck className="h-5 w-5 mr-2" />
-                  Shipping Settings
+                  Shipping Configuration
                 </CardTitle>
+                <p className="text-sm text-gray-600">Configure shipping rates, options, and manual fulfillment settings</p>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="freeShippingThreshold">Free Shipping Threshold (₹)</Label>
-                    <Input
-                      id="freeShippingThreshold"
-                      type="number"
-                      value={shippingSettings.freeShippingThreshold}
-                      onChange={(e) => setShippingSettings(prev => ({ ...prev, freeShippingThreshold: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="standardRate">Standard Shipping Rate (₹)</Label>
-                    <Input
-                      id="standardRate"
-                      type="number"
-                      value={shippingSettings.standardRate}
-                      onChange={(e) => setShippingSettings(prev => ({ ...prev, standardRate: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="expeditedRate">Expedited Shipping Rate (₹)</Label>
-                    <Input
-                      id="expeditedRate"
-                      type="number"
-                      value={shippingSettings.expeditedRate}
-                      onChange={(e) => setShippingSettings(prev => ({ ...prev, expeditedRate: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="codCharges">COD Charges (₹)</Label>
-                    <Input
-                      id="codCharges"
-                      type="number"
-                      value={shippingSettings.codCharges}
-                      onChange={(e) => setShippingSettings(prev => ({ ...prev, codCharges: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
+              <CardContent className="space-y-8">
+                
+                {/* Basic Shipping Rates */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Same Day Delivery</Label>
-                      <p className="text-sm text-gray-600">Enable same day delivery for local orders</p>
-                    </div>
-                    <Switch
-                      checked={shippingSettings.sameDay}
-                      onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, sameDay: checked }))}
-                    />
-                  </div>
+                  <h3 className="text-lg font-semibold border-b pb-2">Shipping Rates</h3>
                   
-                  {shippingSettings.sameDay && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="sameDayRate">Same Day Delivery Rate (₹)</Label>
+                      <Label htmlFor="standardRate">Standard Shipping Rate (₹)</Label>
                       <Input
-                        id="sameDayRate"
+                        id="standardRate"
                         type="number"
-                        value={shippingSettings.sameDayRate}
-                        onChange={(e) => setShippingSettings(prev => ({ ...prev, sameDayRate: Number(e.target.value) }))}
+                        min="0"
+                        step="0.01"
+                        value={shippingSettings.standardRate}
+                        onChange={(e) => setShippingSettings(prev => ({ ...prev, standardRate: Number(e.target.value) }))}
+                        placeholder="50.00"
+                      />
+                      <p className="text-xs text-gray-500">Fixed rate for standard delivery (5-7 business days)</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="expeditedRate">Express Shipping Rate (₹)</Label>
+                      <Input
+                        id="expeditedRate"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={shippingSettings.expeditedRate}
+                        onChange={(e) => setShippingSettings(prev => ({ ...prev, expeditedRate: Number(e.target.value) }))}
+                        placeholder="150.00"
+                      />
+                      <p className="text-xs text-gray-500">Rate for express delivery (2-3 business days)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Free Shipping Configuration */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Free Shipping</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="freeShippingThreshold">Free Shipping Threshold (₹)</Label>
+                      <Input
+                        id="freeShippingThreshold"
+                        type="number"
+                        min="0"
+                        value={shippingSettings.freeShippingThreshold}
+                        onChange={(e) => setShippingSettings(prev => ({ ...prev, freeShippingThreshold: Number(e.target.value) }))}
+                        placeholder="500"
+                      />
+                      <p className="text-xs text-gray-500">Orders above this amount qualify for free shipping</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="freeShippingMethod">Free Shipping Method</Label>
+                      <Select
+                        value={shippingSettings.freeShippingMethod || 'standard'}
+                        onValueChange={(value) => setShippingSettings(prev => ({ ...prev, freeShippingMethod: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard Shipping</SelectItem>
+                          <SelectItem value="express">Express Shipping</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">Which shipping method to apply for free shipping</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Services */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Additional Services</h3>
+                  
+                  <div className="space-y-6">
+                    {/* Same Day Delivery */}
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 flex-1">
+                        <Label>Same Day Delivery</Label>
+                        <p className="text-sm text-gray-600">Enable same day delivery for local orders (manual fulfillment)</p>
+                      </div>
+                      <Switch
+                        checked={shippingSettings.sameDay}
+                        onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, sameDay: checked }))}
                       />
                     </div>
-                  )}
+                    
+                    {shippingSettings.sameDay && (
+                      <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="sameDayRate">Same Day Rate (₹)</Label>
+                          <Input
+                            id="sameDayRate"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={shippingSettings.sameDayRate}
+                            onChange={(e) => setShippingSettings(prev => ({ ...prev, sameDayRate: Number(e.target.value) }))}
+                            placeholder="300.00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sameDayMinOrder">Minimum Order (₹)</Label>
+                          <Input
+                            id="sameDayMinOrder"
+                            type="number"
+                            min="0"
+                            value={shippingSettings.sameDayMinOrder || 0}
+                            onChange={(e) => setShippingSettings(prev => ({ ...prev, sameDayMinOrder: Number(e.target.value) }))}
+                            placeholder="1000"
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>International Shipping</Label>
-                      <p className="text-sm text-gray-600">Enable shipping to international locations</p>
+                    {/* Cash on Delivery */}
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 flex-1">
+                        <Label>Cash on Delivery (COD)</Label>
+                        <p className="text-sm text-gray-600">Allow customers to pay upon delivery</p>
+                      </div>
+                      <Switch
+                        checked={shippingSettings.codEnabled}
+                        onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, codEnabled: checked }))}
+                      />
                     </div>
-                    <Switch
-                      checked={shippingSettings.internationalShipping}
-                      onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, internationalShipping: checked }))}
-                    />
-                  </div>
+                    
+                    {shippingSettings.codEnabled && (
+                      <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="codCharges">COD Charges (₹)</Label>
+                          <Input
+                            id="codCharges"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={shippingSettings.codCharges}
+                            onChange={(e) => setShippingSettings(prev => ({ ...prev, codCharges: Number(e.target.value) }))}
+                            placeholder="25.00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="codMaxAmount">COD Max Amount (₹)</Label>
+                          <Input
+                            id="codMaxAmount"
+                            type="number"
+                            min="0"
+                            value={shippingSettings.codMaxAmount || 10000}
+                            onChange={(e) => setShippingSettings(prev => ({ ...prev, codMaxAmount: Number(e.target.value) }))}
+                            placeholder="10000"
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Cash on Delivery</Label>
-                      <p className="text-sm text-gray-600">Allow customers to pay on delivery</p>
+                    {/* International Shipping */}
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 flex-1">
+                        <Label>International Shipping</Label>
+                        <p className="text-sm text-gray-600">Enable shipping to international locations (manual processing)</p>
+                      </div>
+                      <Switch
+                        checked={shippingSettings.internationalShipping}
+                        onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, internationalShipping: checked }))}
+                      />
                     </div>
-                    <Switch
-                      checked={shippingSettings.codEnabled}
-                      onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, codEnabled: checked }))}
-                    />
+                    
+                    {shippingSettings.internationalShipping && (
+                      <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="internationalRate">International Rate (₹)</Label>
+                          <Input
+                            id="internationalRate"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={shippingSettings.internationalRate || 0}
+                            onChange={(e) => setShippingSettings(prev => ({ ...prev, internationalRate: Number(e.target.value) }))}
+                            placeholder="500.00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="internationalProcessingTime">Processing Time (days)</Label>
+                          <Input
+                            id="internationalProcessingTime"
+                            type="number"
+                            min="1"
+                            value={shippingSettings.internationalProcessingTime || 7}
+                            onChange={(e) => setShippingSettings(prev => ({ ...prev, internationalProcessingTime: Number(e.target.value) }))}
+                            placeholder="7"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <Button onClick={() => handleSave('shipping')}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                {/* Manual Fulfillment Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Manual Fulfillment</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="defaultProcessingTime">Default Processing Time (days)</Label>
+                      <Input
+                        id="defaultProcessingTime"
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={shippingSettings.defaultProcessingTime || 2}
+                        onChange={(e) => setShippingSettings(prev => ({ ...prev, defaultProcessingTime: Number(e.target.value) }))}
+                        placeholder="2"
+                      />
+                      <p className="text-xs text-gray-500">Time to process orders before shipping</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="trackingEmailTemplate">Tracking Email Template</Label>
+                      <Select
+                        value={shippingSettings.trackingEmailTemplate || 'default'}
+                        onValueChange={(value) => setShippingSettings(prev => ({ ...prev, trackingEmailTemplate: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default Template</SelectItem>
+                          <SelectItem value="detailed">Detailed Template</SelectItem>
+                          <SelectItem value="minimal">Minimal Template</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">Email template for tracking notifications</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Auto-send Tracking Emails</Label>
+                        <p className="text-sm text-gray-600">Automatically email tracking info when order status changes</p>
+                      </div>
+                      <Switch
+                        checked={shippingSettings.autoTrackingEmails ?? true}
+                        onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, autoTrackingEmails: checked }))}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>SMS Notifications</Label>
+                        <p className="text-sm text-gray-600">Send SMS updates for shipping milestones</p>
+                      </div>
+                      <Switch
+                        checked={shippingSettings.smsNotifications ?? false}
+                        onCheckedChange={(checked: boolean) => setShippingSettings(prev => ({ ...prev, smsNotifications: checked }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => handleSave('shipping')} 
+                  disabled={loading}
+                  className="w-full md:w-auto"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Shipping Settings
                 </Button>
               </CardContent>
             </Card>

@@ -52,6 +52,17 @@ interface FormData {
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   isActive: boolean;
   isFeatured: boolean;
+  // Shipping configuration
+  shippingWeight: number;
+  shippingLength: number;
+  shippingWidth: number;
+  shippingHeight: number;
+  shippingClass: string;
+  requiresSpecialHandling: boolean;
+  domesticOnly: boolean;
+  individualShippingRate: number | null;
+  fragile: boolean;
+  requiresSignature: boolean;
 }
 
 export default function EditProductPage() {
@@ -83,6 +94,17 @@ export default function EditProductPage() {
     status: 'DRAFT',
     isActive: true,
     isFeatured: false,
+    // Shipping configuration defaults
+    shippingWeight: 0,
+    shippingLength: 0,
+    shippingWidth: 0,
+    shippingHeight: 0,
+    shippingClass: 'standard',
+    requiresSpecialHandling: false,
+    domesticOnly: false,
+    individualShippingRate: null,
+    fragile: false,
+    requiresSignature: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -163,11 +185,22 @@ export default function EditProductPage() {
         status: product.status || 'DRAFT',
         isActive: product.isActive,
         isFeatured: product.isFeatured,
+        // Shipping configuration - use defaults if not available in product data
+        shippingWeight: product.shippingWeight || product.weight || 0,
+        shippingLength: product.shippingLength || 0,
+        shippingWidth: product.shippingWidth || 0,
+        shippingHeight: product.shippingHeight || 0,
+        shippingClass: product.shippingClass || 'standard',
+        requiresSpecialHandling: product.requiresSpecialHandling || false,
+        domesticOnly: product.domesticOnly || false,
+        individualShippingRate: product.individualShippingRate || null,
+        fragile: product.fragile || false,
+        requiresSignature: product.requiresSignature || false,
       });
     }
   }, [product]);
 
-  const handleInputChange = (field: keyof FormData, value: string | number | boolean | string[]) => {
+  const handleInputChange = (field: keyof FormData, value: string | number | boolean | string[] | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -247,6 +280,17 @@ export default function EditProductPage() {
       description: formData.description || undefined,
       shortDescription: formData.shortDescription || undefined,
       barcode: formData.barcode || undefined,
+      // Include shipping configuration fields
+      shippingWeight: formData.shippingWeight || undefined,
+      shippingLength: formData.shippingLength || undefined,
+      shippingWidth: formData.shippingWidth || undefined,
+      shippingHeight: formData.shippingHeight || undefined,
+      shippingClass: formData.shippingClass || undefined,
+      requiresSpecialHandling: formData.requiresSpecialHandling,
+      domesticOnly: formData.domesticOnly,
+      individualShippingRate: formData.individualShippingRate,
+      fragile: formData.fragile,
+      requiresSignature: formData.requiresSignature,
     };
 
     // Remove empty string values and convert to null/undefined
@@ -653,6 +697,149 @@ export default function EditProductPage() {
                       placeholder="0"
                       min="0"
                     />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shipping Configuration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Shipping Weight */}
+                  <div>
+                    <Label htmlFor="shippingWeight">Shipping Weight (grams)</Label>
+                    <Input
+                      id="shippingWeight"
+                      type="number"
+                      value={formData.shippingWeight}
+                      onChange={(e) => handleInputChange('shippingWeight', parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      min="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Weight used for shipping calculations (may differ from product weight due to packaging)</p>
+                  </div>
+
+                  {/* Dimensions */}
+                  <div>
+                    <Label>Package Dimensions (cm)</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      <div>
+                        <Input
+                          type="number"
+                          value={formData.shippingLength}
+                          onChange={(e) => handleInputChange('shippingLength', parseFloat(e.target.value) || 0)}
+                          placeholder="Length"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          type="number"
+                          value={formData.shippingWidth}
+                          onChange={(e) => handleInputChange('shippingWidth', parseFloat(e.target.value) || 0)}
+                          placeholder="Width"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          type="number"
+                          value={formData.shippingHeight}
+                          onChange={(e) => handleInputChange('shippingHeight', parseFloat(e.target.value) || 0)}
+                          placeholder="Height"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Package dimensions for accurate shipping calculations</p>
+                  </div>
+
+                  {/* Shipping Class */}
+                  <div>
+                    <Label htmlFor="shippingClass">Shipping Class</Label>
+                    <Select value={formData.shippingClass} onValueChange={(value) => handleInputChange('shippingClass', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select shipping class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="expedited">Expedited</SelectItem>
+                        <SelectItem value="overnight">Overnight</SelectItem>
+                        <SelectItem value="heavy">Heavy Items</SelectItem>
+                        <SelectItem value="fragile">Fragile Items</SelectItem>
+                        <SelectItem value="jewelry">Jewelry (Secure)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Shipping class affects available shipping methods and rates</p>
+                  </div>
+
+                  {/* Individual Shipping Rate Override */}
+                  <div>
+                    <Label htmlFor="individualShippingRate">Individual Shipping Rate (₹)</Label>
+                    <Input
+                      id="individualShippingRate"
+                      type="number"
+                      value={formData.individualShippingRate || ''}
+                      onChange={(e) => handleInputChange('individualShippingRate', e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="Leave empty to use standard rates"
+                      min="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Override default shipping calculation with fixed rate for this product</p>
+                  </div>
+
+                  {/* Special Handling Options */}
+                  <div className="space-y-3">
+                    <Label>Special Handling</Label>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="fragile" className="font-normal">Fragile Item</Label>
+                        <p className="text-xs text-gray-500">Requires careful handling and special packaging</p>
+                      </div>
+                      <Switch
+                        id="fragile"
+                        checked={formData.fragile}
+                        onCheckedChange={(checked) => handleInputChange('fragile', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="requiresSignature" className="font-normal">Requires Signature</Label>
+                        <p className="text-xs text-gray-500">Delivery requires recipient signature</p>
+                      </div>
+                      <Switch
+                        id="requiresSignature"
+                        checked={formData.requiresSignature}
+                        onCheckedChange={(checked) => handleInputChange('requiresSignature', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="requiresSpecialHandling" className="font-normal">Special Handling Required</Label>
+                        <p className="text-xs text-gray-500">Requires additional handling fees and processing time</p>
+                      </div>
+                      <Switch
+                        id="requiresSpecialHandling"
+                        checked={formData.requiresSpecialHandling}
+                        onCheckedChange={(checked) => handleInputChange('requiresSpecialHandling', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="domesticOnly" className="font-normal">Domestic Shipping Only</Label>
+                        <p className="text-xs text-gray-500">Restrict shipping to domestic addresses only</p>
+                      </div>
+                      <Switch
+                        id="domesticOnly"
+                        checked={formData.domesticOnly}
+                        onCheckedChange={(checked) => handleInputChange('domesticOnly', checked)}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

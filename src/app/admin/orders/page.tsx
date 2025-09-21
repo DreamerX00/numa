@@ -60,7 +60,7 @@ interface Order {
       lastName?: string;
     };
   };
-  orderItems: Array<{
+  items: Array<{
     id: string;
     quantity: number;
     price: number;
@@ -190,10 +190,22 @@ export default function AdminOrdersPage() {
   };
 
   const getCustomerName = (order: Order) => {
-    if (order.user.profile?.firstName && order.user.profile?.lastName) {
+    if (order.user?.profile?.firstName && order.user?.profile?.lastName) {
       return `${order.user.profile.firstName} ${order.user.profile.lastName}`;
     }
-    return order.user.email;
+    return order.user?.email || 'Unknown Customer';
+  };
+
+  // Add safety check for order items
+  const getOrderItemsDisplay = (order: Order) => {
+    const items = order.items || [];
+    return {
+      count: items.length,
+      displayNames: items.length > 0 
+        ? items.slice(0, 2).map(item => item?.product?.name || 'Unknown Product').join(', ')
+        : 'No items',
+      hasMore: items.length > 2
+    };
   };
 
   return (
@@ -302,42 +314,45 @@ export default function AdminOrdersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((order) => {
-                      const StatusIcon = statusConfig[order.status].icon;
+                    {orders.length > 0 ? orders.map((order) => {
+                      const StatusIcon = statusConfig[order.status]?.icon || Clock;
+                      const statusStyle = statusConfig[order.status]?.color || 'bg-gray-100 text-gray-800';
+                      const itemsDisplay = getOrderItemsDisplay(order);
+                      
                       return (
                         <TableRow key={order.id}>
                           <TableCell>
-                            <div className="font-medium">#{order.orderNumber}</div>
-                            <div className="text-sm text-gray-500">{order.id.slice(0, 8)}</div>
+                            <div className="font-medium">#{order.orderNumber || 'Unknown'}</div>
+                            <div className="text-sm text-gray-500">{order.id?.slice(0, 8) || 'No ID'}</div>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">{getCustomerName(order)}</div>
-                            <div className="text-sm text-gray-500">{order.user.email}</div>
+                            <div className="text-sm text-gray-500">{order.user?.email || 'No email'}</div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''}
+                              {itemsDisplay.count} item{itemsDisplay.count !== 1 ? 's' : ''}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {order.orderItems.slice(0, 2).map(item => item.product.name).join(', ')}
-                              {order.orderItems.length > 2 && '...'}
+                              {itemsDisplay.displayNames}
+                              {itemsDisplay.hasMore && '...'}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">{formatCurrency(order.totalAmount)}</div>
+                            <div className="font-medium">{formatCurrency(order.totalAmount || 0)}</div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={statusConfig[order.status].color}>
+                            <Badge className={statusStyle}>
                               <StatusIcon className="h-3 w-3 mr-1" />
-                              {order.status}
+                              {order.status || 'UNKNOWN'}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {new Date(order.createdAt).toLocaleDateString()}
+                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Unknown date'}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {new Date(order.createdAt).toLocaleTimeString()}
+                              {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -404,7 +419,13 @@ export default function AdminOrdersPage() {
                           </TableCell>
                         </TableRow>
                       );
-                    })}
+                    }) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          No orders found
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
 
