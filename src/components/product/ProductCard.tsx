@@ -4,11 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { formatPrice } from '../../lib/services/catalog';
-import { useCartStore } from "@/lib/store/cart";
+import { useCartService } from '@/hooks/useCartService';
 import { DEFAULT_IMAGES } from '@/lib/cloudinary';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Check } from 'lucide-react';
+import { ShoppingBag, Check, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Product } from '@prisma/client';
 
 interface ProductCardProps { 
@@ -17,25 +17,33 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [isAdded, setIsAdded] = useState(false);
-  const addItem = useCartStore((state) => state.addItem);
+  const { addToCart, isLoading, error } = useCartService();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     // Convert Prisma Product to our Product interface format
     const productForCart = {
       ...product,
-      createdAt: product.createdAt.toString(),
-      updatedAt: product.updatedAt.toString()
+      createdAt: typeof product.createdAt === 'string' ? product.createdAt : product.createdAt.toString(),
+      updatedAt: typeof product.updatedAt === 'string' ? product.updatedAt : product.updatedAt.toString()
     };
     
-    // For products without variants, pass null as variant
-    // The cart will use the main product price
-    addItem(productForCart, null);
+    // Add to cart using the hybrid service
+    const result = await addToCart(productForCart, null);
     
-    setIsAdded(true);
-    setTimeout(() => setIsAdded(false), 2000);
+    if (result.success) {
+      setIsAdded(true);
+      setTimeout(() => setIsAdded(false), 2000);
+      toast.success(`${product.name} added to cart!`, {
+        description: 'You can view your cart by clicking the cart icon.',
+      });
+    } else {
+      toast.error('Failed to add to cart', {
+        description: result.error || 'Please try again.',
+      });
+    }
   };
 
   const primaryImage = product.images?.[0] || DEFAULT_IMAGES.PRODUCT;
@@ -49,15 +57,15 @@ export function ProductCard({ product }: ProductCardProps) {
       transition={{ duration: 0.5 }}
       whileHover={{ y: -8 }}
     >
-      <div className="h-full rounded-2xl overflow-hidden shadow-lg bg-white border border-border/50 hover:border-brand/30 transition-all duration-300 hover:shadow-xl">
+      <div className="h-full rounded-xl overflow-hidden shadow-md bg-white border border-border/50 hover:border-brand/30 transition-all duration-300 hover:shadow-lg">
         <Link href={`/product/${product.slug}`} className="block h-full">
-          <div className="aspect-[4/5] w-full overflow-hidden relative">
+          <div className="aspect-square w-full overflow-hidden relative">
             <Image 
               src={primaryImage} 
               alt={product.name} 
-              width={600} 
-              height={750} 
-              className="h-full w-full object-cover transition-all duration-700 group-hover:scale-110" 
+              width={400} 
+              height={400} 
+              className="h-full w-full object-cover transition-all duration-700 group-hover:scale-105" 
             />
             
             {/* Discount Badge */}
@@ -65,7 +73,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute left-3 top-3 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 text-xs font-bold shadow-lg"
+                className="absolute left-2 top-2 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-1 text-xs font-bold shadow-lg"
               >
                 SALE
               </motion.div>
@@ -75,24 +83,26 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300" />
           </div>
           
-          <div className="p-5 h-32 flex flex-col justify-between">
-            <div className="flex-1">
-              <h3 className="text-base font-semibold tracking-tight line-clamp-2 text-foreground group-hover:text-brand transition-colors duration-200">
+          <div className="p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight line-clamp-2 text-foreground group-hover:text-brand transition-colors duration-200 leading-tight">
                 {product.name}
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                {product.shortDescription || product.description}
-              </p>
+              {product.shortDescription && (
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1 leading-relaxed">
+                  {product.shortDescription}
+                </p>
+              )}
             </div>
             
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-bold text-foreground">
-                  {formatPrice(product.price)}
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <p className="text-base font-bold text-foreground">
+                  ₹{product.price.toFixed(2)}
                 </p>
                 {hasDiscount && (
-                  <p className="text-sm text-muted-foreground line-through">
-                    {formatPrice(product.comparePrice!)}
+                  <p className="text-xs text-muted-foreground line-through">
+                    ₹{product.comparePrice!.toFixed(2)}
                   </p>
                 )}
               </div>
@@ -104,41 +114,56 @@ export function ProductCard({ product }: ProductCardProps) {
                 <span className="text-xs text-red-500 font-medium">Out of Stock</span>
               )}
             </div>
+            
+            {/* Add to Cart Button - Bottom Bar Style */}
+            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 -mx-4 -mb-4 mt-3">
+              <Button
+                onClick={handleAddToCart}
+                disabled={product.quantity === 0 || isLoading}
+                className={`w-full h-10 rounded-none rounded-b-xl text-sm font-medium transition-all duration-300 ${
+                  isAdded 
+                    ? 'bg-green-500 hover:bg-green-600 text-white' 
+                    : product.quantity > 0
+                    ? 'bg-brand hover:bg-brand-dark text-white'
+                    : 'bg-gray-400 cursor-not-allowed text-gray-200'
+                }`}
+              >
+                {isLoading ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Adding...</span>
+                  </motion.div>
+                ) : isAdded ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    <span>Added to Cart!</span>
+                  </motion.div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="h-4 w-4" />
+                    <span>Add to Cart</span>
+                  </div>
+                )}
+              </Button>
+              {error && (
+                <div className="text-xs text-red-500 mt-1 px-4">
+                  {error}
+                </div>
+              )}
+            </div>
           </div>
         </Link>
         
-        {/* Enhanced Add to Cart Button */}
-        <motion.div 
-          className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300"
-          initial={{ scale: 0.8 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <Button
-            size="sm"
-            onClick={handleAddToCart}
-            disabled={product.quantity === 0}
-            className={`h-10 w-10 p-0 rounded-full shadow-lg border-2 transition-all duration-300 ${
-              isAdded 
-                ? 'bg-green-500 hover:bg-green-600 border-green-400' 
-                : product.quantity > 0
-                ? 'bg-brand hover:bg-brand-dark border-brand-accent hover:border-brand'
-                : 'bg-gray-400 cursor-not-allowed border-gray-300'
-            }`}
-          >
-            {isAdded ? (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 500, damping: 15 }}
-              >
-                <Check className="h-4 w-4 text-white" />
-              </motion.div>
-            ) : (
-              <ShoppingBag className="h-4 w-4 text-white" />
-            )}
-          </Button>
-        </motion.div>
       </div>
     </motion.div>
   );

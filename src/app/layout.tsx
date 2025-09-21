@@ -5,6 +5,8 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { CartSyncProvider } from "@/components/providers/CartSyncProvider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,9 +33,22 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen flex-col`}>
         <QueryProvider>
           <AuthProvider>
-            <Header />
-            <main id="main" className="flex-1">{children}</main>
-            <Footer />
+            <CartSyncProvider>
+              <Header />
+              <main id="main" className="flex-1">{children}</main>
+              <Footer />
+              <Toaster 
+                position="top-right" 
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    background: 'var(--background)',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  },
+                }}
+              />
+            </CartSyncProvider>
           </AuthProvider>
         </QueryProvider>
         <div id="portal-drawers" />

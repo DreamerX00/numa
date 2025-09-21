@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useCartStore } from "@/lib/store/cart";
+import { useHybridCartStore } from "@/lib/store/hybridCart";
+import { useCartService } from "@/hooks/useCartService";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
+import { calculateShippingCost, amountNeededForFreeShipping, defaultShippingConfig } from "@/lib/config/shipping";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,14 +47,16 @@ function loadScript(src: string) {
 }
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, clearCart, getTotalPrice, getTotalItems } = useCartStore();
+  const { items, getTotalPrice, getTotalItems, clearCart } = useHybridCartStore();
+  const { updateQuantity, removeItem } = useCartService();
   const [loading, setLoading] = useState(false);
   const [razorpayReady, setRazorpayReady] = useState(false);
 
   const totalPrice = getTotalPrice();
   const totalItems = getTotalItems();
-  const shippingCost = totalPrice > 50000 ? 0 : 10000; // Free shipping over ₹500
+  const shippingCost = calculateShippingCost(totalPrice);
   const finalTotal = totalPrice + shippingCost;
+  const amountForFreeShipping = amountNeededForFreeShipping(totalPrice);
 
   // Load Razorpay script on mount
   useEffect(() => {
@@ -413,9 +417,13 @@ export default function CartPage() {
                       {shippingCost === 0 ? "Free" : formatPriceFromFloat(shippingCost)}
                     </span>
                   </div>
-                  {shippingCost === 0 && (
+                  {shippingCost === 0 ? (
                     <p className="text-xs text-green-600">
                       🎉 You qualify for free shipping!
+                    </p>
+                  ) : (
+                    <p className="text-xs text-blue-600">
+                      Add {formatPriceFromFloat(amountForFreeShipping)} more for free shipping
                     </p>
                   )}
                   <Separator />
@@ -461,7 +469,7 @@ export default function CartPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>Free shipping on orders above ₹500</span>
+                    <span>Free shipping on orders above ₹{defaultShippingConfig.freeShippingThreshold}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-purple-500" />

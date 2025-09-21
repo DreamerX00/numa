@@ -4,7 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCartStore } from "@/lib/store/cart";
+import { useHybridCartStore } from "@/lib/store/hybridCart";
+import { useCartService } from "@/hooks/useCartService";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
 import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,8 @@ interface MiniCartProps {
 
 export function MiniCart({ children }: MiniCartProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { items, updateQuantity, removeItem, getTotalItems, getTotalPrice } = useCartStore();
+  const { items, isLoading, getTotalItems, getTotalPrice } = useHybridCartStore();
+  const { updateQuantity, removeItem } = useCartService();
   
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
@@ -126,6 +128,7 @@ export function MiniCart({ children }: MiniCartProps) {
                           size="icon"
                           className="h-6 w-6 text-muted-foreground hover:text-destructive"
                           onClick={() => removeItem(item.id)}
+                          disabled={isLoading}
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -139,7 +142,7 @@ export function MiniCart({ children }: MiniCartProps) {
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
+                            disabled={item.quantity <= 1 || isLoading}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -151,7 +154,7 @@ export function MiniCart({ children }: MiniCartProps) {
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= (item.variant?.quantity || item.product.quantity)}
+                            disabled={item.quantity >= (item.variant?.quantity || item.product.quantity) || isLoading}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>

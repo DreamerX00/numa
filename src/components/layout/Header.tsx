@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Search, Menu, ShoppingBag, User, LogOut } from 'lucide-react';
 import { useAuth, getAuthDisplayName } from '@/lib/auth/client';
-import { useCartStore } from '@/lib/store/cart';
+import { useHybridCartStore } from '@/lib/store/hybridCart';
 import { MiniCart } from '@/components/cart/MiniCart';
 
 interface NavItem { label: string; href: string; }
@@ -25,7 +25,7 @@ const primaryNav: NavItem[] = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
+  const getTotalItems = useHybridCartStore((state) => state.getTotalItems);
 
   const handleLogout = async () => {
     try {

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/lib/auth/client'
 import { getFirebaseClient } from '@/lib/firebase/client'
-import { useCartStore } from '@/lib/store/cart'
+import { useCartService } from '@/hooks/useCartService'
 import WishlistButton from './WishlistButton'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -43,7 +43,7 @@ interface WishlistData {
 
 export default function WishlistPage() {
   const { user } = useAuth()
-  const addItem = useCartStore((state) => state.addItem)
+  const { addToCart } = useCartService()
   const [wishlistData, setWishlistData] = useState<WishlistData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -101,10 +101,10 @@ export default function WishlistPage() {
     }).format(price)
   }
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = async (product: Product) => {
     if (!product.inStock) return
 
-    // Convert to cart product format
+    // Convert to cart product format  
     const cartProduct = {
       id: product.id,
       name: product.name,
@@ -113,8 +113,8 @@ export default function WishlistPage() {
       price: product.price
     }
 
-    // Type assertion is safe here as we're providing required fields
-    addItem(cartProduct as Parameters<typeof addItem>[0], null, 1)
+    // Add to cart using the new service
+    await addToCart(cartProduct as Parameters<typeof addToCart>[0], null, 1)
   }
 
   const handleWishlistToggle = (productId: string, inWishlist: boolean) => {

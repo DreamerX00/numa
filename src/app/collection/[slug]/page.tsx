@@ -23,7 +23,7 @@ export default async function CollectionPage({ params }: Props) {
     <div className="min-h-screen bg-gradient-to-b from-brand-light/30 to-white">
       {/* Breadcrumb Navigation */}
       <div className="border-b border-border/50 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container py-4">
+        <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Link href="/" className="hover:text-brand transition-colors">
               Home
@@ -38,7 +38,7 @@ export default async function CollectionPage({ params }: Props) {
         </div>
       </div>
 
-      <div className="container py-8 lg:py-12">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Enhanced Header Section */}
         <div className="mb-12">
           <div className="text-center mb-8">
@@ -76,7 +76,7 @@ export default async function CollectionPage({ params }: Props) {
           </div>
         </div>
         {/* Enhanced Product Grid */}
-        <div className="grid gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
           {products.map((p: Product) => (
             <ProductCard key={p.id} product={p} />
           ))}

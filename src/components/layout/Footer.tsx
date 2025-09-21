@@ -28,7 +28,7 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-brand transition-colors">
+              <Link href="https://www.instagram.com/numa.iin/" className="text-muted-foreground hover:text-brand transition-colors">
                 <Twitter className="h-5 w-5" />
                 <span className="sr-only">Twitter</span>
               </Link>
@@ -36,7 +36,7 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-brand transition-colors">
+              <Link href="mailto:shreyaaa4404@gmail.com" className="text-muted-foreground hover:text-brand transition-colors">
                 <Mail className="h-5 w-5" />
                 <span className="sr-only">Email</span>
               </Link>

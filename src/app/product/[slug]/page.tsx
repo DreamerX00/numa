@@ -7,19 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
 import { CheckoutButton } from '@/components/CheckoutButton';
-import { useCartStore } from '@/lib/store/cart';
+import { useCartService } from '@/hooks/useCartService';
 import { DEFAULT_IMAGES } from '@/lib/cloudinary';
 import { Star, Heart, Share2, Truck, Shield, RefreshCw, ShoppingBag, Check, Minus, Plus } from 'lucide-react';
 import { fetchProduct, formatPrice } from '../../../lib/services/catalog';
 import ProductReviews from '@/components/reviews/ProductReviews';
+import { toast } from 'sonner';
+import { sanitizeProductDates } from '@/lib/utils/dates';
 import type { Product } from '@prisma/client';
 
-interface Props { 
-  params: { slug: string } 
+interface Props {
+  params: { slug: string };
 }
 
 interface VariantType {
-  id: string;
+  id: string | null;
   sku: string;
   priceCents: number;
   compareAtCents?: number;
@@ -33,9 +35,11 @@ export default function ProductPage({ params }: Props) {
   const [isAdded, setIsAdded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState<VariantType | null>(null);
-  
-  const addItem = useCartStore((state) => state.addItem);
+  const [selectedVariant, setSelectedVariant] = useState<VariantType | null>(
+    null
+  );
+
+  const { addToCart } = useCartService();
 
   useEffect(() => {
     async function loadProduct() {
@@ -44,26 +48,32 @@ export default function ProductPage({ params }: Props) {
         const foundProduct = await fetchProduct(resolvedParams.slug);
         if (foundProduct) {
           setProduct(foundProduct);
-          // Initialize default variant
+          // Initialize default variant - since we have no real variants, set to null
+          // This will make the cart API treat it as a base product without variants
           const defaultVariant = {
-            id: `${foundProduct.id}-default`,
+            id: null, // No variant ID for base products
             sku: foundProduct.sku || `${foundProduct.id}-DEFAULT`,
             priceCents: foundProduct.price * 100,
-            compareAtCents: foundProduct.comparePrice ? foundProduct.comparePrice * 100 : undefined,
+            compareAtCents: foundProduct.comparePrice
+              ? foundProduct.comparePrice * 100
+              : undefined,
             stock: foundProduct.quantity,
-            images: foundProduct.images.length > 0 ? foundProduct.images : [DEFAULT_IMAGES.PRODUCT]
+            images:
+              foundProduct.images.length > 0
+                ? foundProduct.images
+                : [DEFAULT_IMAGES.PRODUCT],
           };
           setSelectedVariant(defaultVariant);
         }
       } catch (error) {
-        console.error('Failed to load product:', error);
+        console.error("Failed to load product:", error);
       } finally {
         setLoading(false);
       }
     }
     loadProduct();
   }, [params]);
-  
+
   if (loading) {
     return (
       <Container className="py-6 md:py-8">
@@ -81,46 +91,63 @@ export default function ProductPage({ params }: Props) {
       </Container>
     );
   }
-  
+
   if (!product) {
     return notFound();
   }
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product || !selectedVariant) return;
 
-    // Convert product to match cart interface - ensure date is string and handle nullable fields
-    const cartProduct = {
-      ...product,
-      description: product.description || null,
-      shortDescription: product.shortDescription || null,
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString()
-    };
+    try {
+      // Sanitize product dates to prevent TypeError
+      const cartProduct = sanitizeProductDates(product);
 
-    // Convert VariantType to ProductVariant for cart
-    const cartVariant = {
-      id: selectedVariant.id,
-      productId: product.id,
-      name: `${product.name} - Variant`,
-      sku: selectedVariant.sku,
-      price: selectedVariant.priceCents / 100, // Convert cents to dollars
-      comparePrice: selectedVariant.compareAtCents ? selectedVariant.compareAtCents / 100 : null,
-      quantity: selectedVariant.stock,
-      attributes: {},
-      image: selectedVariant.images[0] || null,
-      images: selectedVariant.images,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    addItem(cartProduct, cartVariant, quantity);
-    setIsAdded(true);
-    setTimeout(() => setIsAdded(false), 2000);
+      // If selectedVariant has no real ID, pass null instead of creating a fake variant
+      const cartVariant = selectedVariant.id ? {
+        id: selectedVariant.id,
+        productId: product.id,
+        name: `${product.name} - Variant`,
+        sku: selectedVariant.sku,
+        price: selectedVariant.priceCents / 100, // Convert cents to dollars
+        comparePrice: selectedVariant.compareAtCents
+          ? selectedVariant.compareAtCents / 100
+          : null,
+        quantity: selectedVariant.stock,
+        attributes: {},
+        image: selectedVariant.images[0] || null,
+        images: selectedVariant.images,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } : null;
+
+      const result = await addToCart(cartProduct, cartVariant, quantity);
+
+      if (result.success) {
+        setIsAdded(true);
+        setTimeout(() => setIsAdded(false), 2000);
+
+        toast.success(`${product.name} added to cart!`, {
+          description: `${quantity} item${quantity > 1 ? "s" : ""} added successfully.`,
+        });
+      } else {
+        toast.error("Failed to add to cart", {
+          description: result.error || "Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart", {
+        description: "An unexpected error occurred. Please try again.",
+      });
+    }
   };
 
-  const canAddToCart = product.isActive && product.status === 'ACTIVE' && (selectedVariant?.stock || product.quantity) > 0;
+  const canAddToCart =
+    product.isActive &&
+    product.status === "ACTIVE" &&
+    (selectedVariant?.stock || product.quantity) > 0;
 
   if (!selectedVariant) {
     return (
@@ -148,42 +175,52 @@ export default function ProductPage({ params }: Props) {
           <div className="space-y-4">
             <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
               <Image
-                src={selectedVariant?.images[0] || product.images[0] || DEFAULT_IMAGES.PRODUCT}
+                src={
+                  selectedVariant?.images[0] ||
+                  product.images[0] ||
+                  DEFAULT_IMAGES.PRODUCT
+                }
                 alt={product.name}
                 fill
                 className="object-cover"
                 priority
               />
-              {product.badges?.includes('NEW') && (
+              {product.badges?.includes("NEW") && (
                 <Badge className="absolute left-4 top-4 bg-brand">NEW</Badge>
               )}
-              {product.badges?.includes('LIMITED') && (
-                <Badge className="absolute left-4 top-4 bg-foreground">LIMITED</Badge>
+              {product.badges?.includes("LIMITED") && (
+                <Badge className="absolute left-4 top-4 bg-foreground">
+                  LIMITED
+                </Badge>
               )}
-              {product.badges?.includes('SALE') && (
-                <Badge className="absolute left-4 top-4 bg-destructive">SALE</Badge>
+              {product.badges?.includes("SALE") && (
+                <Badge className="absolute left-4 top-4 bg-destructive">
+                  SALE
+                </Badge>
               )}
             </div>
-            
+
             {/* Thumbnail Gallery */}
             {(selectedVariant?.images?.length || product.images.length) > 1 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {(selectedVariant?.images || product.images).map((image: string, index: number) => (
-                  <div 
-                    key={index} 
-                    className={`relative aspect-square overflow-hidden rounded-md bg-muted cursor-pointer hover:opacity-80 transition-opacity ${
-                      index === selectedImageIndex ? 'ring-2 ring-brand' : ''
-                    }`}
-                  >
-                    <Image
-                      src={image}
-                      alt={`${product.name} view ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onClick={() => setSelectedImageIndex(index)}
-                    />
-                  </div>
-                ))}
+                {(selectedVariant?.images || product.images).map(
+                  (image: string, index: number) => (
+                    <div
+                      key={index}
+                      className={`relative aspect-square overflow-hidden rounded-md bg-muted cursor-pointer hover:opacity-80 transition-opacity ${
+                        index === selectedImageIndex ? "ring-2 ring-brand" : ""
+                      }`}
+                    >
+                      <Image
+                        src={image}
+                        alt={`${product.name} view ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        onClick={() => setSelectedImageIndex(index)}
+                      />
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
@@ -191,9 +228,13 @@ export default function ProductPage({ params }: Props) {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {product.name}
+              </h1>
               {product.subtitle && (
-                <p className="text-lg text-muted-foreground mt-2">{product.subtitle}</p>
+                <p className="text-lg text-muted-foreground mt-2">
+                  {product.subtitle}
+                </p>
               )}
             </div>
 
@@ -201,26 +242,46 @@ export default function ProductPage({ params }: Props) {
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <Star
+                    key={i}
+                    className={`h-4 w-4 ${
+                      i < Math.round(product.averageRating || 0)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                  />
                 ))}
               </div>
-              <span className="text-sm text-muted-foreground">(48 reviews)</span>
+              <span className="text-sm text-muted-foreground">
+                ({product.reviewCount || 0} review
+                {product.reviewCount !== 1 ? "s" : ""})
+              </span>
             </div>
 
             {/* Price */}
             <div className="space-y-2">
               <div className="flex items-center gap-4">
                 <span className="text-3xl font-bold text-brand">
-                  {formatPrice(selectedVariant?.priceCents || product.price * 100)}
+                  {formatPrice(
+                    selectedVariant
+                      ? selectedVariant.priceCents / 100
+                      : product.price
+                  )}
                 </span>
                 {(selectedVariant?.compareAtCents || product.comparePrice) && (
                   <span className="text-lg text-muted-foreground line-through">
-                    {formatPrice(selectedVariant?.compareAtCents || (product.comparePrice ? product.comparePrice * 100 : 0))}
+                    {formatPrice(
+                      selectedVariant?.compareAtCents
+                        ? selectedVariant.compareAtCents / 100
+                        : product.comparePrice || 0
+                    )}
                   </span>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {(selectedVariant?.stock || product.quantity) > 0 ? `${selectedVariant?.stock || product.quantity} in stock` : 'Out of stock'}
+                {(selectedVariant?.stock || product.quantity) > 0
+                  ? `${selectedVariant?.stock || product.quantity} in stock`
+                  : "Out of stock"}
               </p>
             </div>
 
@@ -228,7 +289,9 @@ export default function ProductPage({ params }: Props) {
             {product.description && (
               <div>
                 <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  {product.description}
+                </p>
               </div>
             )}
 
@@ -239,18 +302,22 @@ export default function ProductPage({ params }: Props) {
                   <h4 className="font-medium mb-2">Materials</h4>
                   <div className="flex flex-wrap gap-2">
                     {product.materials.map((material: string) => (
-                      <Badge key={material} variant="secondary">{material}</Badge>
+                      <Badge key={material} variant="secondary">
+                        {material}
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
-              
+
               {product.gemstones.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-2">Gemstones</h4>
                   <div className="flex flex-wrap gap-2">
                     {product.gemstones.map((gemstone: string) => (
-                      <Badge key={gemstone} variant="secondary">{gemstone}</Badge>
+                      <Badge key={gemstone} variant="secondary">
+                        {gemstone}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -279,7 +346,9 @@ export default function ProductPage({ params }: Props) {
                     size="icon"
                     className="h-10 w-10"
                     onClick={() => setQuantity(quantity + 1)}
-                    disabled={!selectedVariant || quantity >= selectedVariant.stock}
+                    disabled={
+                      !selectedVariant || quantity >= selectedVariant.stock
+                    }
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -295,8 +364,10 @@ export default function ProductPage({ params }: Props) {
             {/* Actions */}
             <div className="space-y-4">
               <div className="flex gap-4">
-                <CheckoutButton 
-                  amount={(selectedVariant?.priceCents || product.price * 100) / 100}
+                <CheckoutButton
+                  amount={
+                    (selectedVariant?.priceCents || product.price * 100) / 100
+                  }
                   label="Buy Now"
                   className="flex-1"
                 />
@@ -307,12 +378,12 @@ export default function ProductPage({ params }: Props) {
                   <Share2 className="h-4 w-4" />
                 </Button>
               </div>
-              
-              <Button 
-                className={`w-full ${
-                  isAdded 
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-brand hover:bg-brand-dark'
+
+              <Button
+                className={`w-full text-black hover:text-orange-500 ${
+                  isAdded
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-brand hover:bg-brand-dark"
                 }`}
                 onClick={handleAddToCart}
                 disabled={!canAddToCart}
@@ -329,10 +400,12 @@ export default function ProductPage({ params }: Props) {
                   </>
                 )}
               </Button>
-              
+
               {!canAddToCart && selectedVariant && (
                 <p className="text-sm text-center text-destructive">
-                  {selectedVariant.stock <= 0 ? 'Out of stock' : 'Not enough stock available'}
+                  {selectedVariant.stock <= 0
+                    ? "Out of stock"
+                    : "Not enough stock available"}
                 </p>
               )}
             </div>
@@ -344,21 +417,27 @@ export default function ProductPage({ params }: Props) {
                   <Truck className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-sm">Free Shipping</p>
-                    <p className="text-xs text-muted-foreground">On orders over ₹5,000</p>
+                    <p className="text-xs text-muted-foreground">
+                      On orders over ₹5,000
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Shield className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-sm">Lifetime Warranty</p>
-                    <p className="text-xs text-muted-foreground">Against manufacturing defects</p>
+                    <p className="text-xs text-muted-foreground">
+                      Against manufacturing defects
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <RefreshCw className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-sm">30-Day Returns</p>
-                    <p className="text-xs text-muted-foreground">Free returns & exchanges</p>
+                    <p className="text-xs text-muted-foreground">
+                      Free returns & exchanges
+                    </p>
                   </div>
                 </div>
               </div>
@@ -367,10 +446,10 @@ export default function ProductPage({ params }: Props) {
         </div>
 
         {/* Additional sections could go here: Related products, reviews, etc. */}
-        
+
         {/* Reviews Section */}
         <div className="mt-16">
-          <ProductReviews 
+          <ProductReviews
             productId={product.id}
             productName={product.name}
             showWriteReview={true}
