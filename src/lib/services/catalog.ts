@@ -14,11 +14,25 @@ interface Category {
 
 const API_BASE = typeof window !== 'undefined' ? '/api' : 
   process.env.NODE_ENV === 'production' ? 
-    `${process.env.VERCEL_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api` : 
+    `https://${process.env.VERCEL_URL || process.env.NEXTAUTH_URL?.replace('https://', '') || 'localhost:3000'}/api` : 
     'http://localhost:3000/api';
 
-// Check if we're in build environment
-const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL;
+// Check if we're in build environment - more comprehensive check
+const isBuildTime = typeof window === 'undefined' && (
+  process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL ||
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  !process.env.VERCEL
+);
+
+// Debug logging
+console.log('🔍 Catalog service environment check:', {
+  NODE_ENV: process.env.NODE_ENV,
+  VERCEL_URL: !!process.env.VERCEL_URL,
+  NEXT_PHASE: process.env.NEXT_PHASE,
+  VERCEL: !!process.env.VERCEL,
+  isBuildTime,
+  API_BASE
+});
 
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
