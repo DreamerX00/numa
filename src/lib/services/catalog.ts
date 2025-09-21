@@ -12,10 +12,22 @@ interface Category {
   };
 }
 
-const API_BASE = typeof window !== 'undefined' ? '/api' : 'http://localhost:3000/api';
+const API_BASE = typeof window !== 'undefined' ? '/api' : 
+  process.env.NODE_ENV === 'production' ? 
+    `${process.env.VERCEL_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api` : 
+    'http://localhost:3000/api';
+
+// Check if we're in build environment
+const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL;
 
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
+  // Return empty array during build time to prevent ECONNREFUSED
+  if (isBuildTime) {
+    console.log('🏗️ Build time: Skipping API call for featured products');
+    return [];
+  }
+
   try {
     const response = await fetch(`${API_BASE}/products?featured=true&limit=${limit}&page=1`);
     if (!response.ok) {
@@ -31,6 +43,12 @@ export async function fetchFeaturedProducts(limit = 8) {
 
 // Fetch categories/collections for homepage
 export async function fetchCollections() {
+  // Return empty array during build time to prevent ECONNREFUSED
+  if (isBuildTime) {
+    console.log('🏗️ Build time: Skipping API call for collections');
+    return [];
+  }
+
   try {
     const response = await fetch(`${API_BASE}/categories?includeCounts=true`);
     if (!response.ok) {
@@ -56,6 +74,12 @@ export async function fetchCollections() {
 
 // Fetch products by collection/category
 export async function fetchProductsByCollection(categorySlug: string) {
+  // Return empty array during build time to prevent ECONNREFUSED
+  if (isBuildTime) {
+    console.log('🏗️ Build time: Skipping API call for products by collection');
+    return [];
+  }
+
   try {
     const response = await fetch(`${API_BASE}/products?category=${categorySlug}&limit=20&page=1`);
     if (!response.ok) {
@@ -71,6 +95,12 @@ export async function fetchProductsByCollection(categorySlug: string) {
 
 // Fetch single product by slug
 export async function fetchProduct(productSlug: string) {
+  // Return null during build time to prevent ECONNREFUSED
+  if (isBuildTime) {
+    console.log('🏗️ Build time: Skipping API call for single product');
+    return null;
+  }
+
   try {
     const response = await fetch(`${API_BASE}/products/${productSlug}`);
     if (!response.ok) {
