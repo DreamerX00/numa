@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import ShippingModal from '@/components/admin/ShippingModal';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,9 @@ interface Order {
   status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   totalAmount: number;
   createdAt: string;
+  trackingNumber?: string;
+  carrier?: string;
+  estimatedDelivery?: Date;
   user: {
     id: string;
     email: string;
@@ -130,6 +134,10 @@ export default function AdminOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [limit] = useState(20);
+  const [shippingModal, setShippingModal] = useState<{
+    isOpen: boolean;
+    order?: Order;
+  }>({ isOpen: false });
   
   const queryClient = useQueryClient();
 
@@ -156,6 +164,18 @@ export default function AdminOrdersPage() {
 
   const handleStatusUpdate = (orderId: string, newStatus: string) => {
     updateStatusMutation.mutate({ id: orderId, status: newStatus });
+  };
+
+  const handleOpenShippingModal = (order: Order) => {
+    setShippingModal({ isOpen: true, order });
+  };
+
+  const handleCloseShippingModal = () => {
+    setShippingModal({ isOpen: false });
+  };
+
+  const handleShippingUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
   };
 
   const orders = data?.orders || [];
@@ -350,9 +370,18 @@ export default function AdminOrdersPage() {
                                 )}
                                 {order.status === 'PROCESSING' && (
                                   <DropdownMenuItem
-                                    onClick={() => handleStatusUpdate(order.id, 'SHIPPED')}
+                                    onClick={() => handleOpenShippingModal(order)}
                                   >
-                                    Mark as Shipped
+                                    <Truck className="h-4 w-4 mr-2" />
+                                    Manage Shipping
+                                  </DropdownMenuItem>
+                                )}
+                                {['SHIPPED', 'DELIVERED'].includes(order.status) && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenShippingModal(order)}
+                                  >
+                                    <Truck className="h-4 w-4 mr-2" />
+                                    Update Shipping
                                   </DropdownMenuItem>
                                 )}
                                 {order.status === 'SHIPPED' && (
@@ -411,6 +440,16 @@ export default function AdminOrdersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Shipping Modal */}
+      {shippingModal.order && (
+        <ShippingModal
+          isOpen={shippingModal.isOpen}
+          onClose={handleCloseShippingModal}
+          order={shippingModal.order}
+          onUpdate={handleShippingUpdate}
+        />
+      )}
     </AdminLayout>
   );
 }

@@ -11,6 +11,7 @@ import { useCartStore } from '@/lib/store/cart';
 import { DEFAULT_IMAGES } from '@/lib/cloudinary';
 import { Star, Heart, Share2, Truck, Shield, RefreshCw, ShoppingBag, Check, Minus, Plus } from 'lucide-react';
 import { fetchProduct, formatPrice } from '../../../lib/services/catalog';
+import ProductReviews from '@/components/reviews/ProductReviews';
 import type { Product } from '@prisma/client';
 
 interface Props { 
@@ -348,6 +349,15 @@ export default function ProductPage({ params }: Props) {
         </div>
 
         {/* Additional sections could go here: Related products, reviews, etc. */}
+        
+        {/* Reviews Section */}
+        <div className="mt-16">
+          <ProductReviews 
+            productId={product.id}
+            productName={product.name}
+            showWriteReview={true}
+          />
+        </div>
       </Container>
     </div>
   );

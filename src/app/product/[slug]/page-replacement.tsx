@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
 import { useCartStore } from '@/lib/store/cart';
 import { DEFAULT_IMAGES } from '@/lib/cloudinary';
-import { Star, Heart, Share2, Truck, Shield, RefreshCw, ShoppingBag, Check, Minus, Plus } from 'lucide-react';
+import { Star, Share2, Truck, Shield, RefreshCw, ShoppingBag, Check, Minus, Plus } from 'lucide-react';
 import { fetchProduct, formatPrice } from '../../../lib/services/catalog';
+import ProductReviews from '@/components/reviews/ProductReviews';
+import WishlistButton from '@/components/wishlist/WishlistButton';
 import type { Product } from '@prisma/client';
 
 interface Props { 
@@ -231,9 +233,11 @@ export default function ProductPage({ params }: Props) {
                     </>
                   )}
                 </Button>
-                <Button variant="outline" size="icon">
-                  <Heart className="h-4 w-4" />
-                </Button>
+                <WishlistButton
+                  productId={product.id}
+                  size="md"
+                  variant="outline"
+                />
                 <Button variant="outline" size="icon">
                   <Share2 className="h-4 w-4" />
                 </Button>
@@ -277,6 +281,15 @@ export default function ProductPage({ params }: Props) {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-16 max-w-4xl">
+          <ProductReviews 
+            productId={product.id}
+            productName={product.name}
+            showWriteReview={true}
+          />
         </div>
       </Container>
     </div>

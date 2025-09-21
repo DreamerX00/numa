@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ReviewForm from "@/components/reviews/ReviewForm";
 import {
   Package,
   Truck,
@@ -231,6 +233,9 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewProductId, setReviewProductId] = useState<string | null>(null);
+  const [reviewProductName, setReviewProductName] = useState<string>("");
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -241,6 +246,19 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
 
   const selectedOrderDetails = selectedOrder ? 
     mockOrders.find(order => order.id === selectedOrder) : null;
+
+  const handleReviewClick = (productId: string, productName: string) => {
+    setReviewProductId(productId);
+    setReviewProductName(productName);
+    setShowReviewDialog(true);
+  };
+
+  const handleReviewSubmitted = () => {
+    setShowReviewDialog(false);
+    setReviewProductId(null);
+    setReviewProductName("");
+    // Could show a success message here
+  };
 
   if (selectedOrderDetails) {
     return (
@@ -424,7 +442,11 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 </Button>
               )}
               {selectedOrderDetails.canReview && (
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => handleReviewClick("product_123", selectedOrderDetails.items[0]?.name || "Product")}
+                >
                   <Star className="h-4 w-4 mr-2" />
                   Write Review
                 </Button>
@@ -686,6 +708,20 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Review Dialog */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="max-w-2xl">
+          {reviewProductId && (
+            <ReviewForm
+              productId={reviewProductId}
+              productName={reviewProductName}
+              onSuccess={handleReviewSubmitted}
+              onCancel={() => setShowReviewDialog(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

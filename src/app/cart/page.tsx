@@ -75,18 +75,35 @@ export default function CartPage() {
   const createOrder = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/razorpay/order", {
+      // Prepare cart items for order creation
+      const cartItems = items.map(item => ({
+        productId: item.product.id,
+        variantId: item.variant?.id,
+        quantity: item.quantity,
+        price: item.product.price
+      }));
+
+      const res = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          amount: finalTotal, // amount in paise
+          cartItems,
           notes: {
-            items: items.map(item => `${item.product.name} (${item.variant.size || item.variant.metal}) x${item.quantity}`).join(', ')
+            source: 'web_checkout',
+            items: items.map(item => `${item.product.name} x${item.quantity}`).join(', ')
           }
         }),
       });
-      if (!res.ok) throw new Error("Failed to create order");
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to create order");
+      }
+      
       return await res.json();
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -103,13 +120,13 @@ export default function CartPage() {
         currency: order.currency,
         name: "NUMA",
         description: `Payment for ${totalItems} item${totalItems !== 1 ? 's' : ''}`,
-        order_id: order.id,
+        order_id: order.razorpayOrderId,
         handler: (response) => {
           // Payment successful
           console.log("Payment success", response);
           clearCart();
           // Redirect to success page or show success message
-          window.location.href = `/order-success?payment_id=${response.razorpay_payment_id}`;
+          window.location.href = `/order-success?payment_id=${response.razorpay_payment_id}&order_id=${order.orderNumber}`;
         },
         prefill: {
           name: "",
@@ -118,6 +135,7 @@ export default function CartPage() {
         },
         theme: { color: "#E7654D" },
         notes: {
+          orderNumber: order.orderNumber,
           items: items.map(item => `${item.product.name} x${item.quantity}`).join(', ')
         }
       };

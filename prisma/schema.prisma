@@ -218,11 +218,35 @@ model Product {
   orderItems  OrderItem[]
   cartItems   CartItem[]
   wishlistItems WishlistItem[]
+  inventoryLogs InventoryLog[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("products")
+}
+
+// Inventory tracking model
+model InventoryLog {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  productId String      @db.ObjectId
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Change details
+  type      InventoryChangeType
+  quantity  Int         // Positive for additions, negative for deductions
+  reason    String
+  
+  // Reference
+  orderId   String?     @db.ObjectId
+  
+  // Metadata
+  performedBy String?   // User ID who made the change
+  notes       String?
+  
+  createdAt DateTime    @default(now())
+
+  @@map("inventory_logs")
 }
 
 model ProductVariant {
@@ -305,6 +329,7 @@ model Order {
   
   // Items
   items          OrderItem[]
+  shippingLogs   ShippingLog[]
   
   // Payment - keeping Razorpay integration
   razorpayOrderId String?
@@ -314,6 +339,8 @@ model Order {
   // Shipping
   shippingMethod  String?
   trackingNumber  String?
+  carrier         String?
+  estimatedDelivery DateTime?
   shippedAt       DateTime?
   deliveredAt     DateTime?
   
@@ -344,6 +371,28 @@ model OrderItem {
   createdAt  DateTime @default(now())
 
   @@map("order_items")
+}
+
+model ShippingLog {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId           String   @db.ObjectId
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Shipping details
+  status            String
+  trackingNumber    String?
+  carrier           String?
+  estimatedDelivery DateTime?
+  actualDelivery    DateTime?
+  
+  // Log details
+  notes             String?
+  updatedBy         String   // Admin email who made the update
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("shipping_logs")
 }
 
 // ================================
@@ -436,7 +485,15 @@ enum LoyaltyTier {
 enum AddressType {
   SHIPPING
   BILLING
-  BOTH
+}
+
+enum InventoryChangeType {
+  SALE
+  PURCHASE
+  ADJUSTMENT
+  RETURN
+  DAMAGED
+  RESTOCK
 }
 
 enum ProductStatus {
