@@ -85,15 +85,28 @@ export async function fetchProductsByCollection(categorySlug: string) {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/products?category=${categorySlug}&limit=20&page=1`);
+    const url = `${API_BASE}/products?category=${categorySlug}&limit=20&page=1`;
+    console.log(`🔍 Fetching products for category: ${categorySlug} from ${url}`);
+    
+    const response = await fetch(url);
+    console.log(`📡 Response status: ${response.status} for category: ${categorySlug}`);
+    
     if (!response.ok) {
-      throw new Error(`Failed to fetch products for category: ${categorySlug}`);
+      const errorText = await response.text();
+      console.error(`❌ API Error for category ${categorySlug}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Failed to fetch products for category: ${categorySlug} (Status: ${response.status})`);
     }
+    
     const data = await response.json();
+    console.log(`✅ Successfully fetched ${data.products?.length || 0} products for category: ${categorySlug}`);
     return data.products || [];
   } catch (error) {
     console.error('Error fetching products by collection:', error);
-    return [];
+    throw error; // Re-throw to let the calling code handle it
   }
 }
 
