@@ -14,14 +14,12 @@ interface Category {
 
 const API_BASE = typeof window !== 'undefined' ? '/api' : 
   process.env.NODE_ENV === 'production' ? 
-    `https://${process.env.VERCEL_URL || 'localhost:3000'}/api` : 
+    `https://${process.env.VERCEL_URL || 'numaiin.vercel.app'}/api` : 
     'http://localhost:3000/api';
 
-// Check if we're in build environment - more comprehensive check
-const isBuildTime = typeof window === 'undefined' && (
-  process.env.NEXT_PHASE === 'phase-production-build' ||
-  (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !process.env.VERCEL)
-);
+// Check if we're in build environment - only during actual build phase
+const isBuildTime = typeof window === 'undefined' && 
+  process.env.NEXT_PHASE === 'phase-production-build';
 
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
