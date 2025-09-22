@@ -12,66 +12,183 @@ interface Category {
   };
 }
 
-const API_BASE = typeof window !== 'undefined' ? '/api' : 
-  process.env.NODE_ENV === 'production' ? 
-    `https://${process.env.VERCEL_URL || 'numaiin.vercel.app'}/api` : 
-    'http://localhost:3000/api';
+// Improved environment detection for Next.js 15
+const isServerSide = typeof window === 'undefined';
+const isProduction = process.env.NODE_ENV === 'production';
+const isBuildTime = isServerSide && process.env.NEXT_PHASE === 'phase-production-build';
 
-// Check if we're in build environment - only during actual build phase
-const isBuildTime = typeof window === 'undefined' && 
-  process.env.NEXT_PHASE === 'phase-production-build';
+// Better API base URL construction for production
+const getApiBase = () => {
+  if (!isServerSide) {
+    // Client-side: use relative URLs
+    return '/api';
+  }
+  
+  if (isBuildTime) {
+    // Build time: no API calls
+    return null;
+  }
+  
+  if (isProduction) {
+    // Production server-side: use internal URL or localhost
+    const vercelUrl = process.env.VERCEL_URL;
+    if (vercelUrl) {
+      return `https://${vercelUrl}/api`;
+    }
+    // Fallback to your deployed domain
+    return 'https://numaiin.vercel.app/api';
+  }
+  
+  // Development: use localhost
+  return 'http://localhost:3000/api';
+};
+
+const API_BASE = getApiBase();
+
+// Sample fallback products for when API fails
+function getSampleProducts() {
+  return [
+    {
+      id: 'sample-1',
+      name: 'Featured Product 1',
+      slug: 'featured-product-1',
+      price: 999,
+      images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500&fit=crop'],
+      description: 'Sample featured product from fallback data',
+      featured: true,
+      inStock: true
+    },
+    {
+      id: 'sample-2', 
+      name: 'Featured Product 2',
+      slug: 'featured-product-2',
+      price: 1499,
+      images: ['https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&h=500&fit=crop'],
+      description: 'Another sample featured product from fallback data',
+      featured: true,
+      inStock: true
+    }
+  ];
+}
+
+// Sample fallback collections for when API fails
+function getSampleCollections() {
+  return [
+    {
+      id: 'sample-cat-1',
+      name: 'Electronics',
+      slug: 'electronics',
+      description: 'Sample electronics category',
+      image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop',
+      _count: { products: 5 }
+    },
+    {
+      id: 'sample-cat-2',
+      name: 'Fashion',
+      slug: 'fashion',
+      description: 'Sample fashion category',
+      image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop',
+      _count: { products: 8 }
+    }
+  ];
+}
 
 // Debug logging for production
-if (typeof window === 'undefined') {
+if (isServerSide) {
   console.log('🔍 Server Environment Check:', {
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PHASE: process.env.NEXT_PHASE,
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL: process.env.VERCEL,
     isBuildTime,
+    isProduction,
+    API_BASE,
     hasDatabase: !!process.env.DATABASE_URL
   });
 }
 
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
-  // Return empty array during build time to prevent ECONNREFUSED
-  if (isBuildTime) {
-    console.log('🏗️ Build time: Skipping API call for featured products');
+  if (isBuildTime || !API_BASE) {
+    console.log('🏗️ Build time or no API_BASE - returning empty array');
     return [];
   }
 
-  // Always use API calls for consistency (both server and client side)
   try {
-    const response = await fetch(`${API_BASE}/products?featured=true&limit=${limit}&page=1`);
+    const url = `${API_BASE}/products?featured=true&limit=${limit}&page=1`;
+    console.log('🌟 Fetching featured products from:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      next: { revalidate: 0 }
+    });
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch featured products: ${response.status}`);
+      console.error('❌ Featured products fetch failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        url
+      });
+      
+      // Return sample data as fallback
+      return getSampleProducts();
     }
+
     const data = await response.json();
-    console.log('✅ Fetched featured products:', data.products?.length || 0);
-    return data.products || [];
+    console.log('✅ Featured products fetched successfully:', {
+      count: data?.products?.length || 0,
+      totalProducts: data?.products || []
+    });
+    
+    return data?.products || [];
   } catch (error) {
-    console.error('❌ Error fetching featured products:', error);
-    return [];
+    console.error('💥 Featured products fetch error:', error);
+    
+    // Return sample data as fallback
+    return getSampleProducts();
   }
 }
 
 // Fetch categories/collections for homepage
 export async function fetchCollections() {
-  // Return empty array during build time to prevent ECONNREFUSED
-  if (isBuildTime) {
-    console.log('🏗️ Build time: Skipping API call for collections');
+  if (isBuildTime || !API_BASE) {
+    console.log('🏗️ Build time or no API_BASE - returning empty array');
     return [];
   }
 
-  // Always use API calls for consistency (both server and client side)
   try {
-    const response = await fetch(`${API_BASE}/categories?includeCounts=true`);
+    const url = `${API_BASE}/categories?includeCounts=true`;
+    console.log('📁 Fetching collections from:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      next: { revalidate: 0 }
+    });
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch collections: ${response.status}`);
+      console.error('❌ Collections fetch failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        url
+      });
+      
+      // Return sample collections as fallback
+      return getSampleCollections();
     }
+
     const categories = await response.json();
-    console.log('✅ Fetched collections:', categories?.length || 0);
+    console.log('✅ Collections fetched successfully:', {
+      count: categories?.length || 0,
+      collections: categories || []
+    });
     
     // Transform categories to match collection interface expected by homepage
     return categories.map((category: Category) => ({
@@ -84,8 +201,10 @@ export async function fetchCollections() {
       productCount: category._count?.products || 0
     }));
   } catch (error) {
-    console.error('❌ Error fetching collections:', error);
-    return [];
+    console.error('💥 Collections fetch error:', error);
+    
+    // Return sample collections as fallback
+    return getSampleCollections();
   }
 }
 

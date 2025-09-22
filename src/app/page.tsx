@@ -1,6 +1,10 @@
 import { fetchFeaturedProducts, fetchCollections } from "../lib/services/catalog";
 import { AnimatedHomePage } from "@/components/pages/AnimatedHomePage";
 
+// Force dynamic rendering to ensure fresh data on every request
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getHomeData() {
   const [featured, collections] = await Promise.all([
     fetchFeaturedProducts(),
