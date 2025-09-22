@@ -186,6 +186,15 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
   const [direction, setDirection] = useState(0);
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(fallbackCarouselSlides);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🏠 HomePage Debug:', {
+      featuredCount: featured?.length || 0,
+      collectionsCount: collections?.length || 0,
+      featured: featured?.map(p => ({ id: p.id, name: p.name, isFeatured: p.isFeatured })) || []
+    });
+  }, [featured, collections]);
+
   // Fetch carousel slides on component mount
   useEffect(() => {
     const loadCarouselSlides = async () => {
