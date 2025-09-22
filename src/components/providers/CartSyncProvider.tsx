@@ -75,11 +75,18 @@ export function CartSyncProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         setError(null);
         
+        // Only fetch from server if user is authenticated
+        // Otherwise load from localStorage
         const items = await cartService.getCartItems(!!user);
         setItems(items);
       } catch (error) {
         console.error('Error loading cart items:', error);
-        setError('Failed to load cart');
+        // Don't set error for authentication failures - just load empty cart
+        if (error instanceof Error && !error.message.includes('401')) {
+          setError('Failed to load cart');
+        }
+        // Fallback to empty cart
+        setItems([]);
       } finally {
         setLoading(false);
       }

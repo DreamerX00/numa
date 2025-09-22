@@ -28,10 +28,17 @@ interface CarouselSlide {
 // Fetch carousel slides from database
 async function fetchCarouselSlides(): Promise<CarouselSlide[]> {
   try {
-    const response = await fetch('/api/carousel');
+    const response = await fetch('/api/carousel', {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch carousel slides');
+      throw new Error(`Failed to fetch carousel slides: ${response.status}`);
     }
+    
     const slides = await response.json();
     return slides.length > 0 ? slides : fallbackCarouselSlides;
   } catch (error) {
@@ -44,7 +51,7 @@ async function fetchCarouselSlides(): Promise<CarouselSlide[]> {
 const fallbackCarouselSlides: CarouselSlide[] = [
   {
     id: "fallback-1",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
+    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1200&h=600&fit=crop&crop=center",
     title: "New Heritage Collection",
     subtitle: "Timeless Elegance Redefined", 
     description: "Discover our latest collection inspired by royal heritage and crafted with precision",
@@ -55,7 +62,7 @@ const fallbackCarouselSlides: CarouselSlide[] = [
   },
   {
     id: "fallback-2",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
+    image: "https://images.unsplash.com/photo-1583292650898-7d22cd27ca6f?w=1200&h=600&fit=crop&crop=center",
     title: "Bridal Splendor",
     subtitle: "Your Perfect Wedding Jewelry",
     description: "Exquisite pieces designed to make your most special day unforgettable",
@@ -66,7 +73,7 @@ const fallbackCarouselSlides: CarouselSlide[] = [
   },
   {
     id: "fallback-3",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
+    image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1200&h=600&fit=crop&crop=center",
     title: "Diamond Luxe",
     subtitle: "Brilliance Beyond Compare",
     description: "Premium diamond jewelry for those who appreciate the finest in life",
@@ -77,7 +84,7 @@ const fallbackCarouselSlides: CarouselSlide[] = [
   },
   {
     id: "fallback-4",
-    image: "https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg",
+    image: "https://images.unsplash.com/photo-1506629905077-bc2dd2cd5bce?w=1200&h=600&fit=crop&crop=center",
     title: "Exclusive Earrings",
     subtitle: "Elegance in Every Detail",
     description: "Handcrafted earrings that complement your unique style",
@@ -183,10 +190,12 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
   useEffect(() => {
     const loadCarouselSlides = async () => {
       try {
+        console.log('🎠 AnimatedHomePage: Loading carousel slides...');
         const slides = await fetchCarouselSlides();
+        console.log('🎠 AnimatedHomePage: Setting carousel slides:', slides.length);
         setCarouselSlides(slides);
       } catch (error) {
-        console.error('Failed to load carousel slides:', error);
+        console.error('🎠 AnimatedHomePage: Failed to load carousel slides:', error);
         // Keep fallback slides if fetch fails
       }
     };
@@ -801,7 +810,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     <Link href={`/collection/${collection.slug}`}>
                       <div className="relative aspect-[4/3] overflow-hidden">
                         <Image
-                          src={collection.image || collection.heroImage || 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_300,w_600,g_center/v1/defaults/default-category.jpg'}
+                          src={collection.image || collection.heroImage || DEFAULT_IMAGES.CATEGORY}
                           alt={collection.name}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"

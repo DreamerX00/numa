@@ -198,7 +198,7 @@ export async function sendPaymentFailedEmail(data: PaymentFailedData) {
       </div>
 
       <div style="text-align: center; margin: 24px 0;">
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL}/cart" style="background: #E7654D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/cart" style="background: #E7654D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
           Try Again
         </a>
       </div>

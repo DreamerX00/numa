@@ -138,8 +138,17 @@ const api = {
 
   // Cart
   getCart: async () => {
-    const { data } = await axios.get('/api/cart');
-    return data;
+    try {
+      const { data } = await axios.get('/api/cart');
+      return data;
+    } catch (error) {
+      // Handle 401 authentication errors gracefully
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        console.warn('Cart API requires authentication');
+        return { items: [] };
+      }
+      throw error;
+    }
   },
 
   addToCart: async (item: { productId: string; variantId?: string; quantity: number }) => {

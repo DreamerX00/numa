@@ -200,6 +200,11 @@ export class CartService {
       const response = await fetch('/api/cart');
       
       if (!response.ok) {
+        // If unauthorized (401), return empty array instead of throwing
+        if (response.status === 401) {
+          console.warn('Cart API returned 401 - user not authenticated');
+          return [];
+        }
         throw new Error('Failed to fetch cart items');
       }
 

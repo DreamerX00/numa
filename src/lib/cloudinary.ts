@@ -142,12 +142,12 @@ export const UPLOAD_FOLDERS = {
 } as const;
 
 /**
- * Default image URLs for fallback purposes using Cloudinary
+ * Default image URLs for fallback purposes using reliable Unsplash images
  */
 export const DEFAULT_IMAGES = {
-  PRODUCT: 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_400,w_400,g_center/v1/defaults/default-product.jpg',
-  CATEGORY: 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_300,w_600,g_center/v1/defaults/default-category.jpg', 
-  BRAND: 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_200,w_200,g_center/v1/defaults/default-brand.jpg',
-  USER: 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_150,w_150,g_center/v1/defaults/default-avatar.jpg',
-  CAROUSEL: 'https://res.cloudinary.com/dkdu1rzki/image/upload/c_fill,h_600,w_1200,g_center/v1/defaults/default-carousel.jpg'
+  PRODUCT: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop&crop=center',
+  CATEGORY: 'https://images.unsplash.com/photo-1583292650898-7d22cd27ca6f?w=600&h=300&fit=crop&crop=center', 
+  BRAND: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200&h=200&fit=crop&crop=center',
+  USER: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=center',
+  CAROUSEL: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1200&h=600&fit=crop&crop=center'
 } as const;

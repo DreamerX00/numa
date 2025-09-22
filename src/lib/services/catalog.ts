@@ -19,9 +19,8 @@ const API_BASE = typeof window !== 'undefined' ? '/api' :
 
 // Check if we're in build environment - more comprehensive check
 const isBuildTime = typeof window === 'undefined' && (
-  process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL ||
   process.env.NEXT_PHASE === 'phase-production-build' ||
-  !process.env.VERCEL
+  (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !process.env.VERCEL)
 );
 
 // Fetch featured products for homepage
@@ -32,6 +31,31 @@ export async function fetchFeaturedProducts(limit = 8) {
     return [];
   }
 
+  // For server-side rendering, use direct database access instead of API calls
+  if (typeof window === 'undefined') {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      const products = await prisma.product.findMany({
+        where: { 
+          isFeatured: true,
+          isActive: true 
+        },
+        include: {
+          category: true,
+          brand: true,
+          variants: true
+        },
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      });
+      return products;
+    } catch (error) {
+      console.error('Error fetching featured products from database:', error);
+      return [];
+    }
+  }
+
+  // For client-side, use API calls
   try {
     const response = await fetch(`${API_BASE}/products?featured=true&limit=${limit}&page=1`);
     if (!response.ok) {
@@ -53,6 +77,37 @@ export async function fetchCollections() {
     return [];
   }
 
+  // For server-side rendering, use direct database access instead of API calls
+  if (typeof window === 'undefined') {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      const categories = await prisma.category.findMany({
+        where: { isActive: true },
+        include: {
+          _count: {
+            select: { products: true }
+          }
+        },
+        orderBy: { sortOrder: 'asc' }
+      });
+      
+      // Transform categories to match collection interface expected by homepage
+      return categories.map((category: any) => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        image: category.latestProductImage || category.image,
+        heroImage: category.latestProductImage || category.image,
+        productCount: category._count?.products || 0
+      }));
+    } catch (error) {
+      console.error('Error fetching collections from database:', error);
+      return [];
+    }
+  }
+
+  // For client-side, use API calls
   try {
     const response = await fetch(`${API_BASE}/categories?includeCounts=true`);
     if (!response.ok) {

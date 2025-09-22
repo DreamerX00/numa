@@ -136,8 +136,15 @@ export async function GET(request: NextRequest) {
       'NEXTAUTH_SECRET',
       'NEXT_PUBLIC_FIREBASE_API_KEY',
       'FIREBASE_PROJECT_ID',
+      'FIREBASE_CLIENT_EMAIL',
+      'FIREBASE_PRIVATE_KEY',
       'RAZORPAY_KEY_ID',
-      'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME'
+      'RAZORPAY_KEY_SECRET',
+      'RAZORPAY_WEBHOOK_SECRET',
+      'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_API_SECRET',
+      'NEXT_PUBLIC_APP_URL'
     ];
     
     const envStatus = requiredEnvVars.map(envVar => ({

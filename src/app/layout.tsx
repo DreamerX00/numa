@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   title: "NUMA Jewelry",
   description: "Luxury jewelry and fine accessories by NUMA.",
   icons: {
-    icon: "/numaLogo.png",
-    shortcut: "/numaLogo.png",
-    apple: "/numaLogo.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 };
 
