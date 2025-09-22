@@ -1,5 +1,29 @@
 // Real API service for catalog data (replaces mock services)
 
+import { PrismaClient } from '@prisma/client';
+
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  images: string[];
+  description?: string;
+  shortDescription?: string;
+  isFeatured?: boolean;
+  isActive?: boolean;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  brand?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+}
+
 interface Category {
   id: string;
   name: string;
@@ -16,6 +40,12 @@ interface Category {
 const isServerSide = typeof window === 'undefined';
 const isProduction = process.env.NODE_ENV === 'production';
 const isBuildTime = isServerSide && process.env.NEXT_PHASE === 'phase-production-build';
+
+// Initialize Prisma only on server side and not during build
+let prisma: PrismaClient | null = null;
+if (isServerSide && !isBuildTime && process.env.DATABASE_URL) {
+  prisma = new PrismaClient();
+}
 
 // Better API base URL construction for production
 const getApiBase = () => {
@@ -109,14 +139,66 @@ if (isServerSide) {
 
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
-  if (isBuildTime || !API_BASE) {
-    console.log('🏗️ Build time or no API_BASE - returning empty array');
+  if (isBuildTime || (!API_BASE && !prisma)) {
+    console.log('🏗️ Build time or no API_BASE/prisma - returning empty array');
     return [];
   }
 
+  // Use direct database call on server-side, API call on client-side
+  if (isServerSide && prisma) {
+    try {
+      console.log('🗄️ Server-side: Fetching featured products directly from database');
+      
+      const products = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          isFeatured: true,
+        },
+        take: limit,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          brand: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
+
+      console.log('✅ Database: Featured products fetched successfully:', {
+        count: products?.length || 0,
+        productNames: products?.slice(0, 3).map(p => p.name) || []
+      });
+      
+      return products || [];
+    } catch (error) {
+      console.error('💥 Database featured products fetch error:', error);
+      
+      // Fallback to API call if database fails
+      return fetchFeaturedProductsFromAPI(limit);
+    }
+  }
+
+  // Client-side or fallback: use API call
+  return fetchFeaturedProductsFromAPI(limit);
+}
+
+// Separate function for API calls
+async function fetchFeaturedProductsFromAPI(limit = 8) {
   try {
     const url = `${API_BASE}/products?featured=true&limit=${limit}&page=1`;
-    console.log('🌟 Fetching featured products from:', url);
+    console.log('� API: Fetching featured products from:', url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -128,7 +210,7 @@ export async function fetchFeaturedProducts(limit = 8) {
     });
 
     if (!response.ok) {
-      console.error('❌ Featured products fetch failed:', {
+      console.error('❌ API featured products fetch failed:', {
         status: response.status,
         statusText: response.statusText,
         url
@@ -139,14 +221,14 @@ export async function fetchFeaturedProducts(limit = 8) {
     }
 
     const data = await response.json();
-    console.log('✅ Featured products fetched successfully:', {
+    console.log('✅ API: Featured products fetched successfully:', {
       count: data?.products?.length || 0,
-      totalProducts: data?.products || []
+      productNames: data?.products?.slice(0, 3).map((p: Product) => p.name) || []
     });
     
     return data?.products || [];
   } catch (error) {
-    console.error('💥 Featured products fetch error:', error);
+    console.error('💥 API featured products fetch error:', error);
     
     // Return sample data as fallback
     return getSampleProducts();
@@ -155,14 +237,81 @@ export async function fetchFeaturedProducts(limit = 8) {
 
 // Fetch categories/collections for homepage
 export async function fetchCollections() {
-  if (isBuildTime || !API_BASE) {
-    console.log('🏗️ Build time or no API_BASE - returning empty array');
+  if (isBuildTime || (!API_BASE && !prisma)) {
+    console.log('🏗️ Build time or no API_BASE/prisma - returning empty array');
     return [];
   }
 
+  // Use direct database call on server-side, API call on client-side
+  if (isServerSide && prisma) {
+    try {
+      console.log('🗄️ Server-side: Fetching collections directly from database');
+      
+      const categories = await prisma.category.findMany({
+        where: {
+          isActive: true,
+        },
+        include: {
+          _count: {
+            select: {
+              products: true,
+            },
+          },
+          products: {
+            where: {
+              isActive: true,
+            },
+            select: {
+              images: true,
+            },
+            orderBy: {
+              updatedAt: 'desc',
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      // Transform to match expected interface
+      const transformedCategories = categories.map((category: Category & { 
+        products: { images: string[] }[]; 
+        _count: { products: number }; 
+      }) => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        image: category.products[0]?.images[0] || category.image,
+        heroImage: category.products[0]?.images[0] || category.image,
+        productCount: category._count?.products || 0
+      }));
+
+      console.log('✅ Database: Collections fetched successfully:', {
+        count: transformedCategories?.length || 0,
+        collectionNames: transformedCategories?.slice(0, 3).map((c: { name: string }) => c.name) || []
+      });
+      
+      return transformedCategories || [];
+    } catch (error) {
+      console.error('💥 Database collections fetch error:', error);
+      
+      // Fallback to API call if database fails
+      return fetchCollectionsFromAPI();
+    }
+  }
+
+  // Client-side or fallback: use API call
+  return fetchCollectionsFromAPI();
+}
+
+// Separate function for API calls
+async function fetchCollectionsFromAPI() {
   try {
     const url = `${API_BASE}/categories?includeCounts=true`;
-    console.log('📁 Fetching collections from:', url);
+    console.log('🌐 API: Fetching collections from:', url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -174,7 +323,7 @@ export async function fetchCollections() {
     });
 
     if (!response.ok) {
-      console.error('❌ Collections fetch failed:', {
+      console.error('❌ API collections fetch failed:', {
         status: response.status,
         statusText: response.statusText,
         url
@@ -185,13 +334,9 @@ export async function fetchCollections() {
     }
 
     const categories = await response.json();
-    console.log('✅ Collections fetched successfully:', {
-      count: categories?.length || 0,
-      collections: categories || []
-    });
-    
+
     // Transform categories to match collection interface expected by homepage
-    return categories.map((category: Category) => ({
+    const transformedCategories = categories.map((category: Category) => ({
       id: category.id,
       name: category.name,
       slug: category.slug,
@@ -200,8 +345,13 @@ export async function fetchCollections() {
       heroImage: category.latestProductImage || category.image,
       productCount: category._count?.products || 0
     }));
+
+      console.log('✅ API: Collections fetched successfully:', {
+        count: transformedCategories?.length || 0,
+        collectionNames: transformedCategories?.slice(0, 3).map((c: { name: string }) => c.name) || []
+      });    return transformedCategories || [];
   } catch (error) {
-    console.error('💥 Collections fetch error:', error);
+    console.error('💥 API collections fetch error:', error);
     
     // Return sample collections as fallback
     return getSampleCollections();
