@@ -21,6 +21,18 @@ const API_BASE = typeof window !== 'undefined' ? '/api' :
 const isBuildTime = typeof window === 'undefined' && 
   process.env.NEXT_PHASE === 'phase-production-build';
 
+// Debug logging for production
+if (typeof window === 'undefined') {
+  console.log('🔍 Server Environment Check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PHASE: process.env.NEXT_PHASE,
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL: process.env.VERCEL,
+    isBuildTime,
+    hasDatabase: !!process.env.DATABASE_URL
+  });
+}
+
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
   // Return empty array during build time to prevent ECONNREFUSED
@@ -29,40 +41,17 @@ export async function fetchFeaturedProducts(limit = 8) {
     return [];
   }
 
-  // For server-side rendering, use direct database access instead of API calls
-  if (typeof window === 'undefined') {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      const products = await prisma.product.findMany({
-        where: { 
-          isFeatured: true,
-          isActive: true 
-        },
-        include: {
-          category: true,
-          brand: true,
-          variants: true
-        },
-        take: limit,
-        orderBy: { createdAt: 'desc' }
-      });
-      return products;
-    } catch (error) {
-      console.error('Error fetching featured products from database:', error);
-      return [];
-    }
-  }
-
-  // For client-side, use API calls
+  // Always use API calls for consistency (both server and client side)
   try {
     const response = await fetch(`${API_BASE}/products?featured=true&limit=${limit}&page=1`);
     if (!response.ok) {
-      throw new Error('Failed to fetch featured products');
+      throw new Error(`Failed to fetch featured products: ${response.status}`);
     }
     const data = await response.json();
+    console.log('✅ Fetched featured products:', data.products?.length || 0);
     return data.products || [];
   } catch (error) {
-    console.error('Error fetching featured products:', error);
+    console.error('❌ Error fetching featured products:', error);
     return [];
   }
 }
@@ -75,43 +64,14 @@ export async function fetchCollections() {
     return [];
   }
 
-  // For server-side rendering, use direct database access instead of API calls
-  if (typeof window === 'undefined') {
-    try {
-      const { prisma } = await import('@/lib/prisma');
-      const categories = await prisma.category.findMany({
-        where: { isActive: true },
-        include: {
-          _count: {
-            select: { products: true }
-          }
-        },
-        orderBy: { sortOrder: 'asc' }
-      });
-      
-      // Transform categories to match collection interface expected by homepage
-      return categories.map((category: Category) => ({
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        image: category.latestProductImage || category.image,
-        heroImage: category.latestProductImage || category.image,
-        productCount: category._count?.products || 0
-      }));
-    } catch (error) {
-      console.error('Error fetching collections from database:', error);
-      return [];
-    }
-  }
-
-  // For client-side, use API calls
+  // Always use API calls for consistency (both server and client side)
   try {
     const response = await fetch(`${API_BASE}/categories?includeCounts=true`);
     if (!response.ok) {
-      throw new Error('Failed to fetch collections');
+      throw new Error(`Failed to fetch collections: ${response.status}`);
     }
     const categories = await response.json();
+    console.log('✅ Fetched collections:', categories?.length || 0);
     
     // Transform categories to match collection interface expected by homepage
     return categories.map((category: Category) => ({
@@ -124,7 +84,7 @@ export async function fetchCollections() {
       productCount: category._count?.products || 0
     }));
   } catch (error) {
-    console.error('Error fetching collections:', error);
+    console.error('❌ Error fetching collections:', error);
     return [];
   }
 }
