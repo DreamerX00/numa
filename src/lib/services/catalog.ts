@@ -92,7 +92,7 @@ export async function fetchCollections() {
       });
       
       // Transform categories to match collection interface expected by homepage
-      return categories.map((category: any) => ({
+      return categories.map((category: Category) => ({
         id: category.id,
         name: category.name,
         slug: category.slug,
