@@ -67,8 +67,9 @@ export function Header() {
                     height={32}
                     className="rounded-lg"
                   />
-                  
                 </div>
+                
+                {/* Navigation Links */}
                 {primaryNav.map(item => (
                   <Link
                     key={item.href}
@@ -79,6 +80,58 @@ export function Header() {
                     {item.label}
                   </Link>
                 ))}
+                
+                {/* Mobile Search */}
+                <div className="pt-2 pb-2">
+                  <SearchBar 
+                    placeholder="Search jewelry..."
+                    className="w-full"
+                  />
+                </div>
+                
+                {/* Auth Section for Mobile */}
+                <div className="pt-4 border-t border-border">
+                  {user ? (
+                    <div className="flex flex-col space-y-2">
+                      <Link
+                        href="/profile"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 p-3 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <User className="h-4 w-4" />
+                        <span>{getAuthDisplayName(user)}</span>
+                      </Link>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setMobileOpen(false);
+                        }}
+                        className="flex items-center gap-2 p-3 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col space-y-2">
+                      <Link
+                        href="/login"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center justify-center gap-2 p-3 rounded-md border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <User className="h-4 w-4" />
+                        <span>Login</span>
+                      </Link>
+                      <Link
+                        href="/signup"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center justify-center gap-2 p-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        <span>Sign Up</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -120,7 +173,7 @@ export function Header() {
             </div>
 
             {/* Auth buttons */}
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
                   <motion.div
@@ -168,6 +221,35 @@ export function Header() {
                     </Button>
                   </motion.div>
                 </>
+              )}
+            </div>
+
+            {/* Mobile Auth (icon only) */}
+            <div className="flex md:hidden items-center gap-1">
+              {user ? (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link href="/profile">
+                      <User className="h-5 w-5" />
+                      <span className="sr-only">Profile</span>
+                    </Link>
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button variant="outline" size="icon" asChild>
+                    <Link href="/login">
+                      <User className="h-4 w-4" />
+                      <span className="sr-only">Login</span>
+                    </Link>
+                  </Button>
+                </motion.div>
               )}
             </div>
 
