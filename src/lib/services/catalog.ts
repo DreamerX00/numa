@@ -360,18 +360,76 @@ async function fetchCollectionsFromAPI() {
 
 // Fetch products by collection/category
 export async function fetchProductsByCollection(categorySlug: string) {
-  // Return empty array during build time to prevent ECONNREFUSED
-  if (isBuildTime) {
-    console.log('🏗️ Build time: Skipping API call for products by collection');
+  if (isBuildTime || (!API_BASE && !prisma)) {
+    console.log('🏗️ Build time or no API_BASE/prisma - returning empty array');
     return [];
   }
 
+  // Use direct database call on server-side, API call on client-side
+  if (isServerSide && prisma) {
+    try {
+      console.log(`🗄️ Server-side: Fetching products for category "${categorySlug}" directly from database`);
+      
+      const products = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          category: {
+            slug: categorySlug,
+            isActive: true,
+          },
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          brand: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+        orderBy: [
+          { isFeatured: 'desc' },
+          { updatedAt: 'desc' },
+        ],
+        take: 20,
+      });
+
+      console.log(`✅ Database: Fetched ${products?.length || 0} products for category "${categorySlug}"`);
+      
+      return products || [];
+    } catch (error) {
+      console.error(`💥 Database fetch error for category "${categorySlug}":`, error);
+      
+      // Fallback to API call if database fails
+      return fetchProductsByCollectionFromAPI(categorySlug);
+    }
+  }
+
+  // Client-side or fallback: use API call
+  return fetchProductsByCollectionFromAPI(categorySlug);
+}
+
+// Separate function for API calls
+async function fetchProductsByCollectionFromAPI(categorySlug: string) {
   try {
     const url = `${API_BASE}/products?category=${categorySlug}&limit=20&page=1`;
-    console.log(`🔍 Fetching products for category: ${categorySlug} from ${url}`);
+    console.log(`🌐 API: Fetching products for category "${categorySlug}" from ${url}`);
     
-    const response = await fetch(url);
-    console.log(`📡 Response status: ${response.status} for category: ${categorySlug}`);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      next: { revalidate: 0 }
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -384,33 +442,105 @@ export async function fetchProductsByCollection(categorySlug: string) {
     }
     
     const data = await response.json();
-    console.log(`✅ Successfully fetched ${data.products?.length || 0} products for category: ${categorySlug}`);
+    console.log(`✅ API: Successfully fetched ${data.products?.length || 0} products for category "${categorySlug}"`);
     return data.products || [];
   } catch (error) {
-    console.error('Error fetching products by collection:', error);
+    console.error(`💥 API fetch error for category "${categorySlug}":`, error);
     throw error; // Re-throw to let the calling code handle it
   }
 }
 
 // Fetch single product by slug
 export async function fetchProduct(productSlug: string) {
-  // Return null during build time to prevent ECONNREFUSED
-  if (isBuildTime) {
-    console.log('🏗️ Build time: Skipping API call for single product');
+  if (isBuildTime || (!API_BASE && !prisma)) {
+    console.log('🏗️ Build time or no API_BASE/prisma - returning null');
     return null;
   }
 
-  try {
-    const response = await fetch(`${API_BASE}/products/${productSlug}`);
-    if (!response.ok) {
-      if (response.status === 404) {
+  // Use direct database call on server-side, API call on client-side
+  if (isServerSide && prisma) {
+    try {
+      console.log(`🗄️ Server-side: Fetching product "${productSlug}" directly from database`);
+      
+      const product = await prisma.product.findFirst({
+        where: {
+          slug: productSlug,
+          isActive: true,
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          brand: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          variants: {
+            where: {
+              isActive: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+
+      if (!product) {
+        console.log(`❌ Database: Product "${productSlug}" not found`);
         return null;
       }
-      throw new Error(`Failed to fetch product: ${productSlug}`);
+
+      console.log(`✅ Database: Successfully fetched product "${productSlug}"`);
+      
+      return product;
+    } catch (error) {
+      console.error(`💥 Database fetch error for product "${productSlug}":`, error);
+      
+      // Fallback to API call if database fails
+      return fetchProductFromAPI(productSlug);
     }
-    return await response.json();
+  }
+
+  // Client-side or fallback: use API call
+  return fetchProductFromAPI(productSlug);
+}
+
+// Separate function for API calls
+async function fetchProductFromAPI(productSlug: string) {
+  try {
+    const url = `${API_BASE}/products/${productSlug}`;
+    console.log(`🌐 API: Fetching product "${productSlug}" from ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      next: { revalidate: 0 }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`❌ API: Product "${productSlug}" not found`);
+        return null;
+      }
+      throw new Error(`Failed to fetch product: ${productSlug} (Status: ${response.status})`);
+    }
+    
+    const product = await response.json();
+    console.log(`✅ API: Successfully fetched product "${productSlug}"`);
+    return product;
   } catch (error) {
-    console.error('Error fetching product:', error);
+    console.error(`💥 API fetch error for product "${productSlug}":`, error);
     return null;
   }
 }
