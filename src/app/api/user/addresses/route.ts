@@ -195,7 +195,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validate request body (excluding id)
-    const { id: _id, ...addressBody } = body;
+    const addressBody = Object.fromEntries(
+      Object.entries(body).filter(([key]) => key !== 'id')
+    );
     const validationResult = addressSchema.safeParse(addressBody);
     if (!validationResult.success) {
       return NextResponse.json(

@@ -26,11 +26,11 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     // Build where clause
-    const where: any = { userId: dbUser.id };
+    const where: { userId: string; status?: import('@prisma/client').OrderStatus } = { userId: dbUser.id };
     
     // Filter by status if provided - valid OrderStatus values
     if (status && ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'].includes(status.toUpperCase())) {
-      where.status = status.toUpperCase();
+      where.status = status.toUpperCase() as import('@prisma/client').OrderStatus;
     }
 
     // Calculate offset for pagination
