@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 // Generate tracking URL for different carriers
 function generateTrackingUrl(carrier: string, trackingNumber: string): string {
   const trackingUrls: Record<string, string> = {

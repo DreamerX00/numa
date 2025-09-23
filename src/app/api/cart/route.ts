@@ -4,6 +4,9 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { z } from 'zod';
 import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 // Enhanced validation schema for adding items to cart
 const addToCartSchema = z.object({
   productId: z.string()

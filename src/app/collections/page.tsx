@@ -4,6 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Package } from 'lucide-react';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Collections • NUMA' };
 
 interface Collection {

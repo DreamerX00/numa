@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { z } from 'zod';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 const addressSchema = z.object({
   type: z.enum(['SHIPPING', 'BILLING']).default('SHIPPING'),
   isDefault: z.boolean().default(false),

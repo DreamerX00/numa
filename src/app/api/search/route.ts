@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
 import type { Prisma } from '@prisma/client';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 // Rate limiter for search endpoints
 const searchRateLimit = rateLimit(rateLimitConfigs.api);
 

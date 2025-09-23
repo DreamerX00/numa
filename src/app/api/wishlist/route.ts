@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getFirebaseAdmin } from '@/lib/firebase/admin'
 import { z } from 'zod'
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 const addToWishlistSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
 })

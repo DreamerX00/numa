@@ -4,6 +4,9 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { z } from 'zod';
 import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 // Input validation schema for profile updates
 const profileUpdateSchema = z.object({
   firstName: z.string()

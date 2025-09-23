@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
 import Razorpay from 'razorpay';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+
 // Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
