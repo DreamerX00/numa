@@ -52,7 +52,14 @@ function LoginPageContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
-      if (!res.ok) throw new Error("Session creation failed");
+      
+      const responseData = await res.json();
+      console.log('🔐 Login API response:', { status: res.status, data: responseData });
+      
+      if (!res.ok) {
+        const errorMessage = responseData.details || responseData.error || "Session creation failed";
+        throw new Error(`${res.status} - ${errorMessage}`);
+      }
       
       // Force a small delay to ensure state updates
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -97,10 +104,12 @@ function LoginPageContent() {
         body: JSON.stringify({ idToken }),
       });
       
+      const responseData = await res.json();
+      console.log('🔐 Google Login API response:', { status: res.status, data: responseData });
+      
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Login API failed:", errorText);
-        throw new Error(`Session creation failed: ${res.status} - ${errorText}`);
+        const errorMessage = responseData.details || responseData.error || "Session creation failed";
+        throw new Error(`${res.status} - ${errorMessage}`);
       }
       
       // Force a small delay to ensure state updates

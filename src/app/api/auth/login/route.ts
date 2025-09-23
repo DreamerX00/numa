@@ -3,6 +3,10 @@ import { createSessionCookieValue, SESSION_COOKIE_NAME } from "@/lib/auth/sessio
 import { rateLimit, rateLimitConfigs } from "@/lib/rate-limit";
 import { z } from "zod";
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Input validation schema for login
 const loginSchema = z.object({
   idToken: z.string().min(1, "ID token is required")
@@ -36,7 +40,10 @@ export async function POST(req: NextRequest) {
       }
 
       const { idToken } = validationResult.data;
+      console.log('🔐 Processing login with ID token length:', idToken.length);
+      
       const { sessionCookie, maxAge } = await createSessionCookieValue(idToken);
+      console.log('✅ Session cookie created, setting response cookies...');
       
       const res = NextResponse.json({ ok: true });
       res.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
@@ -46,10 +53,20 @@ export async function POST(req: NextRequest) {
         path: "/",
         maxAge,
       });
+      
+      console.log('✅ Login successful, returning response');
       return res;
     } catch (e) {
-      console.error("/api/auth/login error", e);
-      return NextResponse.json({ error: "Login failed" }, { status: 500 });
+      console.error("/api/auth/login error details:", {
+        message: e instanceof Error ? e.message : String(e),
+        code: (e as { code?: string })?.code,
+        stack: e instanceof Error ? e.stack : undefined,
+        name: e instanceof Error ? e.name : undefined
+      });
+      return NextResponse.json({ 
+        error: "Login failed",
+        details: e instanceof Error ? e.message : String(e)
+      }, { status: 500 });
     }
   });
 }
