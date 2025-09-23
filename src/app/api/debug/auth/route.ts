@@ -5,6 +5,39 @@ import { getFirebaseAdmin } from "@/lib/firebase/admin";
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+export async function GET(req: NextRequest) {
+  try {
+    console.log('🔍 Debug: GET request to Firebase Admin Auth test...');
+    
+    const { adminAuth } = getFirebaseAdmin();
+    console.log('✅ Debug: Firebase Admin Auth initialized');
+    
+    return NextResponse.json({
+      status: "success",
+      message: "Firebase Admin Auth is initialized and ready for testing",
+      note: "Send a POST request with { idToken: 'your-firebase-id-token' } to test the full auth flow",
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('💥 Debug: Firebase Admin Auth initialization failed:', {
+      error: error instanceof Error ? error.message : String(error),
+      code: (error as { code?: string })?.code,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    return NextResponse.json({
+      status: "error",
+      message: "Firebase Admin Auth initialization failed",
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        code: (error as { code?: string })?.code
+      },
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

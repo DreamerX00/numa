@@ -43,8 +43,25 @@ Current values:
 - FIREBASE_PRIVATE_KEY: ${privateKey ? 'Set' : 'Missing'}`);
     }
 
-    // Handle escaped newlines in hosted envs
+    // Handle escaped newlines in hosted envs and ensure proper formatting
     privateKey = privateKey.replace(/\\n/g, "\n");
+    
+    // Ensure the private key has proper begin/end markers
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      // If it's just the key content without markers, add them
+      privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----\n`;
+    }
+    
+    // Remove any extra quotes that might be wrapping the key
+    privateKey = privateKey.replace(/^["']|["']$/g, '');
+    
+    console.log('🔑 Private key format check:', {
+      hasBeginMarker: privateKey.includes('-----BEGIN PRIVATE KEY-----'),
+      hasEndMarker: privateKey.includes('-----END PRIVATE KEY-----'),
+      length: privateKey.length,
+      firstChars: privateKey.substring(0, 50),
+      lastChars: privateKey.substring(privateKey.length - 50)
+    });
 
     adminApp = initializeApp({
       credential: cert({ projectId, clientEmail, privateKey }),
