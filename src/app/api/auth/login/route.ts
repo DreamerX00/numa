@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { rateLimit, rateLimitConfigs } from "@/lib/rate-limit";
+import { getFirebaseAdmin } from "@/lib/firebase/admin";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 // Force dynamic rendering for Next.js 15 compatibility
@@ -41,6 +43,40 @@ export async function POST(req: NextRequest) {
 
       const { idToken } = validationResult.data;
       console.log('🔐 Processing login with ID token length:', idToken.length);
+      
+      // Verify the ID token and get user info
+      const { adminAuth } = getFirebaseAdmin();
+      const decodedToken = await adminAuth.verifyIdToken(idToken);
+      console.log('👤 User authenticated:', decodedToken.uid);
+      
+      // Create or find user in database
+      let dbUser = await prisma.user.findUnique({
+        where: { firebaseUid: decodedToken.uid }
+      });
+      
+      if (!dbUser) {
+        console.log('🆕 Creating new user in database...');
+        dbUser = await prisma.user.create({
+          data: {
+            firebaseUid: decodedToken.uid,
+            email: decodedToken.email || '',
+            emailVerified: decodedToken.email_verified || false,
+            profile: {
+              create: {
+                displayName: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
+                firstName: '',
+                lastName: ''
+              }
+            }
+          },
+          include: {
+            profile: true
+          }
+        });
+        console.log('✅ User created in database with profile');
+      } else {
+        console.log('👤 Existing user found in database');
+      }
       
       const { sessionCookie, maxAge } = await createSessionCookieValue(idToken);
       console.log('✅ Session cookie created, setting response cookies...');
