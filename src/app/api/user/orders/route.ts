@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserFromSession';
 import { prisma } from '@/lib/prisma';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // GET user orders - returns authenticated user's order history with pagination
 export async function GET(request: NextRequest) {
   try {

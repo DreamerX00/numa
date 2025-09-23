@@ -3,6 +3,10 @@ import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserF
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Settings update validation schema
 const updateSettingsSchema = z.object({
   language: z.string().max(10).optional(),

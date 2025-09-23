@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserFromSession';
 import { prisma } from '@/lib/prisma';
+
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { LoyaltyTier } from '@prisma/client';
 
 // Loyalty tier configuration

@@ -3,6 +3,10 @@ import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserF
 import { getFirebaseAdmin } from '@/lib/firebase/admin';
 import { z } from 'zod';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Security settings validation schema
 const updateSecuritySchema = z.object({
   currentPassword: z.string().min(1).optional(),

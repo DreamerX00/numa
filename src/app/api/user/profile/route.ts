@@ -3,6 +3,10 @@ import { getUserFromSession, createAuthErrorResponse, getUserPhotoURL } from '@/
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Profile update validation schema
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(50).optional(),

@@ -3,6 +3,10 @@ import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserF
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Force dynamic rendering for Next.js 15 compatibility
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Address validation schema - matches actual Prisma schema
 const addressSchema = z.object({
   type: z.enum(['SHIPPING', 'BILLING']).optional(),
