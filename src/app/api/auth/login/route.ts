@@ -49,33 +49,169 @@ export async function POST(req: NextRequest) {
       const decodedToken = await adminAuth.verifyIdToken(idToken);
       console.log('👤 User authenticated:', decodedToken.uid);
       
-      // Create or find user in database
-      let dbUser = await prisma.user.findUnique({
-        where: { firebaseUid: decodedToken.uid }
-      });
+      // Create or find user in database with comprehensive error handling
+      let dbUser = null;
       
-      if (!dbUser) {
-        console.log('🆕 Creating new user in database...');
-        dbUser = await prisma.user.create({
-          data: {
-            firebaseUid: decodedToken.uid,
-            email: decodedToken.email || '',
-            emailVerified: decodedToken.email_verified || false,
-            profile: {
-              create: {
+      try {
+        // First, try to find user by Firebase UID
+        dbUser = await prisma.user.findUnique({
+          where: { firebaseUid: decodedToken.uid },
+          include: { profile: true }
+        });
+        
+        if (dbUser) {
+          console.log('👤 Existing user found by Firebase UID');
+          
+          // Update email if it has changed in Firebase
+          if (dbUser.email !== (decodedToken.email || '')) {
+            console.log('📧 Updating user email from Firebase');
+            dbUser = await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { 
+                email: decodedToken.email || '',
+                emailVerified: decodedToken.email_verified || false
+              },
+              include: { profile: true }
+            });
+          }
+          
+          // Ensure user has a profile
+          if (!dbUser.profile) {
+            console.log('👤 Creating missing profile for existing user');
+            await prisma.userProfile.create({
+              data: {
+                userId: dbUser.id,
                 displayName: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
                 firstName: '',
                 lastName: ''
               }
-            }
-          },
-          include: {
-            profile: true
+            });
+            
+            // Refetch user with profile
+            dbUser = await prisma.user.findUnique({
+              where: { id: dbUser.id },
+              include: { profile: true }
+            });
           }
-        });
-        console.log('✅ User created in database with profile');
-      } else {
-        console.log('👤 Existing user found in database');
+        } else {
+          console.log('🆕 User not found by Firebase UID, checking email...');
+          
+          // Check if user exists with this email but different Firebase UID
+          const existingEmailUser = await prisma.user.findUnique({
+            where: { email: decodedToken.email || '' },
+            include: { profile: true }
+          });
+          
+          if (existingEmailUser) {
+            console.log('📧 Found user with same email, updating Firebase UID');
+            
+            // Update the existing user's Firebase UID (user switched auth methods)
+            dbUser = await prisma.user.update({
+              where: { id: existingEmailUser.id },
+              data: {
+                firebaseUid: decodedToken.uid,
+                emailVerified: decodedToken.email_verified || false
+              },
+              include: { profile: true }
+            });
+            
+            // Ensure profile exists
+            if (!dbUser.profile) {
+              await prisma.userProfile.create({
+                data: {
+                  userId: dbUser.id,
+                  displayName: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
+                  firstName: '',
+                  lastName: ''
+                }
+              });
+              
+              // Refetch with profile
+              dbUser = await prisma.user.findUnique({
+                where: { id: dbUser.id },
+                include: { profile: true }
+              });
+            }
+          } else {
+            console.log('🆕 Creating completely new user');
+            
+            // Validate email before creation
+            const userEmail = decodedToken.email || '';
+            if (!userEmail) {
+              throw new Error('Email is required for user creation');
+            }
+            
+            // Generate safe display name
+            const displayName = decodedToken.name || 
+              (userEmail.includes('@') ? userEmail.split('@')[0] : 'User');
+            
+            // Use transaction to ensure atomicity
+            dbUser = await prisma.$transaction(async (tx) => {
+              const newUser = await tx.user.create({
+                data: {
+                  firebaseUid: decodedToken.uid,
+                  email: userEmail,
+                  emailVerified: decodedToken.email_verified || false
+                }
+              });
+              
+              await tx.userProfile.create({
+                data: {
+                  userId: newUser.id,
+                  displayName: displayName,
+                  firstName: '',
+                  lastName: ''
+                }
+              });
+              
+              return await tx.user.findUnique({
+                where: { id: newUser.id },
+                include: { profile: true }
+              });
+            });
+            
+            console.log('✅ New user and profile created successfully');
+          }
+        }
+        
+        if (!dbUser) {
+          throw new Error('Failed to create or retrieve user from database');
+        }
+        
+      } catch (error) {
+        console.error('💥 Database operation failed:', error);
+        
+        // Last resort: try to find user again (handle race conditions)
+        if (error instanceof Error && error.message.includes('Unique constraint')) {
+          console.log('🔄 Handling unique constraint, retrying user lookup...');
+          
+          // Try to find by Firebase UID first
+          dbUser = await prisma.user.findUnique({
+            where: { firebaseUid: decodedToken.uid },
+            include: { profile: true }
+          });
+          
+          // If not found, try by email
+          if (!dbUser && decodedToken.email) {
+            dbUser = await prisma.user.findUnique({
+              where: { email: decodedToken.email },
+              include: { profile: true }
+            });
+            
+            // Update Firebase UID if found
+            if (dbUser) {
+              dbUser = await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { firebaseUid: decodedToken.uid },
+                include: { profile: true }
+              });
+            }
+          }
+        }
+        
+        if (!dbUser) {
+          throw new Error(`User creation/retrieval failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
       
       const { sessionCookie, maxAge } = await createSessionCookieValue(idToken);
