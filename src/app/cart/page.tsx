@@ -113,7 +113,7 @@ export default function CartPage() {
               </p>
             </div>
           </div>
-          <Button asChild className="bg-brand hover:bg-brand-dark">
+          <Button asChild>
             <Link href="/collections">
               Continue Shopping
             </Link>
@@ -306,7 +306,7 @@ export default function CartPage() {
                 </div>
 
                 <Button 
-                  className="w-full bg-brand hover:bg-brand-dark text-white"
+                  className="w-full"
                   size="lg"
                   onClick={handleCheckout}
                 >

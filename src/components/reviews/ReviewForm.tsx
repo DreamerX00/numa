@@ -275,13 +275,15 @@ export default function ReviewForm({ productId, productName, onSuccess, onCancel
                       fill
                       className="object-cover rounded-lg"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="destructive"
+                      size="sm"
                       onClick={() => removeImage(index)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
                     >
                       <X className="w-3 h-3" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>

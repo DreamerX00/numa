@@ -3,6 +3,7 @@ import ProductCard from '../../../components/product/ProductCard';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, Filter, SortAsc, Grid3X3, List, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Product } from '@prisma/client';
 
 interface Props { 
@@ -73,17 +74,17 @@ export default async function CollectionPage({ params }: Props) {
         <div className="mx-auto max-w-screen-2xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+              <Button variant="outline" className="gap-2">
                 <Filter className="h-4 w-4" />
                 Filters
-              </button>
+              </Button>
               <div className="hidden sm:flex items-center gap-2">
-                <button className="p-2 text-gray-400 hover:text-gray-600">
+                <Button variant="ghost" size="icon">
                   <Grid3X3 className="h-4 w-4" />
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600">
+                </Button>
+                <Button variant="ghost" size="icon">
                   <List className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
             </div>
             

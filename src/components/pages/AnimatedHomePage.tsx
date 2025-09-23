@@ -478,7 +478,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" className="bg-brand hover:bg-brand-dark text-black shadow-lg pulse-glow hover:text-orange-500" asChild>
+                  <Button size="lg" asChild>
                     <Link href="/collections">
                       Shop Collections
                       <motion.div
@@ -499,7 +499,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="lg" variant="outline" className="border-brand text-brand hover:bg-brand hover:text-orange-500" asChild>
+                  <Button size="lg" variant="outline" asChild>
                     <Link href="/about">
                       Our Story
                     </Link>

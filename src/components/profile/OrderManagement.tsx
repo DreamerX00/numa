@@ -287,7 +287,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   </Badge>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Placed on {selectedOrderDetails.orderDate.toLocaleDateString()}
+                  Placed on {selectedOrderDetails.orderDate ? new Date(selectedOrderDetails.orderDate).toLocaleDateString() : 'Date not available'}
                 </p>
               </div>
             </div>
@@ -337,13 +337,16 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { status: "Order Placed", date: selectedOrderDetails.orderDate, completed: true },
-                      { status: "Payment Confirmed", date: selectedOrderDetails.orderDate, completed: true },
-                      { status: "Processing", date: new Date(selectedOrderDetails.orderDate.getTime() + 24 * 60 * 60 * 1000), completed: true },
-                      { status: "Shipped", date: new Date(selectedOrderDetails.orderDate.getTime() + 2 * 24 * 60 * 60 * 1000), completed: true },
-                      { status: "Delivered", date: selectedOrderDetails.estimatedDelivery, completed: true },
-                    ].map((step, index) => (
+                  {(() => {
+                    const baseDate = selectedOrderDetails.orderDate ? new Date(selectedOrderDetails.orderDate) : new Date();
+                    return [
+                      { status: "Order Placed", date: baseDate, completed: true },
+                      { status: "Payment Confirmed", date: baseDate, completed: true },
+                      { status: "Processing", date: new Date(baseDate.getTime() + 24 * 60 * 60 * 1000), completed: true },
+                      { status: "Shipped", date: new Date(baseDate.getTime() + 2 * 24 * 60 * 60 * 1000), completed: true },
+                      { status: "Delivered", date: selectedOrderDetails.estimatedDelivery ? new Date(selectedOrderDetails.estimatedDelivery) : null, completed: true },
+                    ];
+                  })().map((step, index) => (
                       <div key={index} className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${step.completed ? 'bg-green-500' : 'bg-gray-300'}`} />
                         <div className="flex-1">
@@ -430,7 +433,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
             {/* Actions */}
             <div className="space-y-2">
               {selectedOrderDetails.trackingNumber && (
-                <Button className="w-full bg-brand hover:bg-brand-dark">
+                <Button className="w-full">
                   <Truck className="h-4 w-4 mr-2" />
                   Track Package
                 </Button>
@@ -606,12 +609,12 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Ordered {order.orderDate.toLocaleDateString()}
+                          Ordered {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'Date not available'}
                         </div>
                         {order.estimatedDelivery && (
                           <div className="flex items-center gap-1">
                             <Truck className="h-4 w-4" />
-                            {order.status === 'delivered' ? 'Delivered' : 'Expected'} {order.estimatedDelivery.toLocaleDateString()}
+                            {order.status === 'delivered' ? 'Delivered' : 'Expected'} {new Date(order.estimatedDelivery).toLocaleDateString()}
                           </div>
                         )}
                         {order.trackingNumber && (
@@ -672,7 +675,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
-                              {order.orderDate.toLocaleDateString()}
+                              {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'Date not available'}
                             </div>
                             {order.trackingNumber && (
                               <div className="flex items-center gap-1">

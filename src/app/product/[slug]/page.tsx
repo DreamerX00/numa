@@ -380,11 +380,7 @@ export default function ProductPage({ params }: Props) {
               </div>
 
               <Button
-                className={`w-full text-black hover:text-orange-500 ${
-                  isAdded
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-brand hover:bg-brand-dark"
-                }`}
+                className="w-full"
                 onClick={handleAddToCart}
                 disabled={!canAddToCart}
               >

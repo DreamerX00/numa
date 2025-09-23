@@ -61,7 +61,7 @@ function OrderSuccessPageContent() {
         )}
 
         <div className="space-y-3">
-          <Button asChild className="w-full bg-brand hover:bg-brand-dark">
+          <Button asChild className="w-full">
             <Link href="/collections">
               <Package className="mr-2 h-4 w-4" />
               Continue Shopping

@@ -110,7 +110,20 @@ const api = {
     return data;
   },
 
-  updateUserProfile: async (profile: Partial<UserProfile>) => {
+  updateUserProfile: async (profile: {
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
+    language?: string;
+    currency?: string;
+    timezone?: string;
+    emailMarketing?: boolean;
+    smsMarketing?: boolean;
+    pushNotifications?: boolean;
+  }) => {
     const { data } = await axios.put('/api/user/profile', profile);
     return data;
   },
@@ -248,6 +261,128 @@ export const useAddToCart = () => {
     mutationFn: api.addToCart,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
+};
+
+// User Orders Hook
+export const useUserOrders = (params?: { page?: number; limit?: number; status?: string }) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['user', 'orders', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', params.page.toString());
+      if (params?.limit) searchParams.set('limit', params.limit.toString());
+      if (params?.status) searchParams.set('status', params.status);
+      
+      const { data } = await axios.get(`/api/user/orders?${searchParams}`);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!user,
+  });
+};
+
+// Loyalty Program Hook
+export const useLoyaltyProgram = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['user', 'loyalty'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/user/loyalty');
+      return data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!user,
+  });
+};
+
+// Security Settings Hook
+export const useSecuritySettings = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['user', 'security'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/user/security');
+      return data;
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!user,
+  });
+};
+
+export const useUpdateSecuritySettings = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (settings: { currentPassword?: string; newPassword?: string; enable2FA?: boolean; trustedDevices?: { deviceId: string; deviceName: string; lastUsed: Date }[] }) => {
+      const { data } = await axios.put('/api/user/security', settings);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'security'] });
+    },
+  });
+};
+
+// Notification Settings Hook
+export const useNotificationSettings = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['user', 'notifications'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/user/notifications');
+      return data;
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!user,
+  });
+};
+
+export const useUpdateNotificationSettings = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (settings: { orderUpdates?: boolean; promotionalEmails?: boolean; smsMarketing?: boolean; pushNotifications?: boolean }) => {
+      const { data } = await axios.put('/api/user/notifications', settings);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'notifications'] });
+    },
+  });
+};
+
+// Account Settings Hook
+export const useAccountSettings = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['user', 'settings'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/user/settings');
+      return data;
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!user,
+  });
+};
+
+export const useUpdateAccountSettings = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (settings: { language?: string; currency?: string; timezone?: string; theme?: string }) => {
+      const { data } = await axios.put('/api/user/settings', settings);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'settings'] });
     },
   });
 };

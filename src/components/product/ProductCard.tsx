@@ -118,14 +118,13 @@ export function ProductCard({ product, variant = 'vertical' }: ProductCardProps)
                   <Button
                     onClick={handleAddToCart}
                     disabled={product.quantity === 0 || isLoading}
+                    variant="default"
                     size="sm"
-                    className={`transition-all duration-300 ${
+                    className={
                       isAdded 
-                        ? 'bg-green-500 hover:bg-green-600 text-white' 
-                        : product.quantity > 0
-                        ? 'bg-brand hover:bg-brand-dark text-white'
-                        : 'bg-gray-400 cursor-not-allowed text-gray-200'
-                    }`}
+                        ? '!bg-green-500 !text-white hover:!bg-green-600 !border-green-500' 
+                        : ''
+                    }
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -152,8 +151,8 @@ export function ProductCard({ product, variant = 'vertical' }: ProductCardProps)
       transition={{ duration: 0.5 }}
       whileHover={{ y: -8 }}
     >
-      <div className="h-full rounded-xl overflow-hidden shadow-md bg-white border border-border/50 hover:border-brand/30 transition-all duration-300 hover:shadow-lg">
-        <Link href={`/product/${product.slug}`} className="block h-full">
+      <div className="h-full rounded-xl overflow-hidden shadow-md bg-white border border-border/50 hover:border-brand/30 transition-all duration-300 hover:shadow-lg flex flex-col">
+        <Link href={`/product/${product.slug}`} className="flex-1 flex flex-col">
           <div className="aspect-square w-full overflow-hidden relative">
             <Image 
               src={primaryImage} 
@@ -209,55 +208,55 @@ export function ProductCard({ product, variant = 'vertical' }: ProductCardProps)
                 <span className="text-xs text-red-500 font-medium">Out of Stock</span>
               )}
             </div>
-            
-            {/* Add to Cart Button - Bottom Bar Style */}
-            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 -mx-4 -mb-4 mt-3">
-              <Button
-                onClick={handleAddToCart}
-                disabled={product.quantity === 0 || isLoading}
-                className={`w-full h-10 rounded-none rounded-b-xl text-sm font-medium transition-all duration-300 ${
-                  isAdded 
-                    ? 'bg-green-500 hover:bg-green-600 text-white' 
-                    : product.quantity > 0
-                    ? 'bg-brand hover:bg-brand-dark text-white'
-                    : 'bg-gray-400 cursor-not-allowed text-gray-200'
-                }`}
-              >
-                {isLoading ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Adding...</span>
-                  </motion.div>
-                ) : isAdded ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Check className="h-4 w-4" />
-                    <span>Added to Cart!</span>
-                  </motion.div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className="h-4 w-4" />
-                    <span>Add to Cart</span>
-                  </div>
-                )}
-              </Button>
-              {error && (
-                <div className="text-xs text-red-500 mt-1 px-4">
-                  {error}
-                </div>
-              )}
-            </div>
           </div>
         </Link>
+        
+        {/* Add to Cart Button - Always Visible, Outside Link */}
+        <div className="p-4 pt-0">
+          <Button
+            onClick={handleAddToCart}
+            disabled={product.quantity === 0 || isLoading}
+            variant="default"
+            size="default"
+            className={
+              isAdded 
+                ? 'w-full text-sm font-medium !bg-green-500 !text-white hover:!bg-green-600 !border-green-500' 
+                : 'w-full text-sm font-medium'
+            }
+          >
+            {isLoading ? (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                className="flex items-center gap-2"
+              >
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Adding...</span>
+              </motion.div>
+            ) : isAdded ? (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                className="flex items-center gap-2"
+              >
+                <Check className="h-4 w-4" />
+                <span>Added to Cart!</span>
+              </motion.div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4" />
+                <span>Add to Cart</span>
+              </div>
+            )}
+          </Button>
+          {error && (
+            <div className="text-xs text-red-500 mt-1">
+              {error}
+            </div>
+          )}
+        </div>
         
       </div>
     </motion.div>

@@ -72,7 +72,7 @@ function PaymentFailedPageContent() {
         </Card>
 
         <div className="space-y-3">
-          <Button asChild className="w-full bg-brand hover:bg-brand-dark">
+          <Button asChild className="w-full">
             <Link href="/cart">
               <RefreshCw className="mr-2 h-4 w-4" />
               Try Again

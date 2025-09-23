@@ -29,6 +29,28 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  turbopack: {
+    resolveAlias: {
+      punycode: 'punycode/',
+    },
+  },
+  webpack: (config, { isServer }) => {
+    // Suppress punycode deprecation warnings
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        punycode: false,
+      };
+    }
+    
+    // Add punycode polyfill for Node.js compatibility
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      punycode: 'punycode/',
+    };
+
+    return config;
+  },
   async headers() {
     return [
       {

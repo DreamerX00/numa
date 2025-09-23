@@ -181,7 +181,7 @@ export function MiniCart({ children }: MiniCartProps) {
               <div className="space-y-2">
                 <Button 
                   asChild 
-                  className="w-full bg-brand hover:bg-brand-dark"
+                  className="w-full"
                   onClick={() => setIsOpen(false)}
                 >
                   <Link href="/cart">

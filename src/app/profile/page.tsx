@@ -4,8 +4,18 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useUserProfile, useAddresses, useUpdateUserProfile } from "@/hooks/useApi";
+import { 
+  useUserProfile, 
+  useAddresses, 
+  useUpdateUserProfile,
+  useUserOrders,
+  useLoyaltyProgram,
+  useSecuritySettings,
+  useNotificationSettings,
+  useAccountSettings
+} from "@/hooks/useApi";
 import { DEFAULT_IMAGES } from "@/lib/cloudinary";
+import { getUserAvatar, getUserInitials } from "@/lib/avatar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +26,13 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import PersonalInfoSection from "@/components/profile/PersonalInfoSection";
 import { OrderManagement } from "@/components/profile/OrderManagement";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
+import { WishlistTab } from "@/components/profile/WishlistTab";
+import { AddressesTab } from "@/components/profile/AddressesTab";
+import { LoyaltyTab } from "@/components/profile/LoyaltyTab";
+import { SecurityTab } from "@/components/profile/SecurityTab";
+import { NotificationsTab } from "@/components/profile/NotificationsTab";
+import { SettingsTab } from "@/components/profile/SettingsTab";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import {
   User,
@@ -28,7 +45,6 @@ import {
   Gift,
   Crown,
   Edit3,
-  Eye,
   Star,
   TrendingUp,
   Calendar,
@@ -38,27 +54,51 @@ import {
   Mail,
   CheckCircle,
   AlertCircle,
-  Loader2,
-  RefreshCw
+  Loader2
 } from "lucide-react";
 import type { UserProfile } from "@/types/profile";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   
   // Use real API calls
   const { 
     data: profileData, 
-    isLoading: profileLoading, 
-    error: profileError,
-    refetch: refetchProfile 
+    isLoading: profileLoading
   } = useUserProfile();
   
   const { 
     data: addressesData,
-    // isLoading: addressesLoading,
-    // error: addressesError 
-  } = useAddresses();  const updateProfileMutation = useUpdateUserProfile();
+    isLoading: addressesLoading
+  } = useAddresses();
+  
+  const {
+    data: ordersData,
+    isLoading: ordersLoading
+  } = useUserOrders({ page: 1, limit: 10 });
+  
+  const {
+    data: loyaltyData,
+    isLoading: loyaltyLoading
+  } = useLoyaltyProgram();
+  
+  const {
+    data: securityData,
+    isLoading: securityLoading
+  } = useSecuritySettings();
+  
+  const {
+    data: notificationsData,
+    isLoading: notificationsLoading
+  } = useNotificationSettings();
+  
+  const {
+    data: settingsData,
+    isLoading: settingsLoading
+  } = useAccountSettings();
+
+  const updateProfileMutation = useUpdateUserProfile();
 
   // ProtectedRoute already handles authentication, so user is guaranteed to be authenticated here
 
@@ -69,29 +109,6 @@ export default function ProfilePage() {
           <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin" />
           <p className="text-muted-foreground">Loading your profile...</p>
         </div>
-      </Container>
-    );
-  }
-
-  if (profileError) {
-    return (
-      <Container className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-6">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
-            <h2 className="text-2xl font-bold mb-4">Error Loading Profile</h2>
-            <p className="text-muted-foreground mb-6">
-              We couldn&apos;t load your profile data. Please try again.
-            </p>
-            <Button onClick={() => refetchProfile()} className="mr-2">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Try Again
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/">Go Home</Link>
-            </Button>
-          </CardContent>
-        </Card>
       </Container>
     );
   }
@@ -132,7 +149,11 @@ export default function ProfilePage() {
       gender: profileData.user.profile?.gender?.toLowerCase() || "",
       profession: "", // Would need to add to API
       bio: "", // Would need to add to API
-      avatar: profileData.user.profile?.avatar || DEFAULT_IMAGES.USER,
+      avatar: getUserAvatar({
+        profile: profileData.user.profile,
+        email: profileData.user.email,
+        photoURL: profileData.user.photoURL // This would come from Firebase auth
+      }),
       metalPreferences: [], // Would need to add to API
       gemstonePreferences: [], // Would need to add to API
       sizePreferences: {
@@ -145,29 +166,29 @@ export default function ProfilePage() {
     },
     addresses: addressesData?.addresses || [],
     preferences: {
-      language: profileData.user.profile?.language || "en",
-      currency: profileData.user.profile?.currency || "USD",
-      timezone: profileData.user.profile?.timezone || "America/New_York",
-      theme: "light",
+      language: settingsData?.accountSettings?.language || profileData.user.profile?.language || "en",
+      currency: settingsData?.accountSettings?.currency || profileData.user.profile?.currency || "INR",
+      timezone: settingsData?.accountSettings?.timezone || profileData.user.profile?.timezone || "Asia/Kolkata",
+      theme: settingsData?.accountSettings?.theme || "light",
       notifications: {
         email: {
-          orderUpdates: profileData.user.profile?.emailMarketing || true,
-          promotions: profileData.user.profile?.emailMarketing || false,
-          newCollections: false,
-          priceDrops: false,
-          wishlistItems: false,
-          reviews: false,
-          newsletter: profileData.user.profile?.emailMarketing || false
+          orderUpdates: notificationsData?.notificationSettings?.orderUpdates ?? true,
+          promotions: notificationsData?.notificationSettings?.emailMarketing ?? false,
+          newCollections: notificationsData?.notificationSettings?.productRecommendations ?? false,
+          priceDrops: notificationsData?.notificationSettings?.priceDropAlerts ?? false,
+          wishlistItems: notificationsData?.notificationSettings?.restockNotifications ?? false,
+          reviews: notificationsData?.notificationSettings?.reviewReminders ?? false,
+          newsletter: notificationsData?.notificationSettings?.emailMarketing ?? false
         },
         sms: {
-          orderUpdates: profileData.user.profile?.smsMarketing || true,
-          deliveryNotifications: profileData.user.profile?.smsMarketing || true,
+          orderUpdates: notificationsData?.notificationSettings?.smsMarketing ?? true,
+          deliveryNotifications: notificationsData?.notificationSettings?.smsMarketing ?? true,
           securityAlerts: true
         },
         push: {
-          orderUpdates: profileData.user.profile?.pushNotifications || true,
-          promotions: false,
-          recommendations: profileData.user.profile?.pushNotifications || false,
+          orderUpdates: notificationsData?.notificationSettings?.pushNotifications ?? true,
+          promotions: notificationsData?.notificationSettings?.promotionalOffers ?? false,
+          recommendations: notificationsData?.notificationSettings?.pushNotifications ?? false,
           reminders: false
         }
       },
@@ -175,7 +196,7 @@ export default function ProfilePage() {
       priceRange: { min: 100, max: 5000 },
       preferredPaymentMethods: ["credit-card"],
       profileVisibility: "private",
-      showInRecommendations: true,
+      showInRecommendations: settingsData?.accountSettings?.showRecommendations ?? true,
       allowDataForPersonalization: true
     },
     security: {
@@ -190,14 +211,41 @@ export default function ProfilePage() {
         isLocked: false
       }
     },
-    orderHistory: [], // Would need to create order API hook
+    orderHistory: ordersData?.orders?.map((order: {
+      id: string;
+      orderNumber: string;
+      status: string;
+      totalAmount: number;
+      currency: string;
+      items?: Array<{
+        product?: {
+          images?: string[];
+        };
+      }>;
+      createdAt: string;
+      estimatedDelivery?: string;
+      trackingNumber?: string;
+    }) => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status.toLowerCase(),
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+      itemCount: order.items?.length || 0,
+      orderDate: new Date(order.createdAt),
+      estimatedDelivery: order.estimatedDelivery ? new Date(order.estimatedDelivery) : undefined,
+      trackingNumber: order.trackingNumber,
+      thumbnail: order.items?.[0]?.product?.images?.[0] || DEFAULT_IMAGES.PRODUCT,
+      canReturn: ['delivered'].includes(order.status.toLowerCase()),
+      canReview: ['delivered'].includes(order.status.toLowerCase())
+    })) || [],
     wishlist: [],
     favorites: [],
     loyaltyProgram: {
-      tier: "Bronze", // Default tier
-      points: 0,
-      totalPointsEarned: 0,
-      nextTierPoints: 1000,
+      tier: loyaltyData?.loyaltyProgram?.currentTier || "BRONZE",
+      points: loyaltyData?.loyaltyProgram?.currentPoints || 0,
+      totalPointsEarned: loyaltyData?.loyaltyProgram?.currentPoints || 0,
+      nextTierPoints: loyaltyData?.loyaltyProgram?.pointsToNextTier || 1000,
       benefits: ["Standard shipping"],
       expiringPoints: [],
       referralCode: "",
@@ -244,7 +292,7 @@ export default function ProfilePage() {
                   <Avatar className="h-24 w-24 border-4 border-brand/20">
                     <AvatarImage src={profile.personalInfo.avatar} />
                     <AvatarFallback className="text-2xl bg-brand/10 text-brand">
-                      {profile.personalInfo.firstName[0]}{profile.personalInfo.lastName[0]}
+                      {getUserInitials(profile.personalInfo.firstName, profile.personalInfo.lastName, profile.email)}
                     </AvatarFallback>
                   </Avatar>
                 </motion.div>
@@ -311,13 +359,9 @@ export default function ProfilePage() {
                 </div>
                 
                 <div className="flex flex-col gap-2">
-                  <Button className="bg-brand hover:bg-brand-dark">
+                  <Button onClick={() => setIsEditingProfile(true)}>
                     <Edit3 className="h-4 w-4 mr-2" />
                     Edit Profile
-                  </Button>
-                  <Button variant="outline" className="border-brand text-brand hover:bg-brand hover:text-white">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Public View
                   </Button>
                 </div>
               </div>
@@ -383,30 +427,48 @@ export default function ProfilePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {profile.orderHistory.slice(0, 2).map((order) => (
-                      <div key={order.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Image
-                          src={order.thumbnail}
-                          alt="Order"
-                          width={40}
-                          height={40}
-                          className="rounded-md"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{order.orderNumber}</p>
-                          <p className="text-xs text-muted-foreground">
-                            ${order.totalAmount} • {order.status}
-                          </p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    {ordersLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
-                    ))}
-                    <Button variant="ghost" className="w-full justify-between" asChild>
-                      <Link href="?tab=orders">
+                    ) : profile.orderHistory.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                        <p className="text-sm text-muted-foreground">No orders yet</p>
+                        <Button variant="outline" size="sm" className="mt-2" asChild>
+                          <Link href="/collections">Start Shopping</Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      profile.orderHistory.slice(0, 2).map((order) => (
+                        <div key={order.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                          <Image
+                            src={order.thumbnail || DEFAULT_IMAGES.PRODUCT}
+                            alt="Order"
+                            width={40}
+                            height={40}
+                            className="rounded-md object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{order.orderNumber}</p>
+                            <p className="text-xs text-muted-foreground">
+                              ₹{order.totalAmount} • {order.status}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      ))
+                    )}
+                    {profile.orderHistory.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-between" 
+                        onClick={() => setActiveTab("orders")}
+                      >
                         View All Orders
                         <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -569,25 +631,71 @@ export default function ProfilePage() {
               <OrderManagement orders={profile.orderHistory} />
             </TabsContent>
 
-            {/* Additional tab contents will be added in the next steps */}
-            {['wishlist', 'addresses', 'loyalty', 'security', 'notifications', 'settings'].map((tab) => (
-              <TabsContent key={tab} value={tab}>
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <div className="h-12 w-12 bg-muted rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <Settings className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2 capitalize">{tab.replace('-', ' ')}</h3>
-                    <p className="text-muted-foreground">
-                      This section will be implemented in the next steps.
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
+            {/* Wishlist Tab */}
+            <TabsContent value="wishlist">
+              <WishlistTab 
+                wishlistItems={profileData?.wishlist}
+                isLoading={profileLoading}
+              />
+            </TabsContent>
+
+            {/* Addresses Tab */}
+            <TabsContent value="addresses">
+              <AddressesTab 
+                addresses={addressesData?.addresses || []}
+                isLoading={addressesLoading}
+              />
+            </TabsContent>
+
+            {/* Loyalty Tab */}
+            <TabsContent value="loyalty">
+              <LoyaltyTab 
+                loyaltyData={loyaltyData}
+                isLoading={loyaltyLoading}
+              />
+            </TabsContent>
+
+            {/* Security Tab */}
+            <TabsContent value="security">
+              <SecurityTab 
+                securityData={securityData}
+                isLoading={securityLoading}
+              />
+            </TabsContent>
+
+            {/* Notifications Tab */}
+            <TabsContent value="notifications">
+              <NotificationsTab 
+                notificationSettings={notificationsData}
+                isLoading={notificationsLoading}
+              />
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings">
+              <SettingsTab 
+                accountSettings={settingsData}
+                isLoading={settingsLoading}
+              />
+            </TabsContent>
           </Tabs>
         </motion.div>
       </Container>
+      
+      {/* Edit Profile Dialog */}
+      <EditProfileDialog
+        isOpen={isEditingProfile}
+        onClose={() => setIsEditingProfile(false)}
+        initialData={{
+          firstName: profile.personalInfo.firstName,
+          lastName: profile.personalInfo.lastName,
+          displayName: profile.personalInfo.displayName || '',
+          phone: profile.personalInfo.phone,
+          dateOfBirth: profile.personalInfo.dateOfBirth,
+          gender: profile.personalInfo.gender,
+          avatar: profile.personalInfo.avatar,
+        }}
+      />
     </motion.div>
     </ProtectedRoute>
   );
