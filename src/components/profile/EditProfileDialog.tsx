@@ -30,7 +30,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUpdateUserProfile } from "@/hooks/useApi";
 import { getUserInitials } from "@/lib/avatar";
-import { Loader2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
+import HeartLoader from "@/components/ui/HeartLoader";
 import { toast } from "sonner";
 
 const editProfileSchema = z.object({
@@ -133,7 +134,7 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
                   >
                     <span className="cursor-pointer">
                       {isUploading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <HeartLoader size="sm" className="mr-2" />
                       ) : (
                         <Upload className="h-4 w-4 mr-2" />
                       )}
@@ -271,7 +272,7 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
               >
                 {updateProfileMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <HeartLoader size="sm" className="mr-2" />
                     Saving...
                   </>
                 ) : (

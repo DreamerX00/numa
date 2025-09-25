@@ -30,6 +30,24 @@ function PaymentFailedPageContent() {
         return "Unable to create order. Please try again.";
       case "payment_cancelled":
         return "Payment was cancelled. You can try again when ready.";
+      case "payment_failed":
+        return "Payment could not be processed by your bank. Please check your card details and try again.";
+      case "insufficient_funds":
+        return "Payment declined due to insufficient funds. Please try with a different payment method.";
+      case "card_declined":
+        return "Your card was declined. Please contact your bank or try a different payment method.";
+      case "expired_card":
+        return "Your card has expired. Please update your card details and try again.";
+      case "network_error":
+        return "Network error occurred during payment. Please check your connection and try again.";
+      case "timeout":
+        return "Payment request timed out. Please try again.";
+      case "invalid_details":
+        return "Invalid payment details provided. Please check your information and try again.";
+      case "transaction_limit":
+        return "Transaction amount exceeds your card limit. Please contact your bank or use a different card.";
+      case "blocked_card":
+        return "Your card has been blocked. Please contact your bank to resolve this issue.";
       default:
         return "Payment could not be processed. Please try again or contact support.";
     }

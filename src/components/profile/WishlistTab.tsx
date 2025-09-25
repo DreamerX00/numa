@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2, Heart, Search, Grid, List, ShoppingCart, Trash2, Star } from "lucide-react";
+import { Heart, Search, Grid, List, ShoppingCart, Trash2, Star } from "lucide-react";
+import HeartLoader from "@/components/ui/HeartLoader";
 import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 
 interface WishlistItem {
@@ -63,7 +64,7 @@ export function WishlistTab({
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <HeartLoader size="md" className="mx-auto mb-4" />
           <p className="text-muted-foreground">Loading your wishlist...</p>
         </CardContent>
       </Card>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle, AlertCircle, XCircle, RefreshCw, Database, Settings, Globe, Package } from 'lucide-react';
+import HeartLoader from "@/components/ui/HeartLoader";
+import { CheckCircle, AlertCircle, XCircle, RefreshCw, Database, Settings, Globe, Package } from 'lucide-react';
 
 interface HealthData {
   status: string;
@@ -69,7 +70,7 @@ export default function HealthPage() {
       case 'error':
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
-        return <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />;
+        return <HeartLoader size="sm" />;
     }
   };
 
@@ -129,7 +130,7 @@ export default function HealthPage() {
         {/* Loading State */}
         {loading && !healthData && (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <HeartLoader size="md" />
             <span className="ml-2 text-gray-600">Checking system health...</span>
           </div>
         )}

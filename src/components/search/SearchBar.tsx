@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import HeartLoader from '@/components/ui/HeartLoader';
 
 interface SearchSuggestion {
   suggestions: string[];
@@ -247,7 +248,7 @@ function SearchBarContent({
                 {loading && (
                   <div className="p-4 text-center text-muted-foreground">
                     <div className="inline-flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
+                      <HeartLoader size="sm" />
                       <span>Searching...</span>
                     </div>
                   </div>

@@ -8,7 +8,7 @@ const suggestionsRateLimit = rateLimit(rateLimitConfigs.api);
 
 // Suggestions schema
 const suggestionsSchema = z.object({
-  q: z.string().min(1).max(50),
+  q: z.string().max(50).default(''),
   limit: z.number().min(1).max(10).default(5)
 });
 
@@ -37,7 +37,74 @@ export async function GET(req: NextRequest) {
 
       const { q, limit } = validationResult.data;
 
-      // Get suggestions from multiple sources
+      // Handle empty query by showing popular/trending items
+      if (!q || q.trim().length === 0) {
+        const [featuredProducts, popularCategories] = await Promise.all([
+          // Featured products
+          prisma.product.findMany({
+            where: {
+              isActive: true,
+              status: 'ACTIVE',
+              isFeatured: true
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              images: true,
+              price: true
+            },
+            take: limit,
+            orderBy: { createdAt: 'desc' }
+          }),
+
+          // Popular categories
+          prisma.category.findMany({
+            where: {
+              isActive: true
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              image: true,
+              _count: {
+                select: { products: true }
+              }
+            },
+            take: limit,
+            orderBy: { sortOrder: 'asc' }
+          })
+        ]);
+
+        const trendingSearches = [
+          'rings', 'necklaces', 'earrings', 'bracelets', 'gold jewelry',
+          'silver jewelry', 'wedding rings', 'diamond earrings', 'pearl necklace',
+          'fashion jewelry'
+        ];
+
+        return NextResponse.json({
+          suggestions: trendingSearches.slice(0, limit),
+          categories: popularCategories.map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+            image: cat.image,
+            productCount: cat._count.products
+          })),
+          products: featuredProducts.map(product => ({
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            image: product.images[0] || null,
+            price: product.price
+          })),
+          tags: [],
+          trending: trendingSearches.slice(0, 5)
+        });
+      }
+
+      // Get suggestions from multiple sources for non-empty queries
       const [productSuggestions, categorySuggestions, tagSuggestions, trendingSearches] = await Promise.all([
         // Product name suggestions
         prisma.product.findMany({

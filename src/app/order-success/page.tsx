@@ -12,6 +12,8 @@ import { CheckCircle, Package, Home } from "lucide-react";
 function OrderSuccessPageContent() {
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("payment_id");
+  const orderId = searchParams.get("order_id");
+  const status = searchParams.get("status");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -21,6 +23,28 @@ function OrderSuccessPageContent() {
   if (!mounted) {
     return null; // Prevent hydration mismatch
   }
+
+  const getSuccessMessage = () => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return {
+          title: "Payment Completed!",
+          description: "Your payment has been completed successfully and your order is confirmed."
+        };
+      case 'captured':
+        return {
+          title: "Payment Captured!",
+          description: "Your payment has been captured and your order will be processed shortly."
+        };
+      default:
+        return {
+          title: "Order Confirmed!",
+          description: "Thank you for your purchase. Your order has been successfully placed."
+        };
+    }
+  };
+
+  const successMessage = getSuccessMessage();
 
   return (
     <Container className="py-12 md:py-16">
@@ -39,21 +63,37 @@ function OrderSuccessPageContent() {
             <CheckCircle className="h-16 w-16 mx-auto text-green-500" />
           </motion.div>
           <div>
-            <h1 className="text-2xl font-serif tracking-tight">Order Confirmed!</h1>
+            <h1 className="text-2xl font-serif tracking-tight">{successMessage.title}</h1>
             <p className="text-muted-foreground mt-2">
-              Thank you for your purchase. Your order has been successfully placed.
+              {successMessage.description}
             </p>
           </div>
         </div>
 
-        {paymentId && (
+        {(paymentId || orderId) && (
           <Card>
-            <CardContent className="p-6 space-y-2">
-              <h2 className="font-medium text-sm tracking-tight">Payment Details</h2>
-              <p className="text-xs text-muted-foreground">
-                Payment ID: <span className="font-mono">{paymentId}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="p-6 space-y-3">
+              <h2 className="font-medium text-sm tracking-tight">Transaction Details</h2>
+              {orderId && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Order ID:</span>
+                  <span className="font-mono">{orderId}</span>
+                </div>
+              )}
+              {paymentId && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Payment ID:</span>
+                  <span className="font-mono">{paymentId}</span>
+                </div>
+              )}
+              {status && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Status: <span className="font-medium text-green-600 capitalize">{status}</span>
+                  </p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground text-center pt-2">
                 You will receive an email confirmation shortly.
               </p>
             </CardContent>

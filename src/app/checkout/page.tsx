@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth/client";
 import { useHybridCartStore } from "@/lib/store/hybridCart";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
   Check, 
@@ -94,10 +95,21 @@ interface CheckoutStepData {
   email?: string;
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { items, getTotalPrice, getTotalItems, clearCart } = useHybridCartStore();
+  
+  // Check if this is a "Buy Now" flow
+  const isBuyNow = searchParams.get('buyNow') === 'true';
+  
+  // Filter items for Buy Now mode (only show the most recently added item)
+  const checkoutItems = useMemo(() => {
+    return isBuyNow && items.length > 0 
+      ? [items[items.length - 1]] // Get the last (most recently added) item
+      : items;
+  }, [isBuyNow, items]);
   
   const [currentStep, setCurrentStep] = useState(1);
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({});
@@ -117,68 +129,52 @@ export default function CheckoutPage() {
     loading: false,
   });
 
-  const totalItems = getTotalItems();
-  const subtotal = getTotalPrice();
+  // Calculate totals based on filtered items for Buy Now mode
+  const totalItems = useMemo(() => {
+    return isBuyNow 
+      ? checkoutItems.reduce((total: number, item) => total + item.quantity, 0)
+      : getTotalItems();
+  }, [isBuyNow, checkoutItems, getTotalItems]);
+  
+  const subtotal = useMemo(() => {
+    return isBuyNow
+      ? checkoutItems.reduce((total: number, item) => total + (item.price * item.quantity), 0)
+      : getTotalPrice();
+  }, [isBuyNow, checkoutItems, getTotalPrice]);
 
-  // Calculate shipping cost based on cart items and address
-  const calculateShipping = useCallback(async () => {
-    if (items.length === 0 || subtotal === 0) return;
-
-    setShippingCalculation(prev => ({ ...prev, loading: true }));
-
-    try {
-      const response = await fetch('/api/shipping/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: items.map(item => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-          })),
-          address: checkoutData.address ? {
-            postalCode: checkoutData.address.postalCode,
-            state: checkoutData.address.state,
-            country: checkoutData.address.country,
-          } : undefined,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.shipping) {
-          setShippingCalculation({
-            cost: data.shipping.cost || 0,
-            method: data.shipping.method || 'STANDARD',
-            estimatedDays: data.shipping.estimatedDays || '3-5',
-            qualifiesForFree: data.shipping.qualifiesForFreeShipping || false,
-            loading: false,
-          });
-        }
-      } else {
-        // Fallback to default calculation
-        setShippingCalculation({
-          cost: subtotal >= 500 ? 0 : 50,
-          method: 'STANDARD',
-          estimatedDays: '3-5',
-          qualifiesForFree: subtotal >= 500,
-          loading: false,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to calculate shipping:', error);
-      // Fallback to default calculation
+  // Calculate shipping cost based on individual product shipping rates
+  const calculateShipping = useCallback(() => {
+    if (checkoutItems.length === 0) {
       setShippingCalculation({
-        cost: subtotal >= 500 ? 0 : 50,
+        cost: 0,
         method: 'STANDARD',
         estimatedDays: '3-5',
-        qualifiesForFree: subtotal >= 500,
+        qualifiesForFree: false,
         loading: false,
       });
+      return;
     }
-  }, [items, subtotal, checkoutData.address]);
 
-  // Calculate shipping when cart items change or address is updated
+    // Calculate total shipping cost from individual product shipping rates
+    const totalShippingCost = checkoutItems.reduce((total: number, item) => {
+      const shippingRate = item.product?.individualShippingRate || 0;
+      return total + (shippingRate * item.quantity);
+    }, 0);
+
+    // Check if qualifies for free shipping (subtotal >= 500)
+    const qualifiesForFree = subtotal >= 500;
+    const finalShippingCost = qualifiesForFree ? 0 : totalShippingCost;
+
+    setShippingCalculation({
+      cost: finalShippingCost,
+      method: 'STANDARD',
+      estimatedDays: '3-5',
+      qualifiesForFree,
+      loading: false,
+    });
+  }, [checkoutItems, subtotal]);
+
+  // Calculate shipping when cart items change
   useEffect(() => {
     calculateShipping();
   }, [calculateShipping]);
@@ -305,7 +301,14 @@ export default function CheckoutPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-serif tracking-tight">Checkout</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-serif tracking-tight">Checkout</h1>
+              {isBuyNow && (
+                <Badge variant="secondary" className="text-xs">
+                  Buy Now
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               {totalItems} item{totalItems !== 1 ? 's' : ''} in your order
             </p>
@@ -394,7 +397,7 @@ export default function CheckoutPage() {
           {/* Order Summary Sidebar */}
           <div className="lg:col-span-1">
             <OrderSummary 
-              items={items}
+              items={checkoutItems}
               subtotal={subtotal}
               shipping={{
                 method: shippingCalculation.method,
@@ -407,5 +410,21 @@ export default function CheckoutPage() {
         </div>
       </div>
     </Container>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <Container>
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center">
+            <div className="animate-pulse">Loading checkout...</div>
+          </div>
+        </div>
+      </Container>
+    }>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }

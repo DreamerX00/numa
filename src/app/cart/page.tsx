@@ -19,9 +19,9 @@ import {
   Trash2, 
   ShoppingBag, 
   ArrowLeft,
-  ArrowRight,
-  Loader2
+  ArrowRight
 } from "lucide-react";
+import HeartLoader from "@/components/ui/HeartLoader";
 
 export default function CartPage() {
   const router = useRouter();
@@ -38,51 +38,33 @@ export default function CartPage() {
   const totalItems = getTotalItems();
   const finalTotal = totalPrice + shippingData.cost;
 
-  const calculateShipping = useCallback(async () => {
-    if (items.length === 0) return;
-    
-    setShippingData(prev => ({ ...prev, loading: true }));
-    
-    try {
-      const response = await fetch('/api/shipping/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: items.map(item => ({
-            productId: item.product.id,
-            variantId: item.variant?.id,
-            quantity: item.quantity
-          }))
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setShippingData({
-          cost: data.shipping.cost || 0,
-          qualifiesForFree: data.shipping.qualifiesForFreeShipping || false,
-          amountNeeded: data.shipping.amountForFreeShipping || 0,
-          loading: false,
-        });
-      } else {
-        // Fallback calculation
-        setShippingData({
-          cost: totalPrice >= 500 ? 0 : 50,
-          qualifiesForFree: totalPrice >= 500,
-          amountNeeded: Math.max(0, 500 - totalPrice),
-          loading: false,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to calculate shipping:', error);
-      // Fallback to default values
+  const calculateShipping = useCallback(() => {
+    if (items.length === 0) {
       setShippingData({
-        cost: totalPrice >= 500 ? 0 : 50,
-        qualifiesForFree: totalPrice >= 500,
-        amountNeeded: Math.max(0, 500 - totalPrice),
+        cost: 0,
+        qualifiesForFree: false,
+        amountNeeded: 0,
         loading: false,
       });
+      return;
     }
+
+    // Calculate total shipping cost from individual product shipping rates
+    const totalShippingCost = items.reduce((total, item) => {
+      const shippingRate = item.product?.individualShippingRate || 0;
+      return total + (shippingRate * item.quantity);
+    }, 0);
+
+    // Check if qualifies for free shipping (totalPrice >= 500)
+    const qualifiesForFree = totalPrice >= 500;
+    const finalShippingCost = qualifiesForFree ? 0 : totalShippingCost;
+
+    setShippingData({
+      cost: finalShippingCost,
+      qualifiesForFree,
+      amountNeeded: Math.max(0, 500 - totalPrice),
+      loading: false,
+    });
   }, [items, totalPrice]);
 
   // Load shipping data
@@ -280,7 +262,7 @@ export default function CartPage() {
                   <div className="flex justify-between">
                     <span>Shipping</span>
                     {shippingData.loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <HeartLoader size="sm" />
                     ) : (
                       <span className={shippingData.cost === 0 ? "text-green-600" : ""}>
                         {shippingData.cost === 0 ? "Free" : formatPriceFromFloat(shippingData.cost)}

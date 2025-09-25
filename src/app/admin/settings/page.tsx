@@ -30,9 +30,9 @@ import {
   Store,
   Bell,
   Save,
-  CheckCircle,
-  Loader2
+  CheckCircle
 } from 'lucide-react';
+import HeartLoader from '@/components/ui/HeartLoader';
 
 export default function AdminSettingsPage() {
   const [activeSection, setActiveSection] = useState('general');
@@ -212,7 +212,7 @@ export default function AdminSettingsPage() {
       {initialLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex items-center space-x-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <HeartLoader size="sm" />
             <span>Loading settings...</span>
           </div>
         </div>
@@ -366,7 +366,7 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <Button onClick={() => handleSave('general')} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  {loading ? <HeartLoader size="sm" className="mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Save Changes
                 </Button>
               </CardContent>
@@ -751,7 +751,7 @@ export default function AdminSettingsPage() {
                   className="w-full md:w-auto"
                 >
                   {loading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <HeartLoader size="sm" className="mr-2" />
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}

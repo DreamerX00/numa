@@ -12,6 +12,7 @@ import { ArrowRight, Shield, Truck, Award, Star, Sparkles, ChevronLeft, ChevronR
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from "../../lib/services/catalog";
 import type { Product } from "@prisma/client";
+import HeartLoader from "../ui/HeartLoader";
 
 interface CarouselSlide {
   id: string;
@@ -195,17 +196,26 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
     });
   }, [featured, collections]);
 
+  // Loading states
+  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
+
   // Fetch carousel slides on component mount
   useEffect(() => {
     const loadCarouselSlides = async () => {
       try {
         console.log('🎠 AnimatedHomePage: Loading carousel slides...');
+        setIsLoadingSlides(true);
         const slides = await fetchCarouselSlides();
         console.log('🎠 AnimatedHomePage: Setting carousel slides:', slides.length);
         setCarouselSlides(slides);
+        
+        // Ensure minimum loading time for better UX
+        await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
         console.error('🎠 AnimatedHomePage: Failed to load carousel slides:', error);
         // Keep fallback slides if fetch fails
+      } finally {
+        setIsLoadingSlides(false);
       }
     };
     
@@ -240,20 +250,28 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
     >
       {/* Hero Carousel - Inspired by Palmonas, Tanishq, Giva */}
       <section className="relative h-[60vh] lg:h-[70vh] overflow-hidden">
-        <AnimatePresence initial={false} custom={direction}>
-          <motion.div
-            key={currentSlide}
-            custom={direction}
-            variants={carouselVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 }
-            }}
-            className="absolute inset-0"
-          >
+        {isLoadingSlides ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5">
+            <div className="flex flex-col items-center space-y-4">
+              <HeartLoader size="lg" color="primary" />
+              <p className="text-lg text-muted-foreground animate-pulse">Loading amazing jewelry...</p>
+            </div>
+          </div>
+        ) : (
+          <AnimatePresence initial={false} custom={direction}>
+            <motion.div
+              key={currentSlide}
+              custom={direction}
+              variants={carouselVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 }
+              }}
+              className="absolute inset-0"
+            >
             <div className="relative h-full w-full">
               <Image
                 src={carouselSlides[currentSlide].image}
@@ -323,40 +341,45 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
               </div>
             </div>
           </motion.div>
-        </AnimatePresence>
+          </AnimatePresence>
+        )}
 
-        {/* Navigation Arrows */}
-        <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
-          onClick={() => paginate(-1)}
-        >
-          <ChevronLeft className="h-6 w-6 text-white" />
-        </button>
-        
-        <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
-          onClick={() => paginate(1)}
-        >
-          <ChevronRight className="h-6 w-6 text-white" />
-        </button>
-
-        {/* Slide Indicators */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3 z-10">
-          {carouselSlides.map((_, index) => (
+        {/* Navigation Arrows - only show when not loading */}
+        {!isLoadingSlides && (
+          <>
             <button
-              key={index}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentSlide 
-                  ? 'bg-white scale-125' 
-                  : 'bg-white/50 hover:bg-white/75'
-              }`}
-              onClick={() => {
-                setDirection(index > currentSlide ? 1 : -1);
-                setCurrentSlide(index);
-              }}
-            />
-          ))}
-        </div>
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
+              onClick={() => paginate(-1)}
+            >
+              <ChevronLeft className="h-6 w-6 text-white" />
+            </button>
+            
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
+              onClick={() => paginate(1)}
+            >
+              <ChevronRight className="h-6 w-6 text-white" />
+            </button>
+
+            {/* Slide Indicators */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3 z-10">
+              {carouselSlides.map((_, index) => (
+                <button
+                  key={index}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index === currentSlide 
+                      ? 'bg-white scale-125' 
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  onClick={() => {
+                    setDirection(index > currentSlide ? 1 : -1);
+                    setCurrentSlide(index);
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Hero Section */}
@@ -548,7 +571,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
               className="grid grid-cols-2 gap-2 mt-0 lg:mt-0"
               variants={staggeredContainer}
             >
-              {featured.slice(0, 4).map((product, index) => {
+              {featured && featured.length > 0 ? featured.slice(0, 4).map((product, index) => {
                 const primaryImage = product.images?.[0] || DEFAULT_IMAGES.PRODUCT;
                 const hasDiscount = product.comparePrice && product.comparePrice > product.price;
                 
@@ -623,7 +646,29 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     </motion.div>
                   </motion.div>
                 );
-              })}
+              }) : (
+                // Loading state for featured products
+                Array.from({ length: 4 }).map((_, index) => (
+                  <motion.div
+                    key={`loading-${index}`}
+                    variants={itemVariants}
+                    className="group"
+                  >
+                    <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
+                      <div className="aspect-square bg-muted animate-pulse relative">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <HeartLoader size="sm" color="primary" />
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="h-4 bg-muted rounded animate-pulse mb-2" />
+                        <div className="h-3 bg-muted rounded animate-pulse w-3/4 mb-2" />
+                        <div className="h-4 bg-muted rounded animate-pulse w-1/2" />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
             </motion.div>
           </div>
         </Container>
@@ -807,7 +852,7 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {collections.slice(0, 4).map((collection) => (
+            {collections && collections.length > 0 ? collections.slice(0, 4).map((collection) => (
               <motion.div
                 key={collection.slug}
                 variants={itemVariants}
@@ -847,7 +892,33 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                   </Card>
                 </motion.div>
               </motion.div>
-            ))}
+            )) : (
+              // Loading state for collections
+              Array.from({ length: 4 }).map((_, index) => (
+                <motion.div
+                  key={`collection-loading-${index}`}
+                  variants={itemVariants}
+                  whileHover="hover"
+                  initial="rest"
+                >
+                  <motion.div variants={cardHoverVariants}>
+                    <Card className="overflow-hidden border-0 shadow-lg">
+                      <div className="relative aspect-[4/3] bg-muted animate-pulse">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <HeartLoader size="sm" color="primary" />
+                        </div>
+                      </div>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="h-5 bg-muted rounded animate-pulse w-3/4" />
+                          <div className="h-4 w-4 bg-muted rounded animate-pulse" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </Container>
       </motion.section>

@@ -351,6 +351,9 @@ model Order {
   // Items
   items          OrderItem[]
   shippingLogs   ShippingLog[]
+  invoices       Invoice[]
+  returns        Return[]
+  notes          OrderNote[]
   
   // Payment - PhonePe integration
   phonePeTransactionId         String?
@@ -416,6 +419,126 @@ model ShippingLog {
   updatedAt         DateTime @updatedAt
 
   @@map("shipping_logs")
+}
+
+model Invoice {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderId        String        @db.ObjectId
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Invoice details
+  invoiceNumber  String        @unique
+  invoiceDate    DateTime      @default(now())
+  dueDate        DateTime?     
+  
+  // Amounts (frozen at time of invoice generation)
+  subtotal       Float
+  taxAmount      Float         @default(0)
+  shippingAmount Float         @default(0)
+  discountAmount Float         @default(0)
+  totalAmount    Float
+  currency       String        @default("INR")
+  
+  // GST Details (India specific)
+  gstNumber      String?
+  cgst           Float         @default(0)
+  sgst           Float         @default(0)
+  igst           Float         @default(0)
+  gstRate        Float         @default(0.18) // Store GST rate used
+  
+  // Customer information (frozen at time of invoice)
+  customerName   String
+  customerEmail  String
+  customerPhone  String?
+  
+  // Billing address (frozen at time of invoice)
+  billingAddress Json          // Complete address object
+  
+  // Shipping address (frozen at time of invoice)
+  shippingAddress Json?        // Complete address object
+  
+  // Invoice items (frozen at time of invoice)
+  invoiceItems   Json          // Array of invoice line items
+  
+  // Company details (frozen at time of invoice)
+  companyInfo    Json          // Company details used in invoice
+  
+  // Status
+  status         InvoiceStatus @default(DRAFT)
+  
+  // File storage
+  pdfUrl         String?
+  htmlContent    String?
+  
+  // Metadata
+  notes          String?
+  generatedBy    String?       // Admin who generated
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("invoices")
+}
+
+model Return {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  orderId        String       @db.ObjectId
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Return details
+  returnNumber   String       @unique
+  reason         String
+  reasonCategory ReturnReason @default(OTHER)
+  
+  // Items being returned (JSON array of {itemId, quantity, reason})
+  returnItems    Json
+  
+  // Amounts
+  refundAmount   Float        @default(0)
+  shippingRefund Float        @default(0)
+  restockingFee  Float        @default(0)
+  
+  // Status
+  status         ReturnStatus @default(REQUESTED)
+  
+  // Shipping details for return
+  returnTrackingNumber String?
+  returnCarrier        String?
+  
+  // Admin notes
+  adminNotes     String?
+  customerNotes  String?
+  
+  // Dates
+  requestedAt    DateTime     @default(now())
+  approvedAt     DateTime?
+  receivedAt     DateTime?
+  processedAt    DateTime?
+  completedAt    DateTime?
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("returns")
+}
+
+model OrderNote {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId    String   @db.ObjectId
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Note details
+  note       String
+  isInternal Boolean  @default(true)  // If false, visible to customer
+  
+  // Author
+  authorId   String?  @db.ObjectId
+  authorName String   // Admin name or "System"
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("order_notes")
 }
 
 // ================================
@@ -573,6 +696,35 @@ enum AdminLogAction {
   EXPORT
   IMPORT
   BULK_UPDATE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  PROCESSED
+  COMPLETED
+  CANCELLED
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  SIZE_ISSUE
+  NOT_AS_DESCRIBED
+  DAMAGED_IN_SHIPPING
+  NO_LONGER_NEEDED
+  BETTER_PRICE_FOUND
+  OTHER
 }
 
 // ================================

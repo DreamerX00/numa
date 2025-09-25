@@ -14,6 +14,7 @@ import {
   DollarSign,
   AlertTriangle 
 } from 'lucide-react';
+import HeartLoader from '@/components/ui/HeartLoader';
 
 interface DashboardData {
   stats: {
@@ -72,15 +73,24 @@ export default function AdminPage() {
 
         {/* Dashboard Stats */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-6">
+            <div className="text-center py-8">
+              <HeartLoader size="lg" />
+              <p className="text-muted-foreground mt-4">Loading dashboard...</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-center mb-4">
+                      <HeartLoader size="sm" />
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         ) : (
           <AdminDashboardStats data={data} />
@@ -197,13 +207,9 @@ function RecentOrders({ data, isLoading }: { data?: DashboardData['recentOrders'
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            ))}
+          <div className="text-center py-6">
+            <HeartLoader size="md" />
+            <p className="text-sm text-muted-foreground mt-2">Loading recent orders...</p>
           </div>
         ) : data && data.length > 0 ? (
           <div className="space-y-4">
@@ -245,13 +251,9 @@ function LowStockAlerts({ data, isLoading }: { data?: DashboardData['lowStockPro
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            ))}
+          <div className="text-center py-6">
+            <HeartLoader size="md" />
+            <p className="text-sm text-muted-foreground mt-2">Loading stock alerts...</p>
           </div>
         ) : data && data.length > 0 ? (
           <div className="space-y-4">

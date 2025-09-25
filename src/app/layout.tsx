@@ -6,6 +6,7 @@ import Footer from "../components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { CartSyncProvider } from "@/components/providers/CartSyncProvider";
+import { LoadingProvider } from "@/components/providers/LoadingProvider";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -35,25 +36,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="bg-base-bg text-base-ink" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen flex-col`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen flex-col`} suppressHydrationWarning>
         <QueryProvider>
           <AuthProvider>
-            <CartSyncProvider>
-              <Header />
-              <main id="main" className="flex-1">{children}</main>
-              <Footer />
-              <Toaster 
-                position="top-right" 
-                toastOptions={{
-                  duration: 3000,
-                  style: {
-                    background: 'var(--background)',
-                    color: 'var(--foreground)',
-                    border: '1px solid var(--border)',
-                  },
-                }}
-              />
-            </CartSyncProvider>
+            <LoadingProvider>
+              <CartSyncProvider>
+                <Header />
+                <main id="main" className="flex-1">{children}</main>
+                <Footer />
+                <Toaster 
+                  position="top-right" 
+                  toastOptions={{
+                    duration: 3000,
+                    style: {
+                      background: 'var(--background)',
+                      color: 'var(--foreground)',
+                      border: '1px solid var(--border)',
+                    },
+                  }}
+                />
+              </CartSyncProvider>
+            </LoadingProvider>
           </AuthProvider>
         </QueryProvider>
         <div id="portal-drawers" />

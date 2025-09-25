@@ -12,6 +12,7 @@ import { Filter, Grid3X3, List, ArrowUpDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { Product } from '@prisma/client';
+import HeartLoader from "@/components/ui/HeartLoader";
 
 interface SearchResponse {
   products: Product[];
@@ -53,6 +54,7 @@ function SearchResults() {
   const searchParams = useSearchParams();
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [paginationLoading, setPaginationLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -97,9 +99,12 @@ function SearchResults() {
     setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
   };
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = async (page: number) => {
+    setPaginationLoading(true);
     setFilters(prev => ({ ...prev, page }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Pagination loading will be reset when fetchSearchResults completes
+    setTimeout(() => setPaginationLoading(false), 1000);
   };
 
   const sortOptions = [
@@ -218,8 +223,34 @@ function SearchResults() {
 
             {/* Results */}
             {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+              <div className="space-y-6">
+                <div className="flex justify-center py-8">
+                  <div className="text-center space-y-4">
+                    <HeartLoader size="lg" />
+                    <p className="text-muted-foreground">Searching products...</p>
+                  </div>
+                </div>
+                
+                {/* Skeleton Grid */}
+                <div className={cn(
+                  "grid gap-6",
+                  viewMode === 'grid' 
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
+                    : "grid-cols-1"
+                )}>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-card rounded-lg border p-4 animate-pulse">
+                      <div className="aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center">
+                        <HeartLoader size="sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-4 bg-muted rounded w-1/2"></div>
+                        <div className="h-6 bg-muted rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : searchResults?.products.length === 0 ? (
               <Card className="p-12 text-center">
@@ -267,32 +298,41 @@ function SearchResults() {
                 {/* Pagination */}
                 {searchResults?.pagination && searchResults.pagination.totalPages > 1 && (
                   <div className="flex justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      disabled={!searchResults.pagination.hasPrev}
-                      onClick={() => handlePageChange(searchResults.pagination.page - 1)}
-                    >
-                      Previous
-                    </Button>
-                    
-                    {Array.from({ length: searchResults.pagination.totalPages }, (_, i) => (
-                      <Button
-                        key={i + 1}
-                        variant={searchResults.pagination.page === i + 1 ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handlePageChange(i + 1)}
-                      >
-                        {i + 1}
-                      </Button>
-                    ))}
-                    
-                    <Button
-                      variant="outline"
-                      disabled={!searchResults.pagination.hasNext}
-                      onClick={() => handlePageChange(searchResults.pagination.page + 1)}
-                    >
-                      Next
-                    </Button>
+                    {paginationLoading ? (
+                      <div className="flex items-center space-x-2 py-2">
+                        <HeartLoader size="sm" />
+                        <span className="text-sm text-muted-foreground">Loading page...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          disabled={!searchResults.pagination.hasPrev}
+                          onClick={() => handlePageChange(searchResults.pagination.page - 1)}
+                        >
+                          Previous
+                        </Button>
+                        
+                        {Array.from({ length: searchResults.pagination.totalPages }, (_, i) => (
+                          <Button
+                            key={i + 1}
+                            variant={searchResults.pagination.page === i + 1 ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handlePageChange(i + 1)}
+                          >
+                            {i + 1}
+                          </Button>
+                        ))}
+                        
+                        <Button
+                          variant="outline"
+                          disabled={!searchResults.pagination.hasNext}
+                          onClick={() => handlePageChange(searchResults.pagination.page + 1)}
+                        >
+                          Next
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </>
@@ -308,7 +348,7 @@ export default function SearchPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+        <HeartLoader size="lg" />
       </div>
     }>
       <SearchResults />

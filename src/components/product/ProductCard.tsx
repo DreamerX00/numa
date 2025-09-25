@@ -7,7 +7,8 @@ import { motion } from 'framer-motion';
 import { useCartService } from '@/hooks/useCartService';
 import { DEFAULT_IMAGES } from '@/lib/cloudinary';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Check, Loader2 } from 'lucide-react';
+import { ShoppingBag, Check } from 'lucide-react';
+import HeartLoader from '@/components/ui/HeartLoader';
 import { toast } from 'sonner';
 import type { Product } from '@prisma/client';
 
@@ -127,7 +128,7 @@ export function ProductCard({ product, variant = 'vertical' }: ProductCardProps)
                     }
                   >
                     {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <HeartLoader size="sm" />
                     ) : isAdded ? (
                       <Check className="h-4 w-4" />
                     ) : (
@@ -231,7 +232,7 @@ export function ProductCard({ product, variant = 'vertical' }: ProductCardProps)
                 transition={{ type: "spring", stiffness: 500, damping: 15 }}
                 className="flex items-center gap-2"
               >
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <HeartLoader size="sm" />
                 <span>Adding...</span>
               </motion.div>
             ) : isAdded ? (

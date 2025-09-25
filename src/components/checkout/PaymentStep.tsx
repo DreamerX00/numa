@@ -10,9 +10,9 @@ import {
   Shield,
   Check,
   AlertCircle,
-  Loader2,
   Lock
 } from "lucide-react";
+import HeartLoader from "@/components/ui/HeartLoader";
 import type { CartItem } from "@/lib/types/product";
 
 interface Order {
@@ -370,7 +370,7 @@ export function PaymentStep({
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <HeartLoader size="sm" className="mr-2" />
                   Processing...
                 </>
               ) : !isOrderReady ? (

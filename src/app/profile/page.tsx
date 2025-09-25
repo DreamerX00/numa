@@ -53,10 +53,10 @@ import {
   Phone,
   Mail,
   CheckCircle,
-  AlertCircle,
-  Loader2
+  AlertCircle
 } from "lucide-react";
 import type { UserProfile } from "@/types/profile";
+import HeartLoader from "@/components/ui/HeartLoader";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -106,7 +106,7 @@ export default function ProfilePage() {
     return (
       <Container className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin" />
+          <HeartLoader className="mx-auto mb-4" size="md" />
           <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </Container>
@@ -429,7 +429,7 @@ export default function ProfilePage() {
                   <CardContent className="space-y-3">
                     {ordersLoading ? (
                       <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <HeartLoader size="sm" />
                       </div>
                     ) : profile.orderHistory.length === 0 ? (
                       <div className="text-center py-8">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
 import { DEFAULT_IMAGES } from "@/lib/cloudinary";
@@ -236,6 +237,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<string | null>(null);
   const [reviewProductName, setReviewProductName] = useState<string>("");
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -258,6 +260,51 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
     setReviewProductId(null);
     setReviewProductName("");
     // Could show a success message here
+  };
+
+  const handleDownloadInvoice = async (orderId: string, format: 'pdf' | 'html' = 'pdf') => {
+    setDownloadingInvoice(orderId);
+    try {
+      const response = await fetch(`/api/user/orders/${orderId}/invoice?format=${format}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to download invoice' }));
+        throw new Error(errorData.error || 'Failed to download invoice');
+      }
+
+      if (format === 'pdf') {
+        // Handle PDF download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `invoice-${orderId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Invoice downloaded successfully');
+      } else {
+        // Handle HTML view in new tab
+        const htmlContent = await response.text();
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(htmlContent);
+          newWindow.document.close();
+        }
+      }
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to download invoice');
+    } finally {
+      setDownloadingInvoice(null);
+    }
   };
 
   if (selectedOrderDetails) {
@@ -454,9 +501,18 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   Write Review
                 </Button>
               )}
-              <Button variant="ghost" className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Download Invoice
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => handleDownloadInvoice(selectedOrderDetails.id)}
+                disabled={downloadingInvoice === selectedOrderDetails.id}
+              >
+                {downloadingInvoice === selectedOrderDetails.id ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {downloadingInvoice === selectedOrderDetails.id ? 'Downloading...' : 'Download Invoice'}
               </Button>
               <Button variant="ghost" className="w-full">
                 <MessageCircle className="h-4 w-4 mr-2" />
@@ -592,9 +648,16 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                                   Track Package
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem>
-                                <Download className="h-4 w-4 mr-2" />
-                                Download Invoice
+                              <DropdownMenuItem 
+                                onClick={() => handleDownloadInvoice(order.id)}
+                                disabled={downloadingInvoice === order.id}
+                              >
+                                {downloadingInvoice === order.id ? (
+                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4 mr-2" />
+                                )}
+                                {downloadingInvoice === order.id ? 'Downloading...' : 'Download Invoice'}
                               </DropdownMenuItem>
                               {order.canReturn && (
                                 <DropdownMenuItem>

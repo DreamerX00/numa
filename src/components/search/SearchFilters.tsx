@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { X, Filter } from 'lucide-react';
+import HeartLoader from '@/components/ui/HeartLoader';
 
 interface SearchFiltersProps {
   filters: {
@@ -75,13 +76,9 @@ export function SearchFilters({ filters, availableFilters, onFilterChange }: Sea
   if (!availableFilters) {
     return (
       <Card className="p-4">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-muted rounded w-20"></div>
-          <div className="space-y-2">
-            <div className="h-8 bg-muted rounded"></div>
-            <div className="h-8 bg-muted rounded"></div>
-            <div className="h-8 bg-muted rounded"></div>
-          </div>
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <HeartLoader size="md" />
+          <p className="text-sm text-muted-foreground">Loading filters...</p>
         </div>
       </Card>
     );
