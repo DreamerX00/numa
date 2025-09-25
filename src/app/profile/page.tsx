@@ -314,7 +314,7 @@ export default function ProfilePage() {
                         {profile.loyaltyProgram.tier}
                       </Badge>
                     </div>
-                    <p className="text-muted-foreground flex items-center gap-2">
+                    <div className="text-muted-foreground flex items-center gap-2">
                       <Mail className="h-4 w-4" />
                       {profile.email}
                       {profile.phoneNumber && (
@@ -324,7 +324,7 @@ export default function ProfilePage() {
                           {profile.phoneNumber}
                         </>
                       )}
-                    </p>
+                    </div>
                   </div>
                   
                   <div className="flex flex-wrap gap-4">

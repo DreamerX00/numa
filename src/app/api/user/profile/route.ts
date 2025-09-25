@@ -13,7 +13,7 @@ const updateProfileSchema = z.object({
   lastName: z.string().min(1).max(50).optional(),
   displayName: z.string().min(1).max(100).optional(),
   phone: z.string().max(20).optional(),
-  dateOfBirth: z.string().optional(), // ISO date string
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
   language: z.string().max(10).optional(),
   currency: z.string().max(10).optional(),
@@ -112,34 +112,51 @@ export async function PUT(request: NextRequest) {
 
     const updateData = validationResult.data;
 
+    // Convert dateOfBirth string to Date object if provided
+    const processedUpdateData: any = { ...updateData };
+    if (updateData.dateOfBirth) {
+      try {
+        // Convert date string (YYYY-MM-DD) to Date object
+        processedUpdateData.dateOfBirth = new Date(updateData.dateOfBirth + 'T00:00:00.000Z');
+      } catch (error) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Invalid date format for dateOfBirth. Expected YYYY-MM-DD format.' 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update or create user profile
     const updatedProfile = await prisma.userProfile.upsert({
       where: { userId: dbUser.id },
       update: {
-        ...updateData,
+        ...processedUpdateData,
         // Auto-generate displayName if not provided
-        displayName: updateData.displayName || 
-          (updateData.firstName && updateData.lastName 
-            ? `${updateData.firstName} ${updateData.lastName}`.trim()
+        displayName: processedUpdateData.displayName || 
+          (processedUpdateData.firstName && processedUpdateData.lastName 
+            ? `${processedUpdateData.firstName} ${processedUpdateData.lastName}`.trim()
             : undefined)
       },
       create: {
         userId: dbUser.id,
-        displayName: updateData.displayName || 
-          (updateData.firstName && updateData.lastName 
-            ? `${updateData.firstName} ${updateData.lastName}`.trim()
+        displayName: processedUpdateData.displayName || 
+          (processedUpdateData.firstName && processedUpdateData.lastName 
+            ? `${processedUpdateData.firstName} ${processedUpdateData.lastName}`.trim()
             : dbUser.email.split('@')[0]),
-        firstName: updateData.firstName || '',
-        lastName: updateData.lastName || '',
-        phone: updateData.phone || '',
-        dateOfBirth: updateData.dateOfBirth || '',
-        gender: updateData.gender || 'PREFER_NOT_TO_SAY',
-        language: updateData.language || 'en',
-        currency: updateData.currency || 'INR',
-        timezone: updateData.timezone || 'Asia/Kolkata',
-        emailMarketing: updateData.emailMarketing ?? false,
-        smsMarketing: updateData.smsMarketing ?? false,
-        pushNotifications: updateData.pushNotifications ?? true,
+        firstName: processedUpdateData.firstName || '',
+        lastName: processedUpdateData.lastName || '',
+        phone: processedUpdateData.phone || '',
+        dateOfBirth: processedUpdateData.dateOfBirth || null,
+        gender: processedUpdateData.gender || 'PREFER_NOT_TO_SAY',
+        language: processedUpdateData.language || 'en',
+        currency: processedUpdateData.currency || 'INR',
+        timezone: processedUpdateData.timezone || 'Asia/Kolkata',
+        emailMarketing: processedUpdateData.emailMarketing ?? false,
+        smsMarketing: processedUpdateData.smsMarketing ?? false,
+        pushNotifications: processedUpdateData.pushNotifications ?? true,
       },
       select: {
         id: true,
