@@ -217,14 +217,36 @@ export default function ProfilePage() {
       status: string;
       totalAmount: number;
       currency: string;
+      subtotal: number;
+      taxAmount: number;
+      shippingAmount: number;
+      discountAmount: number;
+      paymentStatus?: string;
       items?: Array<{
+        id: string;
+        name: string;
+        sku: string;
+        price: number;
+        quantity: number;
         product?: {
+          id: string;
+          name: string;
           images?: string[];
         };
       }>;
+      shippingAddress?: {
+        firstName: string;
+        lastName: string;
+        address1: string;
+        city: string;
+        state: string;
+        country: string;
+        postalCode: string;
+      };
       createdAt: string;
       estimatedDelivery?: string;
       trackingNumber?: string;
+      carrier?: string;
     }) => ({
       id: order.id,
       orderNumber: order.orderNumber,
@@ -237,7 +259,28 @@ export default function ProfilePage() {
       trackingNumber: order.trackingNumber,
       thumbnail: order.items?.[0]?.product?.images?.[0] || DEFAULT_IMAGES.PRODUCT,
       canReturn: ['delivered'].includes(order.status.toLowerCase()),
-      canReview: ['delivered'].includes(order.status.toLowerCase())
+      canReview: ['delivered'].includes(order.status.toLowerCase()),
+      // Additional fields for detailed view
+      items: order.items?.map(item => ({
+        id: item.id,
+        name: item.name || item.product?.name || 'Unknown Product',
+        variant: item.sku ? `SKU: ${item.sku}` : 'Standard',
+        quantity: item.quantity,
+        price: item.price,
+        image: item.product?.images?.[0] || DEFAULT_IMAGES.PRODUCT,
+        sku: item.sku
+      })) || [],
+      shipping: {
+        method: order.carrier || 'Standard Delivery',
+        cost: order.shippingAmount || 0,
+        address: order.shippingAddress ? 
+          `${order.shippingAddress.address1}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.postalCode}` :
+          'Address not available'
+      },
+      payment: {
+        method: order.paymentStatus === 'PAID' ? 'Credit Card' : 'Pending',
+        last4: '****' // API doesn't return payment details for security
+      }
     })) || [],
     wishlist: [],
     favorites: [],

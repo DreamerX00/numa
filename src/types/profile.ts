@@ -181,6 +181,31 @@ export interface OrderSummary {
   thumbnail: string;
   canReturn: boolean;
   canReview: boolean;
+  // Extended fields for detailed order view
+  items?: OrderItem[];
+  shipping?: ShippingInfo;
+  payment?: PaymentInfo;
+}
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  variant: string;
+  quantity: number;
+  price: number;
+  image: string;
+  sku: string;
+}
+
+export interface ShippingInfo {
+  method: string;
+  cost: number;
+  address: string;
+}
+
+export interface PaymentInfo {
+  method: string;
+  last4: string;
 }
 
 export interface WishlistItem {

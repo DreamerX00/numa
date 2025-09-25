@@ -247,7 +247,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
   });
 
   const selectedOrderDetails = selectedOrder ? 
-    mockOrders.find(order => order.id === selectedOrder) : null;
+    orders.find(order => order.id === selectedOrder) : null;
 
   const handleReviewClick = (productId: string, productName: string) => {
     setReviewProductId(productId);
@@ -349,7 +349,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 <CardTitle>Order Items</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {selectedOrderDetails.items.map((item) => (
+                {selectedOrderDetails.items?.map((item) => (
                   <motion.div
                     key={item.id}
                     className="flex gap-4 p-4 border rounded-lg hover-lift"
@@ -419,11 +419,11 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${(selectedOrderDetails.totalAmount - selectedOrderDetails.shipping.cost).toFixed(2)}</span>
+                  <span>${(selectedOrderDetails.totalAmount - (selectedOrderDetails.shipping?.cost || 0)).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipping ({selectedOrderDetails.shipping.method})</span>
-                  <span>${selectedOrderDetails.shipping.cost.toFixed(2)}</span>
+                  <span>Shipping ({selectedOrderDetails.shipping?.method || 'Standard'})</span>
+                  <span>${(selectedOrderDetails.shipping?.cost || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total</span>
@@ -442,7 +442,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   <div>
                     <p className="font-medium">Delivery Address</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedOrderDetails.shipping.address}
+                      {selectedOrderDetails.shipping?.address || 'Address not available'}
                     </p>
                   </div>
                 </div>
@@ -468,9 +468,9 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 <div className="flex items-start gap-2">
                   <DollarSign className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{selectedOrderDetails.payment.method}</p>
+                    <p className="font-medium">{selectedOrderDetails.payment?.method || 'Payment method not available'}</p>
                     <p className="text-sm text-muted-foreground">
-                      Ending in {selectedOrderDetails.payment.last4}
+                      Ending in {selectedOrderDetails.payment?.last4 || '****'}
                     </p>
                   </div>
                 </div>
@@ -495,7 +495,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => handleReviewClick("product_123", selectedOrderDetails.items[0]?.name || "Product")}
+                  onClick={() => handleReviewClick("product_123", selectedOrderDetails.items?.[0]?.name || "Product")}
                 >
                   <Star className="h-4 w-4 mr-2" />
                   Write Review
