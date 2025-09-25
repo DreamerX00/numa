@@ -133,8 +133,7 @@ export default function PersonalInfoSection({ personalInfo, onUpdate }: Personal
 
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Call the onUpdate prop which will trigger the real API mutation
       onUpdate(formData)
       setIsEditing(false)
     } catch (error) {

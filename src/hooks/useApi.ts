@@ -58,8 +58,9 @@ export interface UserProfile {
 
 export interface Address {
   id: string;
-  type: 'SHIPPING' | 'BILLING' | 'BOTH';
+  type: 'SHIPPING' | 'BILLING';
   isDefault: boolean;
+  isActive: boolean;
   firstName: string;
   lastName: string;
   company?: string;

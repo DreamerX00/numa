@@ -44,7 +44,7 @@ import { useCreateAddress, useUpdateAddress, useDeleteAddress, Address } from "@
 import { toast } from "sonner";
 
 const addressSchema = z.object({
-  type: z.enum(['SHIPPING', 'BILLING', 'BOTH']),
+  type: z.enum(['SHIPPING', 'BILLING']),
   isDefault: z.boolean(),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -94,7 +94,10 @@ export function AddressesTab({ addresses = [], isLoading = false }: AddressesTab
 
   const handleAddAddress = async (values: AddressFormValues) => {
     try {
-      await createAddressMutation.mutateAsync(values);
+      await createAddressMutation.mutateAsync({
+        ...values,
+        isActive: true
+      });
       toast.success("Address added successfully!");
       setIsAddDialogOpen(false);
       form.reset();
@@ -114,8 +117,10 @@ export function AddressesTab({ addresses = [], isLoading = false }: AddressesTab
       toast.success("Address updated successfully!");
       setEditingAddress(null);
       form.reset();
-    } catch {
-      toast.error("Failed to update address");
+    } catch (error: any) {
+      console.error("Failed to update address:", error);
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to update address";
+      toast.error(errorMessage);
     }
   };
 
@@ -124,8 +129,10 @@ export function AddressesTab({ addresses = [], isLoading = false }: AddressesTab
       await deleteAddressMutation.mutateAsync(addressId);
       toast.success("Address deleted successfully!");
       setDeletingAddressId(null);
-    } catch {
-      toast.error("Failed to delete address");
+    } catch (error: any) {
+      console.error("Failed to delete address:", error);
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to delete address";
+      toast.error(errorMessage);
     }
   };
 
@@ -279,7 +286,6 @@ export function AddressesTab({ addresses = [], isLoading = false }: AddressesTab
                       <SelectContent>
                         <SelectItem value="SHIPPING">Shipping Address</SelectItem>
                         <SelectItem value="BILLING">Billing Address</SelectItem>
-                        <SelectItem value="BOTH">Both</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

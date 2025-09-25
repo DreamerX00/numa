@@ -13,7 +13,7 @@ const shippingCalculationSchema = z.object({
     state: z.string().optional(),
     postalCode: z.string().optional(),
   }).optional(),
-  paymentMethod: z.enum(['razorpay', 'cod']).optional(),
+  paymentMethod: z.enum(['phonepe', 'cod']).optional(),
   cartItems: z.array(z.object({
     id: z.string(),
     quantity: z.number(),
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     const result = await shippingService.calculateShipping(
       fullCartItems,
       location,
-      paymentMethod
+      paymentMethod as 'phonepe' | 'cod' | undefined
     );
 
     return NextResponse.json({

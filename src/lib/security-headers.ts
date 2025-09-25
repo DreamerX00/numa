@@ -5,13 +5,13 @@ export function withSecurityHeaders(response: NextResponse): NextResponse {
   // Content Security Policy
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://checkout.razorpay.com https://www.googletagmanager.com https://www.google-analytics.com https://apis.google.com https://accounts.google.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.googletagmanager.com https://www.google-analytics.com https://apis.google.com https://accounts.google.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https: http:",
     "media-src 'self' data: blob:",
-    "connect-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://www.google-analytics.com https://firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://accounts.google.com https://securetoken.googleapis.com",
-    "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://accounts.google.com https://*.firebaseapp.com",
+    "connect-src 'self' https://api.phonepe.com https://api-preprod.phonepe.com https://www.google-analytics.com https://firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://accounts.google.com https://securetoken.googleapis.com",
+    "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

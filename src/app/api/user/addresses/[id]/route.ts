@@ -24,9 +24,13 @@ const addressSchema = z.object({
   isActive: z.boolean().optional()
 });
 
-// GET user addresses
-export async function GET(request: NextRequest) {
+// GET specific address
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const authResult = await getUserFromSession(request);
     
     if (!authResult.success) {
@@ -35,20 +39,30 @@ export async function GET(request: NextRequest) {
 
     const { dbUser } = authResult.user;
 
-    // Fetch user addresses (only active ones)
-    const addresses = await prisma.address.findMany({
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Address ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch specific address
+    const address = await prisma.address.findUnique({
       where: { 
-        userId: dbUser.id,
-        isActive: true
-      },
-      orderBy: [
-        { isDefault: 'desc' }, // Default addresses first
-        { createdAt: 'desc' }
-      ]
+        id: id,
+        userId: dbUser.id // Ensure user owns the address
+      }
     });
 
-    // Transform addresses for response
-    const transformedAddresses = addresses.map(address => ({
+    if (!address) {
+      return NextResponse.json(
+        { success: false, error: 'Address not found' },
+        { status: 404 }
+      );
+    }
+
+    // Transform address for response
+    const transformedAddress = {
       id: address.id,
       type: address.type,
       firstName: address.firstName,
@@ -64,28 +78,32 @@ export async function GET(request: NextRequest) {
       isDefault: address.isDefault,
       createdAt: address.createdAt.toISOString(),
       updatedAt: address.updatedAt.toISOString()
-    }));
+    };
 
     return NextResponse.json({
       success: true,
-      addresses: transformedAddresses
+      address: transformedAddress
     });
 
   } catch (error) {
-    console.error('Error fetching user addresses:', error);
+    console.error('Error fetching address:', error);
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch addresses' 
+        error: 'Failed to fetch address' 
       },
       { status: 500 }
     );
   }
 }
 
-// POST create new address
-export async function POST(request: NextRequest) {
+// PUT update specific address
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const authResult = await getUserFromSession(request);
     
     if (!authResult.success) {
@@ -94,6 +112,13 @@ export async function POST(request: NextRequest) {
 
     const { dbUser } = authResult.user;
     const body = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Address ID is required' },
+        { status: 400 }
+      );
+    }
 
     // Validate request body
     const validationResult = addressSchema.safeParse(body);
@@ -114,116 +139,9 @@ export async function POST(request: NextRequest) {
 
     const addressData = validationResult.data;
 
-    // If this address is set as default, unset other defaults of the same type
-    if (addressData.isDefault && addressData.type) {
-      await prisma.address.updateMany({
-        where: { 
-          userId: dbUser.id,
-          type: addressData.type 
-        },
-        data: { isDefault: false }
-      });
-    }
-
-    // Create new address
-    const newAddress = await prisma.address.create({
-      data: {
-        userId: dbUser.id,
-        type: addressData.type || 'SHIPPING',
-        firstName: addressData.firstName,
-        lastName: addressData.lastName,
-        company: addressData.company || null,
-        address1: addressData.address1,
-        address2: addressData.address2 || null,
-        city: addressData.city,
-        state: addressData.state,
-        postalCode: addressData.postalCode,
-        country: addressData.country || 'IN',
-        phone: addressData.phone || null,
-        isDefault: addressData.isDefault || false,
-        isActive: true
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Address created successfully',
-      address: {
-        id: newAddress.id,
-        type: newAddress.type,
-        firstName: newAddress.firstName,
-        lastName: newAddress.lastName,
-        company: newAddress.company || '',
-        address1: newAddress.address1,
-        address2: newAddress.address2 || '',
-        city: newAddress.city,
-        state: newAddress.state,
-        postalCode: newAddress.postalCode,
-        country: newAddress.country,
-        phone: newAddress.phone || '',
-        isDefault: newAddress.isDefault,
-        createdAt: newAddress.createdAt.toISOString(),
-        updatedAt: newAddress.updatedAt.toISOString()
-      }
-    });
-
-  } catch (error) {
-    console.error('Error creating address:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to create address' 
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT update address
-export async function PUT(request: NextRequest) {
-  try {
-    const authResult = await getUserFromSession(request);
-    
-    if (!authResult.success) {
-      return createAuthErrorResponse(authResult);
-    }
-
-    const { dbUser } = authResult.user;
-    const body = await request.json();
-    const addressId = body.id;
-
-    if (!addressId) {
-      return NextResponse.json(
-        { success: false, error: 'Address ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate request body (excluding id)
-    const addressBody = Object.fromEntries(
-      Object.entries(body).filter(([key]) => key !== 'id')
-    );
-    const validationResult = addressSchema.safeParse(addressBody);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid address data',
-          validationErrors: validationResult.error.issues.reduce((acc, issue) => {
-            const key = issue.path[0]?.toString() || 'unknown';
-            acc[key] = issue.message;
-            return acc;
-          }, {} as Record<string, string>)
-        },
-        { status: 400 }
-      );
-    }
-
-    const addressData = validationResult.data;
-
     // Check if address belongs to user
     const existingAddress = await prisma.address.findUnique({
-      where: { id: addressId },
+      where: { id: id },
       select: { userId: true, type: true }
     });
 
@@ -240,7 +158,7 @@ export async function PUT(request: NextRequest) {
         where: { 
           userId: dbUser.id,
           type: addressData.type,
-          id: { not: addressId } // Exclude current address
+          id: { not: id } // Exclude current address
         },
         data: { isDefault: false }
       });
@@ -248,7 +166,7 @@ export async function PUT(request: NextRequest) {
 
     // Update address
     const updatedAddress = await prisma.address.update({
-      where: { id: addressId },
+      where: { id: id },
       data: {
         type: addressData.type || existingAddress.type,
         firstName: addressData.firstName,
@@ -299,9 +217,13 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE remove address
-export async function DELETE(request: NextRequest) {
+// DELETE specific address
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const authResult = await getUserFromSession(request);
     
     if (!authResult.success) {
@@ -309,10 +231,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { dbUser } = authResult.user;
-    const { searchParams } = new URL(request.url);
-    const addressId = searchParams.get('id');
 
-    if (!addressId) {
+    if (!id) {
       return NextResponse.json(
         { success: false, error: 'Address ID is required' },
         { status: 400 }
@@ -321,7 +241,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check if address belongs to user and if it's used in any orders
     const addressCheck = await prisma.address.findUnique({
-      where: { id: addressId },
+      where: { id: id },
       include: {
         orders: true,
         billingOrders: true
@@ -339,18 +259,25 @@ export async function DELETE(request: NextRequest) {
     const isUsedInOrders = addressCheck.orders.length > 0 || addressCheck.billingOrders.length > 0;
     
     if (isUsedInOrders) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Cannot delete address that has been used in orders. You can mark it as inactive instead.' 
-        },
-        { status: 400 }
-      );
+      // Soft delete (mark as inactive) instead of hard delete
+      await prisma.address.update({
+        where: { id: id },
+        data: { 
+          isActive: false,
+          isDefault: false // Remove default status when soft deleting
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Address has been removed from your address list',
+        softDeleted: true
+      });
     }
 
-    // Delete address
+    // Hard delete address (not used in orders)
     await prisma.address.delete({
-      where: { id: addressId }
+      where: { id: id }
     });
 
     return NextResponse.json({

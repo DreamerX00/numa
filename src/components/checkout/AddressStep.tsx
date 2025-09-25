@@ -99,7 +99,7 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
       // For guest users, show form immediately
       setIsAddingNew(true);
     }
-  }, [user, loadSavedAddresses]);
+  }, [user]); // Remove loadSavedAddresses from dependencies to prevent infinite re-renders
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -146,6 +146,27 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
       if (user) {
         try {
           setLocalLoading(true);
+          // Check if a similar address already exists to prevent duplicates
+          const duplicateAddress = savedAddresses.find(addr => 
+            addr.address1 === formData.address1 &&
+            addr.city === formData.city &&
+            addr.postalCode === formData.postalCode &&
+            addr.firstName === formData.firstName &&
+            addr.lastName === formData.lastName
+          );
+
+          if (duplicateAddress) {
+            // Use existing address instead of creating a new one
+            const addressWithDefaults: AddressData = {
+              ...duplicateAddress,
+              type: duplicateAddress.type,
+              phone: duplicateAddress.phone || formData.phone || "",
+            };
+            onComplete({ address: addressWithDefaults });
+            setLocalLoading(false);
+            return;
+          }
+
           const response = await fetch('/api/user/addresses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -154,6 +175,10 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
           
           if (response.ok) {
             const savedAddress = await response.json();
+            
+            // Update local state with the new address
+            setSavedAddresses(prev => [...prev, savedAddress.address]);
+            
             // Ensure the saved address has required fields for PaymentStep
             const addressWithDefaults: AddressData = {
               ...savedAddress.address,

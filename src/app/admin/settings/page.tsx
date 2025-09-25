@@ -103,9 +103,9 @@ export default function AdminSettingsPage() {
   });
 
   const [paymentSettings, setPaymentSettings] = useState({
-    razorpayEnabled: true,
-    razorpayKeyId: 'rzp_test_1234567890',
-    razorpaySecret: '•••••••••••••••',
+    phonePeEnabled: true,
+    phonePeMerchantId: 'PGTESTPAYUAT',
+    phonePeSaltKey: '•••••••••••••••',
     stripeEnabled: false,
     stripePublishableKey: '',
     stripeSecretKey: '',
@@ -383,34 +383,34 @@ export default function AdminSettingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Razorpay Settings */}
+                {/* PhonePe Settings */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-medium">Razorpay</h3>
-                      <p className="text-sm text-gray-600">Configure Razorpay payment gateway</p>
+                      <h3 className="text-lg font-medium">PhonePe</h3>
+                      <p className="text-sm text-gray-600">Configure PhonePe payment gateway</p>
                     </div>
                     <Switch
-                      checked={paymentSettings.razorpayEnabled}
-                      onCheckedChange={(checked: boolean) => setPaymentSettings(prev => ({ ...prev, razorpayEnabled: checked }))}
+                      checked={paymentSettings.phonePeEnabled}
+                      onCheckedChange={(checked: boolean) => setPaymentSettings(prev => ({ ...prev, phonePeEnabled: checked }))}
                     />
                   </div>
-                  {paymentSettings.razorpayEnabled && (
+                  {paymentSettings.phonePeEnabled && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
                       <div className="space-y-2">
-                        <Label>Key ID</Label>
+                        <Label>Merchant ID</Label>
                         <Input
-                          value={paymentSettings.razorpayKeyId}
-                          onChange={(e) => setPaymentSettings(prev => ({ ...prev, razorpayKeyId: e.target.value }))}
-                          placeholder="rzp_test_..."
+                          value={paymentSettings.phonePeMerchantId}
+                          onChange={(e) => setPaymentSettings(prev => ({ ...prev, phonePeMerchantId: e.target.value }))}
+                          placeholder="PGTESTPAYUAT"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Secret Key</Label>
+                        <Label>Salt Key</Label>
                         <Input
                           type="password"
-                          value={paymentSettings.razorpaySecret}
-                          onChange={(e) => setPaymentSettings(prev => ({ ...prev, razorpaySecret: e.target.value }))}
+                          value={paymentSettings.phonePeSaltKey}
+                          onChange={(e) => setPaymentSettings(prev => ({ ...prev, phonePeSaltKey: e.target.value }))}
                           placeholder="•••••••••••••••"
                         />
                       </div>

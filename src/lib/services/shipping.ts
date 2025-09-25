@@ -135,7 +135,7 @@ class ShippingService {
   async calculateShipping(
     cartItems: CartItem[],
     userLocation: UserLocation,
-    paymentMethod?: 'razorpay' | 'cod'
+    paymentMethod?: 'phonepe' | 'cod'
   ): Promise<ShippingCalculationResult> {
     const config = await this.getShippingConfig();
     
@@ -238,7 +238,7 @@ class ShippingService {
     methodId: string,
     cartItems: CartItem[],
     userLocation: UserLocation,
-    paymentMethod?: 'razorpay' | 'cod'
+    paymentMethod?: 'phonepe' | 'cod'
   ): Promise<ShippingMethod | null> {
     const result = await this.calculateShipping(cartItems, userLocation, paymentMethod);
     return result.methods.find(method => method.id === methodId) || null;

@@ -113,7 +113,8 @@ export async function GET(
       payment: {
         method: order.paymentMethod,
         status: order.paymentStatus,
-        razorpayOrderId: order.razorpayOrderId,
+        phonePeTransactionId: order.phonePeTransactionId,
+        phonePeMerchantTransactionId: order.phonePeMerchantTransactionId,
         paymentIntentId: order.paymentIntentId
       },
 

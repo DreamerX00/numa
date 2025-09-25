@@ -58,19 +58,20 @@ export interface PersonalInfo {
 
 export interface Address {
   id: string;
-  type: 'shipping' | 'billing' | 'both';
+  type: 'SHIPPING' | 'BILLING';
   label: string; // Home, Office, etc.
   firstName: string;
   lastName: string;
   company?: string;
-  addressLine1: string;
-  addressLine2?: string;
+  address1: string;
+  address2?: string;
   city: string;
   state: string;
   postalCode: string;
   country: string;
-  phoneNumber?: string;
+  phone?: string;
   isDefault: boolean;
+  isActive: boolean;
   instructions?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -301,20 +302,18 @@ export interface PersonalInfoFormData {
 }
 
 export interface AddressFormData {
-  type: 'shipping' | 'billing' | 'both';
-  label: string;
+  type: 'SHIPPING' | 'BILLING';
+  isDefault: boolean;
   firstName: string;
   lastName: string;
   company: string;
-  addressLine1: string;
-  addressLine2: string;
+  address1: string;
+  address2: string;
   city: string;
   state: string;
   postalCode: string;
   country: string;
-  phoneNumber: string;
-  instructions: string;
-  isDefault: boolean;
+  phone: string;
 }
 
 export interface SecurityFormData {

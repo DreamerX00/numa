@@ -89,6 +89,7 @@ model Address {
   
   type        AddressType @default(SHIPPING)
   isDefault   Boolean     @default(false)
+  isActive    Boolean     @default(true)
   
   // Address details
   firstName   String
@@ -351,10 +352,12 @@ model Order {
   items          OrderItem[]
   shippingLogs   ShippingLog[]
   
-  // Payment - keeping Razorpay integration
-  razorpayOrderId String?
-  paymentIntentId String?
-  paymentMethod   String?
+  // Payment - PhonePe integration
+  phonePeTransactionId         String?
+  phonePeMerchantTransactionId String?
+  phonePeResponseCode          String?
+  paymentIntentId              String?
+  paymentMethod                String?
   
   // Shipping
   shippingMethod  String?

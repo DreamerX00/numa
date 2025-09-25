@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,41 +15,9 @@ import {
 } from "lucide-react";
 import type { CartItem } from "@/lib/types/product";
 
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  image: string;
-  handler: (response: RazorpayResponse) => void;
-  prefill: {
-    name: string;
-    email: string;
-    contact: string;
-  };
-  notes: {
-    address: string;
-    shipping_method: string;
-  };
-  theme: {
-    color: string;
-  };
-  modal: {
-    ondismiss: () => void;
-  };
-}
-
 interface Order {
   id: string;
-  razorpayOrderId: string;
+  phonePeMerchantTransactionId: string;
 }
 
 interface PaymentStepProps {
@@ -93,7 +61,6 @@ export function PaymentStep({
   setLoading 
 }: PaymentStepProps) {
   const { user } = useAuth();
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [error, setError] = useState<string>("");
 
   // Calculate amounts using passed shipping cost
@@ -111,24 +78,7 @@ export function PaymentStep({
                       checkoutData.address.postalCode &&
                       checkoutData.address.phone;
 
-  // Load Razorpay script
-  useEffect(() => {
-    const loadRazorpay = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((window as any).Razorpay) {
-        setRazorpayLoaded(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => setRazorpayLoaded(true);
-      script.onerror = () => setError('Failed to load payment gateway');
-      document.body.appendChild(script);
-    };
-
-    loadRazorpay();
-  }, []);
+  // No need to load external scripts for PhonePe - it uses redirect flow
 
   const createOrder = async () => {
     setError("");
@@ -224,8 +174,8 @@ export function PaymentStep({
         throw new Error(orderResult.error || 'Failed to create order');
       }
 
-      // Initiate Razorpay payment
-      await initiatePayment(orderResult.order);
+      // Initiate PhonePe payment
+      await initiatePhonePePayment(orderResult.order);
 
     } catch (error) {
       console.error('Order creation failed:', error);
@@ -237,88 +187,42 @@ export function PaymentStep({
     }
   };
 
-  const initiatePayment = async (order: Order) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const razorpay = (window as any).Razorpay;
-    if (!razorpay) {
-      setError('Payment gateway not loaded');
-      return;
-    }
+  const initiatePhonePePayment = async (order: Order) => {
+    try {
+      setLoading(true);
+      
+      // Initiate PhonePe payment
+      const paymentResponse = await fetch('/api/phonepe/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.id,
+          merchantTransactionId: order.phonePeMerchantTransactionId,
+          amount: Math.round(totalAmount * 100), // Convert to paise
+          mobileNumber: checkoutData.address?.phone || '',
+          customerName: user?.displayName || 
+            (checkoutData.address?.firstName && checkoutData.address?.lastName
+              ? `${checkoutData.address.firstName} ${checkoutData.address.lastName}`
+              : 'Customer'),
+          email: user?.email || checkoutData.address?.alternateEmail || ''
+        }),
+      });
 
-    // Create detailed product breakdown for Razorpay
-    const productBreakdown = cartItems.map(item => 
-      `${item.product.name}${item.variant ? ` (${item.variant.name})` : ''} x ${item.quantity}`
-    ).join(', ');
+      const paymentResult = await paymentResponse.json();
 
-    const razorpayOptions: RazorpayOptions = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
-      amount: Math.round(totalAmount * 100), // Convert to paise
-      currency: 'INR',
-      name: 'Numa Jewelry',
-      description: `Order for: ${productBreakdown}`,
-      order_id: order.razorpayOrderId,
-      image: '/logo.png',
-      handler: async function (response: RazorpayResponse) {
-        try {
-          setLoading(true);
-          
-          // Verify payment on server
-          const verifyResponse = await fetch('/api/payments/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId: order.id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-            }),
-          });
-
-          const verifyResult = await verifyResponse.json();
-
-          if (verifyResult.success) {
-            // Clear any existing errors
-            setError("");
-            // Call onComplete with order ID
-            onComplete(order.id);
-          } else {
-            const errorMsg = verifyResult.error || 'Payment verification failed';
-            setError(errorMsg);
-            onError(errorMsg);
-          }
-        } catch (error) {
-          console.error('Payment verification error:', error);
-          const errorMsg = 'Payment verification failed. Please contact support.';
-          setError(errorMsg);
-          onError(errorMsg);
-        } finally {
-          setLoading(false);
-        }
-      },
-      prefill: {
-        name: user ? user.displayName || user.email || '' : `${checkoutData.address?.firstName || ''} ${checkoutData.address?.lastName || ''}`,
-        email: user?.email || checkoutData.address?.alternateEmail || '',
-        contact: checkoutData.address?.phone || '',
-      },
-      notes: {
-        address: `${checkoutData.address?.address1 || ''}, ${checkoutData.address?.city || ''}`,
-        shipping_method: 'STANDARD',
-      },
-      theme: {
-        color: '#000000'
-      },
-      modal: {
-        ondismiss: function() {
-          setLoading(false);
-          const errorMsg = 'Payment was cancelled by user';
-          setError(errorMsg);
-          onError(errorMsg);
-        }
+      if (paymentResult.success && paymentResult.paymentUrl) {
+        // Redirect to PhonePe payment page
+        window.location.href = paymentResult.paymentUrl;
+      } else {
+        throw new Error(paymentResult.error || 'Failed to initiate PhonePe payment');
       }
-    };
-
-    const razorpayInstance = new razorpay(razorpayOptions);
-    razorpayInstance.open();
+    } catch (error) {
+      console.error('PhonePe payment initiation failed:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Payment initiation failed';
+      setError(errorMsg);
+      onError(errorMsg);
+      setLoading(false);
+    }
   };
 
   return (
@@ -342,13 +246,13 @@ export function PaymentStep({
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h5 className="font-medium text-blue-900">Razorpay</h5>
+                    <h5 className="font-medium text-blue-900">PhonePe</h5>
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                       Secure
                     </Badge>
                   </div>
                   <p className="text-sm text-blue-700">
-                    Pay securely with Credit Card, Debit Card, Net Banking, UPI, or Wallets
+                    Pay securely with UPI, Credit Card, Debit Card, Net Banking, or Wallets
                   </p>
                 </div>
                 <Shield className="h-8 w-8 text-blue-600" />
@@ -463,7 +367,7 @@ export function PaymentStep({
             <Button 
               onClick={createOrder}
               className="w-full" 
-              disabled={loading || !razorpayLoaded || !isOrderReady}
+              disabled={loading || !isOrderReady}
             >
               {loading ? (
                 <>
@@ -484,12 +388,7 @@ export function PaymentStep({
             </Button>
           </div>
 
-          {!razorpayLoaded && (
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading payment gateway...
-            </div>
-          )}
+
         </CardContent>
       </Card>
     </div>

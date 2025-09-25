@@ -1,26 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import crypto from 'crypto';
 
-// Payment verification schema
-const verifyPaymentSchema = z.object({
+// PhonePe transaction verification schema
+const verifyTransactionSchema = z.object({
   orderId: z.string().min(1),
-  razorpay_payment_id: z.string().min(1),
-  razorpay_order_id: z.string().min(1),
-  razorpay_signature: z.string().min(1)
+  merchantTransactionId: z.string().min(1)
 });
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('Verifying payment...');
+    console.log('Verifying PhonePe transaction...');
     
     // Validate request body
     const body = await req.json();
-    const validationResult = verifyPaymentSchema.safeParse(body);
+    const validationResult = verifyTransactionSchema.safeParse(body);
     
     if (!validationResult.success) {
-      console.error('Payment verification validation failed:', validationResult.error.issues);
+      console.error('Transaction verification validation failed:', validationResult.error.issues);
       return NextResponse.json(
         { 
           success: false,
@@ -33,9 +30,7 @@ export async function POST(req: NextRequest) {
 
     const { 
       orderId, 
-      razorpay_payment_id, 
-      razorpay_order_id, 
-      razorpay_signature 
+      merchantTransactionId
     } = validationResult.data;
 
     // Find the order
@@ -57,25 +52,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify Razorpay signature
-    const generatedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest('hex');
-
-    if (generatedSignature !== razorpay_signature) {
-      console.error('Invalid Razorpay signature');
+    // Verify transaction ID matches
+    if (order.phonePeMerchantTransactionId !== merchantTransactionId) {
+      console.error('Transaction ID mismatch');
       return NextResponse.json(
-        { success: false, error: 'Payment verification failed' },
+        { success: false, error: 'Transaction ID mismatch' },
         { status: 400 }
       );
     }
 
-    // Verify order ID matches
-    if (order.razorpayOrderId !== razorpay_order_id) {
-      console.error('Order ID mismatch');
+    // Check PhonePe transaction status
+    const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/phonepe/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ merchantTransactionId })
+    });
+
+    const statusData = await statusResponse.json();
+    
+    if (!statusData.success || statusData.data?.state !== 'COMPLETED') {
+      console.error('PhonePe transaction not completed:', statusData);
       return NextResponse.json(
-        { success: false, error: 'Order ID mismatch' },
+        { success: false, error: 'Transaction not completed' },
         { status: 400 }
       );
     }
@@ -88,8 +86,8 @@ export async function POST(req: NextRequest) {
         data: {
           status: 'CONFIRMED',
           paymentStatus: 'PAID',
-          paymentIntentId: razorpay_payment_id,
-          paymentMethod: 'razorpay'
+          paymentIntentId: statusData.data.transactionId,
+          paymentMethod: 'phonepe'
         }
       });
 
@@ -126,7 +124,7 @@ export async function POST(req: NextRequest) {
             reason: `Sale - Order ${order.orderNumber}`,
             orderId: order.id,
             performedBy: order.userId || 'guest',
-            notes: `Payment ID: ${razorpay_payment_id}`
+            notes: `PhonePe Transaction ID: ${statusData.data.transactionId}`
           }
         });
       }
@@ -145,11 +143,11 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    console.log('Payment verified and order updated successfully:', orderId);
+    console.log('PhonePe transaction verified and order updated successfully:', orderId);
 
     return NextResponse.json({
       success: true,
-      message: 'Payment verified successfully',
+      message: 'PhonePe transaction verified successfully',
       order: {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -159,9 +157,9 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Payment verification error:', error);
+    console.error('PhonePe transaction verification error:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Payment verification failed';
+    const errorMessage = error instanceof Error ? error.message : 'Transaction verification failed';
     
     return NextResponse.json(
       { 

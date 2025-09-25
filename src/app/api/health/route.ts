@@ -138,9 +138,9 @@ export async function GET(request: NextRequest) {
       'FIREBASE_PROJECT_ID',
       'FIREBASE_CLIENT_EMAIL',
       'FIREBASE_PRIVATE_KEY',
-      'RAZORPAY_KEY_ID',
-      'RAZORPAY_KEY_SECRET',
-      'RAZORPAY_WEBHOOK_SECRET',
+      'PHONEPE_MERCHANT_ID',
+      'PHONEPE_SALT_KEY',
+      'PHONEPE_HOST_URL',
       'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
       'CLOUDINARY_API_KEY',
       'CLOUDINARY_API_SECRET',
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
     const serviceChecks = {
       cloudinary: !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
       firebase: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      razorpay: !!process.env.RAZORPAY_KEY_ID,
+      phonepe: !!process.env.PHONEPE_MERCHANT_ID,
       email: !!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY
     };
     

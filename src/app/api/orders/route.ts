@@ -3,16 +3,15 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
-import Razorpay from 'razorpay';
+import { 
+  getPhonePeConfig, 
+  generateXVerifyHeader, 
+  createPaymentPayload, 
+  generateMerchantTransactionId 
+} from '@/lib/services/phonepe';
 
 // Force dynamic rendering for Next.js 15 compatibility
 export const dynamic = 'force-dynamic';
-
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
 
 // Rate limiter for order creation
 const orderRateLimit = rateLimit(rateLimitConfigs.payment);
@@ -183,19 +182,10 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Create Razorpay order
-      const razorpayOrder = await razorpay.orders.create({
-        amount: Math.round(totalAmount * 100), // Convert to paise
-        currency: currency,
-        receipt: orderNumber,
-        notes: {
-          order_number: orderNumber,
-          customer_name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
-          shipping_method: shippingMethod
-        }
-      });
-
-      // Create order in database
+      // Generate PhonePe transaction ID (max 38 characters for PhonePe)
+      const phonePeMerchantTransactionId = generateMerchantTransactionId('N');
+      
+      // Create order in database first
       const order = await prisma.order.create({
         data: {
           orderNumber,
@@ -211,7 +201,7 @@ export async function POST(req: NextRequest) {
           currency,
           shippingAddressId: addressRecord?.id,
           billingAddressId: addressRecord?.id, // Same as shipping for now
-          razorpayOrderId: razorpayOrder.id,
+          phonePeMerchantTransactionId,
           shippingMethod,
           items: {
             create: productDetails.map((detail) => ({
@@ -248,7 +238,7 @@ export async function POST(req: NextRequest) {
         order: {
           id: order.id,
           orderNumber: order.orderNumber,
-          razorpayOrderId: razorpayOrder.id,
+          phonePeMerchantTransactionId,
           amount: totalAmount,
           currency: currency,
           items: productDetails.map((detail) => ({
@@ -259,10 +249,6 @@ export async function POST(req: NextRequest) {
             price: detail.priceAtAdd,
             quantity: detail.requestedQuantity
           }))
-        },
-        razorpay: {
-          key_id: process.env.RAZORPAY_KEY_ID,
-          order_id: razorpayOrder.id
         }
       });
 
