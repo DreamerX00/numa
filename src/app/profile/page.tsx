@@ -613,14 +613,17 @@ export default function ProfilePage() {
               <PersonalInfoSection
                 personalInfo={profile.personalInfo}
                 onUpdate={(updatedInfo) => {
+                  // Prepare payload for API
                   // Use the mutation to update profile
                   updateProfileMutation.mutate({
-                    firstName: updatedInfo.firstName,
-                    lastName: updatedInfo.lastName,
-                    displayName: updatedInfo.displayName,
-                    phone: updatedInfo.phone,
-                    dateOfBirth: updatedInfo.dateOfBirth,
-                    gender: updatedInfo.gender?.toUpperCase() as 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | undefined,
+                    firstName: updatedInfo.firstName || undefined,
+                    lastName: updatedInfo.lastName || undefined,
+                    displayName: updatedInfo.displayName || undefined,
+                    phone: updatedInfo.phone || undefined,
+                    dateOfBirth: updatedInfo.dateOfBirth || undefined,
+                    gender: updatedInfo.gender && updatedInfo.gender.trim() 
+                      ? updatedInfo.gender.toUpperCase() as 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | undefined
+                      : undefined,
                   });
                 }}
               />

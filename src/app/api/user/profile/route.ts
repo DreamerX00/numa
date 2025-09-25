@@ -13,7 +13,7 @@ const updateProfileSchema = z.object({
   lastName: z.string().min(1).max(50).optional(),
   displayName: z.string().min(1).max(100).optional(),
   phone: z.string().max(20).optional(),
-  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
+  dateOfBirth: z.string().optional(),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
   language: z.string().max(10).optional(),
   currency: z.string().max(10).optional(),
@@ -93,8 +93,20 @@ export async function PUT(request: NextRequest) {
     const { dbUser } = authResult.user;
     const body = await request.json();
 
+    // Preprocess data to handle empty strings and normalize values
+    const processedBody: any = {};
+    
+    Object.keys(body).forEach(key => {
+      const value = body[key];
+      if (value === '' || value === null || value === undefined) {
+        // Skip empty/null/undefined values
+        return;
+      }
+      processedBody[key] = value;
+    });
+
     // Validate request body
-    const validationResult = updateProfileSchema.safeParse(body);
+    const validationResult = updateProfileSchema.safeParse(processedBody);
     if (!validationResult.success) {
       return NextResponse.json(
         { 
@@ -116,15 +128,30 @@ export async function PUT(request: NextRequest) {
     const { dateOfBirth, ...restUpdateData } = updateData;
     const processedUpdateData: typeof restUpdateData & { dateOfBirth?: Date } = { ...restUpdateData };
     
-    if (dateOfBirth) {
+    if (dateOfBirth && dateOfBirth.trim() !== '') {
       try {
-        // Convert date string (YYYY-MM-DD) to Date object
-        processedUpdateData.dateOfBirth = new Date(dateOfBirth + 'T00:00:00.000Z');
+        // Handle various date formats
+        let dateStr = dateOfBirth;
+        
+        // If it's already in YYYY-MM-DD format, add time
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          dateStr = dateStr + 'T00:00:00.000Z';
+        }
+        
+        const parsedDate = new Date(dateStr);
+        
+        // Validate the date is valid
+        if (isNaN(parsedDate.getTime())) {
+          throw new Error('Invalid date');
+        }
+        
+        processedUpdateData.dateOfBirth = parsedDate;
       } catch {
+
         return NextResponse.json(
           { 
             success: false, 
-            error: 'Invalid date format for dateOfBirth. Expected YYYY-MM-DD format.' 
+            error: 'Invalid date format for dateOfBirth. Please use a valid date.' 
           },
           { status: 400 }
         );
