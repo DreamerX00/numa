@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     // Preprocess data to handle empty strings and normalize values
-    const processedBody: any = {};
+    const processedBody: Record<string, unknown> = {};
     
     Object.keys(body).forEach(key => {
       const value = body[key];
