@@ -5,12 +5,10 @@ import { getUserFromRequest } from '@/lib/auth/session';
 import { 
   getPhonePeConfig, 
   generateXVerifyHeader, 
-  createPaymentPayload, 
   generateMerchantTransactionId,
-  validatePhonePeConfig,
-  formatAmountToPaise
+  validatePhonePeConfig
 } from '@/lib/services/phonepe';
-import type { CreatePhonePeOrderRequest, CreatePhonePeOrderResponse } from '@/lib/types/phonepe';
+import type { CreatePhonePeOrderResponse } from '@/lib/types/phonepe';
 
 // Force dynamic rendering for Next.js 15 compatibility
 export const dynamic = 'force-dynamic';
@@ -86,13 +84,9 @@ export async function POST(request: NextRequest) {
       }
 
       const { 
-        orderId, 
         merchantTransactionId: providedTransactionId,
         amount, 
-        currency, 
         mobileNumber, 
-        customerName,
-        email,
         callbackUrl, 
         redirectUrl 
       } = validationResult.data;
@@ -162,13 +156,13 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(result);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('/api/phonepe/initiate error:', error);
       return NextResponse.json(
         { 
           success: false,
           error: "Internal server error",
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
         },
         { status: 500 }
       );

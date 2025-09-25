@@ -55,7 +55,6 @@ export function PaymentStep({
   subtotal, 
   shippingCost,
   shippingMethod,
-  onComplete,
   onError,
   loading, 
   setLoading 

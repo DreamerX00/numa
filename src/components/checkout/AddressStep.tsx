@@ -99,7 +99,7 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
       // For guest users, show form immediately
       setIsAddingNew(true);
     }
-  }, [user]); // Remove loadSavedAddresses from dependencies to prevent infinite re-renders
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

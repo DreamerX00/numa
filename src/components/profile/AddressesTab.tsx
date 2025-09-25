@@ -117,9 +117,9 @@ export function AddressesTab({ addresses = [], isLoading = false }: AddressesTab
       toast.success("Address updated successfully!");
       setEditingAddress(null);
       form.reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update address:", error);
-      const errorMessage = error?.response?.data?.error || error?.message || "Failed to update address";
+      const errorMessage = error instanceof Error ? error.message : "Failed to update address";
       toast.error(errorMessage);
     }
   };
@@ -129,9 +129,9 @@ export function AddressesTab({ addresses = [], isLoading = false }: AddressesTab
       await deleteAddressMutation.mutateAsync(addressId);
       toast.success("Address deleted successfully!");
       setDeletingAddressId(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete address:", error);
-      const errorMessage = error?.response?.data?.error || error?.message || "Failed to delete address";
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete address";
       toast.error(errorMessage);
     }
   };

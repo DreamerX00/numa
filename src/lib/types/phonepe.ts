@@ -8,6 +8,13 @@ export interface PhonePeConfig {
   callbackUrl: string;
 }
 
+export interface PhonePeErrorResponse {
+  success: false;
+  code: string;
+  message: string;
+  data?: unknown;
+}
+
 export interface PhonePePaymentRequest {
   merchantId: string;
   merchantTransactionId: string;
@@ -73,7 +80,7 @@ export interface PhonePeDecodedCallback {
   amount: number;
   state: 'PENDING' | 'COMPLETED' | 'FAILED';
   responseCode: string;
-  paymentInstrument: {
+  paymentInstrument: { 
     type: string;
     utr?: string;
     cardType?: string;
@@ -85,7 +92,7 @@ export interface PhonePeError {
   success: false;
   code: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 // Payment states

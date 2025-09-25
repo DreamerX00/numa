@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const { amount, currency, mobileNumber } = validationResult.data;
+      const { amount, mobileNumber } = validationResult.data;
 
       // Get PhonePe configuration
       const config = getPhonePeConfig();
@@ -133,13 +133,13 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(result);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('/api/phonepe/quick-pay error:', error);
       return NextResponse.json(
         { 
           success: false,
           error: "Internal server error",
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
         },
         { status: 500 }
       );

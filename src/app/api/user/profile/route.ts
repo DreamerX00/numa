@@ -113,12 +113,14 @@ export async function PUT(request: NextRequest) {
     const updateData = validationResult.data;
 
     // Convert dateOfBirth string to Date object if provided
-    const processedUpdateData: any = { ...updateData };
-    if (updateData.dateOfBirth) {
+    const { dateOfBirth, ...restUpdateData } = updateData;
+    const processedUpdateData: typeof restUpdateData & { dateOfBirth?: Date } = { ...restUpdateData };
+    
+    if (dateOfBirth) {
       try {
         // Convert date string (YYYY-MM-DD) to Date object
-        processedUpdateData.dateOfBirth = new Date(updateData.dateOfBirth + 'T00:00:00.000Z');
-      } catch (error) {
+        processedUpdateData.dateOfBirth = new Date(dateOfBirth + 'T00:00:00.000Z');
+      } catch {
         return NextResponse.json(
           { 
             success: false, 

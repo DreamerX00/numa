@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Decode callback response
     let decodedResponse: PhonePeDecodedCallback;
     try {
-      decodedResponse = decodeCallbackResponse(body.response);
+      decodedResponse = decodeCallbackResponse(body.response) as PhonePeDecodedCallback;
     } catch (error) {
       console.error('Failed to decode PhonePe callback response:', error);
       return NextResponse.json(
@@ -94,13 +94,13 @@ export async function POST(request: NextRequest) {
       message: "Callback processed successfully" 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('/api/phonepe/callback error:', error);
     return NextResponse.json(
       { 
         success: false, 
         error: "Internal server error",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       },
       { status: 500 }
     );

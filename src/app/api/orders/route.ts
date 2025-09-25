@@ -4,9 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
 import { 
-  getPhonePeConfig, 
-  generateXVerifyHeader, 
-  createPaymentPayload, 
   generateMerchantTransactionId 
 } from '@/lib/services/phonepe';
 

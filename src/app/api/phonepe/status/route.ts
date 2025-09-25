@@ -99,13 +99,13 @@ export async function GET(request: NextRequest) {
       message: responseData.message
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('/api/phonepe/status error:', error);
     return NextResponse.json(
       { 
         success: false,
         error: "Internal server error",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       },
       { status: 500 }
     );
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       headers: request.headers
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('/api/phonepe/status POST error:', error);
     return NextResponse.json(
       { 

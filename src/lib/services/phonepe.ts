@@ -29,7 +29,7 @@ export const generateStatusXVerifyHeader = (merchantId: string, merchantTransact
 // Verify callback signature
 export const verifyCallbackSignature = (response: string, xVerifyHeader: string, saltKey: string): boolean => {
   try {
-    const [receivedHash, saltIndex] = xVerifyHeader.split('###');
+    const [receivedHash] = xVerifyHeader.split('###');
     const expectedHash = crypto.createHash('sha256').update(response + saltKey).digest('hex');
     return receivedHash === expectedHash;
   } catch (error) {
@@ -80,7 +80,7 @@ export const createPaymentPayload = (
 };
 
 // Decode base64 callback response
-export const decodeCallbackResponse = (encodedResponse: string): any => {
+export const decodeCallbackResponse = (encodedResponse: string): unknown => {
   try {
     const decodedBytes = Buffer.from(encodedResponse, 'base64');
     const decodedString = decodedBytes.toString('utf-8');
