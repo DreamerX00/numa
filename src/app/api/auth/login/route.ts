@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
               where: { id: dbUser.id },
               data: { 
                 email: decodedToken.email || '',
-                emailVerified: decodedToken.email_verified || false
+                emailVerified: decodedToken.email_verified ? new Date() : null
               },
               include: { profile: true }
             });
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
               where: { id: existingEmailUser.id },
               data: {
                 firebaseUid: decodedToken.uid,
-                emailVerified: decodedToken.email_verified || false
+                emailVerified: decodedToken.email_verified ? new Date() : null
               },
               include: { profile: true }
             });
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
                 data: {
                   firebaseUid: decodedToken.uid,
                   email: userEmail,
-                  emailVerified: decodedToken.email_verified || false
+                  emailVerified: decodedToken.email_verified ? new Date() : null
                 }
               });
               

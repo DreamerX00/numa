@@ -10,8 +10,10 @@ export interface AuthenticatedUser {
   dbUser: {
     id: string;
     email: string;
-    emailVerified: boolean;
-    firebaseUid: string;
+    emailVerified: Date | null;  // Changed from boolean to Date | null
+    firebaseUid: string | null;  // Made optional for NextAuth migration
+    name: string | null;  // Added for NextAuth
+    image: string | null;  // Added for NextAuth
     role: string;
     isActive: boolean;
     createdAt: Date;

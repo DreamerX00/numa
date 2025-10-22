@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { NextAuthProvider } from "@/components/providers/NextAuthProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { CartSyncProvider } from "@/components/providers/CartSyncProvider";
 import { LoadingProvider } from "@/components/providers/LoadingProvider";
@@ -37,28 +38,30 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-base-bg text-base-ink" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen flex-col`} suppressHydrationWarning>
-        <QueryProvider>
-          <AuthProvider>
-            <LoadingProvider>
-              <CartSyncProvider>
-                <Header />
-                <main id="main" className="flex-1">{children}</main>
-                <Footer />
-                <Toaster 
-                  position="top-right" 
-                  toastOptions={{
-                    duration: 3000,
-                    style: {
-                      background: 'var(--background)',
-                      color: 'var(--foreground)',
-                      border: '1px solid var(--border)',
-                    },
-                  }}
-                />
-              </CartSyncProvider>
-            </LoadingProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <NextAuthProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <LoadingProvider>
+                <CartSyncProvider>
+                  <Header />
+                  <main id="main" className="flex-1">{children}</main>
+                  <Footer />
+                  <Toaster 
+                    position="top-right" 
+                    toastOptions={{
+                      duration: 3000,
+                      style: {
+                        background: 'var(--background)',
+                        color: 'var(--foreground)',
+                        border: '1px solid var(--border)',
+                      },
+                    }}
+                  />
+                </CartSyncProvider>
+              </LoadingProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </NextAuthProvider>
         <div id="portal-drawers" />
         <div id="portal-modals" />
       </body>

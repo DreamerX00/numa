@@ -12,11 +12,20 @@ const authRoutes = ['/login', '/signup'];
 // Admin routes that require special handling (handled client-side)
 const adminRoutes = ['/admin'];
 
-// Session cookie name (matching the one set in login API)
-const SESSION_COOKIE_NAME = '__session';
+// Session cookie names
+const SESSION_COOKIE_NAME = '__session'; // Firebase session
+const NEXTAUTH_SESSION_COOKIE = process.env.NODE_ENV === 'production' 
+  ? '__Secure-next-auth.session-token' 
+  : 'next-auth.session-token'; // NextAuth session
+
+// CSRF protection configuration
+const CSRF_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+const CSRF_HEADER_NAME = 'x-csrf-token';
+const CSRF_TOKEN_COOKIE = 'csrf-token';
 
 // Basic session validation without full Firebase verification
 // (to avoid Edge Runtime incompatibility)
+// Now also checks for NextAuth sessions
 function isValidSessionFormat(sessionCookie: string): boolean {
   try {
     // Basic checks for session cookie format
@@ -38,6 +47,56 @@ function isValidSessionFormat(sessionCookie: string): boolean {
   }
 }
 
+// Check if user has any valid session (Firebase or NextAuth)
+function hasValidSession(request: NextRequest): boolean {
+  // Check Firebase session
+  const firebaseSession = request.cookies.get(SESSION_COOKIE_NAME);
+  if (firebaseSession?.value && isValidSessionFormat(firebaseSession.value)) {
+    return true;
+  }
+  
+  // Check NextAuth session
+  const nextAuthSession = request.cookies.get(NEXTAUTH_SESSION_COOKIE);
+  if (nextAuthSession?.value) {
+    return true; // NextAuth sessions are validated by NextAuth middleware
+  }
+  
+  return false;
+}
+
+// Generate CSRF token
+function generateCSRFToken(): string {
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// Validate CSRF token for state-changing requests
+function validateCSRF(request: NextRequest): boolean {
+  // Skip CSRF validation for safe methods
+  if (CSRF_SAFE_METHODS.includes(request.method)) {
+    return true;
+  }
+  
+  // Skip CSRF validation for API routes (they should handle CSRF separately if needed)
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return true;
+  }
+  
+  // Get CSRF token from header
+  const headerToken = request.headers.get(CSRF_HEADER_NAME);
+  
+  // Get CSRF token from cookie
+  const cookieToken = request.cookies.get(CSRF_TOKEN_COOKIE)?.value;
+  
+  // Both must exist and match
+  if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+    return false;
+  }
+  
+  return true;
+}
+
 // Enhanced error handling function
 function createErrorResponse(request: NextRequest, statusCode: number, reason?: string): NextResponse {
   const url = new URL(`/error?code=${statusCode}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, request.url);
@@ -46,10 +105,22 @@ function createErrorResponse(request: NextRequest, statusCode: number, reason?: 
   return withSecurityHeaders(response);
 }
 
-// Rate limiting check (basic implementation)
+// Rate limiting check (enhanced implementation)
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 100;
+
+// Cleanup old entries periodically to prevent memory leaks
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, data] of rateLimitMap.entries()) {
+      if (now - data.lastReset > RATE_LIMIT_WINDOW * 2) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }, 5 * 60 * 1000); // Cleanup every 5 minutes
+}
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -60,12 +131,15 @@ function isRateLimited(ip: string): boolean {
     return false;
   }
   
+  // Reset window if expired
   if (now - userLimit.lastReset > RATE_LIMIT_WINDOW) {
     rateLimitMap.set(ip, { count: 1, lastReset: now });
     return false;
   }
   
+  // Check if limit exceeded
   if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+    console.warn(`Rate limit exceeded for IP: ${ip}`);
     return true;
   }
   
@@ -89,13 +163,18 @@ export function middleware(request: NextRequest) {
       return createErrorResponse(request, 429, 'Too many requests');
     }
 
-    // Check if user has a valid session cookie format
-    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
-    const hasValidSessionFormat = sessionCookie?.value ? isValidSessionFormat(sessionCookie.value) : false;
+    // CSRF validation for state-changing requests
+    if (!validateCSRF(request)) {
+      console.warn(`CSRF validation failed for ${request.method} ${pathname}`);
+      return createErrorResponse(request, 403, 'CSRF validation failed');
+    }
+
+    // Check if user has a valid session (Firebase or NextAuth)
+    const hasSession = hasValidSession(request);
 
     // Handle protected routes (excluding admin routes which are handled client-side)
     if (protectedRoutes.some(route => pathname.startsWith(route)) && !adminRoutes.some(route => pathname.startsWith(route))) {
-      if (!hasValidSessionFormat) {
+      if (!hasSession) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
@@ -104,7 +183,7 @@ export function middleware(request: NextRequest) {
 
     // Handle auth routes (login/signup)
     if (authRoutes.some(route => pathname.startsWith(route))) {
-      if (hasValidSessionFormat) {
+      if (hasSession) {
         const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
         return NextResponse.redirect(new URL(redirectTo, request.url));
       }
@@ -112,7 +191,21 @@ export function middleware(request: NextRequest) {
 
     // Apply security headers to response
     const response = NextResponse.next();
-    return withSecurityHeaders(response);
+    const secureResponse = withSecurityHeaders(response);
+    
+    // Set CSRF token cookie if not present
+    if (!request.cookies.get(CSRF_TOKEN_COOKIE)) {
+      const csrfToken = generateCSRFToken();
+      secureResponse.cookies.set(CSRF_TOKEN_COOKIE, csrfToken, {
+        httpOnly: false, // Must be accessible to JavaScript for header setting
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 60 * 60 * 24 // 24 hours
+      });
+    }
+    
+    return secureResponse;
     
   } catch (error) {
     console.error('Middleware error:', error);
