@@ -18,6 +18,8 @@ import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { getUserAvatar, getUserInitials } from "@/lib/avatar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const dynamic = 'force-dynamic';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

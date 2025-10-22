@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import HeartLoader from "@/components/ui/HeartLoader";
 
+export const dynamic = 'force-dynamic';
+
 export default function CartPage() {
   const router = useRouter();
   const { items, getTotalPrice, getTotalItems } = useHybridCartStore();

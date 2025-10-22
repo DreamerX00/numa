@@ -42,6 +42,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Image from 'next/image';
 
+export const dynamic = 'force-dynamic';
+
 // Types
 interface User {
   id: string;

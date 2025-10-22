@@ -15,7 +15,8 @@ import ProductReviews from '@/components/reviews/ProductReviews';
 import { toast } from 'sonner';
 import { sanitizeProductDates } from '@/lib/utils/dates';
 import type { Product } from '@prisma/client';
-import HeartLoader from '@/components/ui/HeartLoader';
+
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -78,33 +79,14 @@ export default function ProductPage({ params }: Props) {
   if (loading) {
     return (
       <Container className="py-6 md:py-8">
-        {/* Enhanced loading state with HeartLoader */}
-        <div className="flex items-center justify-center min-h-[40vh] mb-8">
-          <div className="flex flex-col items-center space-y-4">
-            <HeartLoader size="lg" color="primary" />
-            <p className="text-lg text-muted-foreground animate-pulse">Loading product details...</p>
-          </div>
-        </div>
-        
-        {/* Skeleton for product layout */}
         <div className="animate-pulse space-y-4">
           <div className="h-8 w-48 bg-muted rounded" />
           <div className="grid gap-6 md:gap-8 lg:grid-cols-2">
-            <div className="aspect-square bg-muted rounded-lg relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <HeartLoader size="md" color="secondary" />
-              </div>
-            </div>
+            <div className="aspect-square bg-muted rounded-lg" />
             <div className="space-y-4">
               <div className="h-8 w-3/4 bg-muted rounded" />
               <div className="h-6 w-1/2 bg-muted rounded" />
-              <div className="h-4 bg-muted rounded w-full" />
-              <div className="h-4 bg-muted rounded w-3/4" />
               <div className="h-12 w-full bg-muted rounded" />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="h-10 bg-muted rounded" />
-                <div className="h-10 bg-muted rounded" />
-              </div>
             </div>
           </div>
         </div>
@@ -390,9 +372,6 @@ export default function ProductPage({ params }: Props) {
                   }
                   label="Buy Now"
                   className="flex-1"
-                  productId={product.id}
-                  variantId={selectedVariant?.id || undefined}
-                  quantity={quantity}
                 />
                 <Button variant="outline" size="icon">
                   <Heart className="h-4 w-4" />
@@ -403,7 +382,11 @@ export default function ProductPage({ params }: Props) {
               </div>
 
               <Button
-                className="w-full"
+                className={`w-full text-black hover:text-orange-500 ${
+                  isAdded
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-brand hover:bg-brand-dark"
+                }`}
                 onClick={handleAddToCart}
                 disabled={!canAddToCart}
               >

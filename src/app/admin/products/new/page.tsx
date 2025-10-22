@@ -23,6 +23,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { api as adminApi } from '@/lib/api/admin';
 
+export const dynamic = 'force-dynamic';
+
 // Types
 interface Category {
   id: string;

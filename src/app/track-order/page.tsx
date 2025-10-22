@@ -8,6 +8,8 @@ import { Search, Package, Truck, CheckCircle, Clock, MapPin, ExternalLink } from
 import Link from 'next/link';
 import Image from 'next/image';
 
+export const dynamic = 'force-dynamic';
+
 interface OrderTrackingInfo {
   id: string;
   orderNumber: string;

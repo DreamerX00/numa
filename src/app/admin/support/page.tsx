@@ -50,6 +50,8 @@ import {
   HelpCircle
 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 // Types
 interface SupportTicket {
   id: string;

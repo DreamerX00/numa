@@ -18,6 +18,8 @@ import {
   CreditCard
 } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 // Step Components
 import { AuthStep } from "@/components/checkout/AuthStep";
 import { AddressStep } from "@/components/checkout/AddressStep";

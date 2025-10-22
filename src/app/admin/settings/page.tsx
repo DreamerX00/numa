@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import HeartLoader from '@/components/ui/HeartLoader';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminSettingsPage() {
   const [activeSection, setActiveSection] = useState('general');
   const [savedMessage, setSavedMessage] = useState('');
