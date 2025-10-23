@@ -9,8 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth/client";
-import { getFirebaseClient } from "@/lib/firebase/client";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { 
   User,
   Mail,
@@ -119,46 +117,34 @@ export function AuthStep({ onNext, onSkip }: AuthStepProps) {
 
     setIsSubmitting(true);
     try {
-      const { auth } = getFirebaseClient();
-      
       if (isSignUp) {
-        // Create new user in Firebase
-        const cred = await createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password);
-        
-        // Update profile with name
-        await updateProfile(cred.user, {
-          displayName: `${formData.firstName} ${formData.lastName}`.trim()
+        // Register new user
+        const registerResponse = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: `${formData.firstName} ${formData.lastName}`.trim(),
+            email: formData.email.trim(),
+            password: formData.password,
+          }),
         });
-        
-        // Sign in with NextAuth
-        const result = await signIn("credentials", {
-          email: formData.email.trim(),
-          password: formData.password,
-          redirect: false,
-        });
-        
-        if (result?.error) {
-          throw new Error(result.error);
+
+        const registerData = await registerResponse.json();
+
+        if (!registerResponse.ok || !registerData.success) {
+          throw new Error(registerData.error || 'Registration failed');
         }
-        
-        // Sign out from Firebase (only used for user creation)
-        await auth.signOut();
-      } else {
-        // Validate password with Firebase, then create NextAuth session
-        await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password);
-        
-        const result = await signIn("credentials", {
-          email: formData.email.trim(),
-          password: formData.password,
-          redirect: false,
-        });
-        
-        if (result?.error) {
-          throw new Error(result.error);
-        }
-        
-        // Sign out from Firebase (only used for validation)
-        await auth.signOut();
+      }
+      
+      // Sign in with NextAuth
+      const result = await signIn("credentials", {
+        email: formData.email.trim(),
+        password: formData.password,
+        redirect: false,
+      });
+      
+      if (result?.error) {
+        throw new Error(result.error);
       }
       
       onNext();

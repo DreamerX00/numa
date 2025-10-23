@@ -9,8 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
-import { getFirebaseClient } from "@/lib/firebase/client";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,11 +43,7 @@ function LoginPageContent() {
     setError(null);
     setLoading(true);
     try {
-      // First validate with Firebase to check password
-      const { auth } = getFirebaseClient();
-      await signInWithEmailAndPassword(auth, data.email.trim(), data.password);
-      
-      // Password is valid, now sign in with NextAuth
+      // Sign in with NextAuth credentials provider
       const result = await signIn("credentials", {
         email: data.email.trim(),
         password: data.password,
@@ -57,32 +51,23 @@ function LoginPageContent() {
       });
       
       if (result?.error) {
-        throw new Error(result.error);
+        // Handle NextAuth errors
+        let errorMessage = "Login failed";
+        if (result.error === "CredentialsSignin") {
+          errorMessage = "Invalid email or password";
+        } else {
+          errorMessage = result.error;
+        }
+        throw new Error(errorMessage);
       }
       
       if (result?.ok) {
-        // Sign out from Firebase (we only used it for password validation)
-        await auth.signOut();
-        
         // Redirect to the desired page
         window.location.href = redirect;
       }
     } catch (err: unknown) {
       let errorMessage = "Login failed";
-      if (err && typeof err === 'object' && 'code' in err) {
-        const firebaseError = err as { code: string };
-        if (firebaseError.code === "auth/user-not-found") {
-          errorMessage = "No account found with this email address";
-        } else if (firebaseError.code === "auth/wrong-password") {
-          errorMessage = "Incorrect password";
-        } else if (firebaseError.code === "auth/invalid-email") {
-          errorMessage = "Invalid email address";
-        } else if (firebaseError.code === "auth/too-many-requests") {
-          errorMessage = "Too many failed attempts. Please try again later";
-        } else if (firebaseError.code === "auth/invalid-credential") {
-          errorMessage = "Invalid email or password";
-        }
-      } else if (err instanceof Error) {
+      if (err instanceof Error) {
         errorMessage = err.message;
       }
       setError(errorMessage);

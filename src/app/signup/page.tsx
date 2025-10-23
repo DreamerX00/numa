@@ -8,8 +8,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { signIn } from "next-auth/react";
-import { getFirebaseClient } from "@/lib/firebase/client";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,43 +51,41 @@ function SignupPageContent() {
     setError(null);
     setLoading(true);
     try {
-      // Create user in Firebase first (for password storage)
-      const { auth } = getFirebaseClient();
-      const cred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
-      if (data.name?.trim()) {
-        await updateProfile(cred.user, { displayName: data.name.trim() });
+      // Register user via API
+      const registerResponse = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name?.trim(),
+          email: data.email.trim(),
+          password: data.password,
+        }),
+      });
+
+      const registerData = await registerResponse.json();
+
+      if (!registerResponse.ok || !registerData.success) {
+        throw new Error(registerData.error || 'Registration failed');
       }
-      
-      // Now sign in with NextAuth (this will create DB user)
+
+      // Now sign in with NextAuth
       const result = await signIn("credentials", {
         email: data.email.trim(),
         password: data.password,
         redirect: false,
       });
-      
+
       if (result?.error) {
         throw new Error(result.error);
       }
-      
+
       if (result?.ok) {
-        // Sign out from Firebase (we only used it for user creation)
-        await auth.signOut();
-        
         router.push(redirect);
         router.refresh();
       }
     } catch (err: unknown) {
       let errorMessage = "Signup failed";
-      if (err && typeof err === 'object' && 'code' in err) {
-        const firebaseError = err as { code: string };
-        if (firebaseError.code === "auth/email-already-in-use") {
-          errorMessage = "An account with this email already exists";
-        } else if (firebaseError.code === "auth/invalid-email") {
-          errorMessage = "Invalid email address";
-        } else if (firebaseError.code === "auth/weak-password") {
-          errorMessage = "Password is too weak. Please choose a stronger password";
-        }
-      } else if (err instanceof Error) {
+      if (err instanceof Error) {
         errorMessage = err.message;
       }
       setError(errorMessage);

@@ -20,6 +20,7 @@ model User {
   firebaseUid   String?  @unique  // Made optional for NextAuth migration
   email         String   @unique
   emailVerified DateTime?  // Changed to DateTime for NextAuth compatibility
+  password      String?    // Hashed password for credentials auth
   name          String?    // Added for NextAuth
   image         String?    // Added for NextAuth
   role          UserRole @default(CUSTOMER)
