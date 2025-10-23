@@ -19,6 +19,8 @@ export interface AuthenticatedUser {
       firstName: string | null;
       lastName: string | null;
       displayName: string | null;
+      title: string | null; // ✅ Added title field
+      avatar: string | null; // ✅ Added avatar field
       phone: string | null;
       dateOfBirth: Date | null;
       gender: string | null;
@@ -73,6 +75,8 @@ export async function getUserFromSession(_request: NextRequest): Promise<AuthRes
             firstName: true,
             lastName: true,
             displayName: true,
+            title: true, // ✅ Include title field
+            avatar: true, // ✅ Include avatar field
             phone: true,
             dateOfBirth: true,
             gender: true,

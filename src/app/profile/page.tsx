@@ -141,7 +141,7 @@ export default function ProfilePage() {
     phoneNumber: profileData.user.profile?.phone || undefined,
     phoneVerified: false, // This would come from API if available
     personalInfo: {
-      title: "Ms.", // Default or from API
+      title: profileData.user.profile?.title || "Ms.", // ✅ Use actual title from API
       firstName: profileData.user.profile?.firstName || "",
       lastName: profileData.user.profile?.lastName || "",
       displayName: profileData.user.profile?.displayName || `${profileData.user.profile?.firstName || ""} ${profileData.user.profile?.lastName || ""}`.trim() || "User",
@@ -151,7 +151,7 @@ export default function ProfilePage() {
       gender: profileData.user.profile?.gender?.toLowerCase() || "",
       profession: "", // Would need to add to API
       bio: "", // Would need to add to API
-      avatar: getUserAvatar({
+      avatar: profileData.user.profile?.avatar || getUserAvatar({ // ✅ Use avatar from API first
         profile: profileData.user.profile,
         email: profileData.user.email,
         photoURL: profileData.user.photoURL // This would come from OAuth provider (Google)
