@@ -154,7 +154,7 @@ export default function ProfilePage() {
       avatar: getUserAvatar({
         profile: profileData.user.profile,
         email: profileData.user.email,
-        photoURL: profileData.user.photoURL // This would come from Firebase auth
+        photoURL: profileData.user.photoURL // This would come from OAuth provider (Google)
       }),
       metalPreferences: [], // Would need to add to API
       gemstonePreferences: [], // Would need to add to API

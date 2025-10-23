@@ -93,8 +93,7 @@ export async function GET() {
     
     const criticalEnvVars = [
       'DATABASE_URL',
-      'NEXTAUTH_SECRET',
-      'NEXT_PUBLIC_FIREBASE_API_KEY'
+      'NEXTAUTH_SECRET'
     ];
     
     const missingCritical = criticalEnvVars.filter(envVar => !process.env[envVar]);
@@ -107,11 +106,10 @@ export async function GET() {
     if (process.env.NODE_ENV === 'development') console.log('🔗 Checking external services...');
     
     const hasCloudinary = !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const hasFirebase = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     const hasPayment = !!process.env.PHONEPE_MERCHANT_ID;
     
     healthStatus.checks.services = {
-      status: (hasCloudinary && hasFirebase && hasPayment) ? 'healthy' : 'degraded'
+      status: (hasCloudinary && hasPayment) ? 'healthy' : 'degraded'
     };
 
     // Calculate total response time

@@ -54,14 +54,14 @@ export function getUserAvatar(user: {
     avatar?: string;
   };
   email: string;
-  photoURL?: string; // Firebase/Google auth photo URL
+  photoURL?: string; // OAuth provider (Google) photo URL
 }): string {
   // Priority 1: Custom uploaded avatar (user's explicit choice)
   if (user.profile?.avatar && !user.profile.avatar.includes('unsplash.com')) {
     return user.profile.avatar;
   }
   
-  // Priority 2: Google/Firebase photo URL (from OAuth sign-in)
+  // Priority 2: OAuth photo URL (from Google sign-in)
   if (user.photoURL && user.photoURL.includes('googleusercontent.com')) {
     return user.photoURL;
   }

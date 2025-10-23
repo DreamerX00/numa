@@ -157,7 +157,6 @@ function customPrismaAdapter() {
           // Convert MongoDB document to Prisma User format
           return {
             id: userId,
-            firebaseUid: user.firebaseUid || null,
             email: user.email,
             emailVerified: user.emailVerified ? new Date(user.emailVerified) : null,
             name: user.name || null,

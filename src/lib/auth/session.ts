@@ -26,7 +26,6 @@ export async function getUserFromRequest(_req: NextRequest) {
         name: true,
         role: true,
         isActive: true,
-        firebaseUid: true,
       },
     });
     
@@ -35,7 +34,7 @@ export async function getUserFromRequest(_req: NextRequest) {
     }
     
     return {
-      uid: user.firebaseUid || user.id, // For backward compatibility with Firebase uid checks
+      uid: user.id,
       email: user.email,
       id: user.id,
       role: user.role,
