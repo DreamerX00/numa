@@ -41,6 +41,7 @@ async function checkAccounts() {
   const accounts = (accountsResult as any).cursor.firstBatch;
   
   console.log(`Found ${accounts.length} account(s):`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   accounts.forEach((account: any) => {
     console.log(`- Provider: ${account.provider}, ID: ${account.providerAccountId}`);
   });
