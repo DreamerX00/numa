@@ -1,228 +1,291 @@
-"use client";
-
-import { useState, useEffect } from 'react';
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
 import { Container } from '@/components/ui/container';
-import { CheckoutButton } from '@/components/CheckoutButton';
-import { useCartService } from '@/hooks/useCartService';
-import { DEFAULT_IMAGES } from '@/lib/cloudinary';
-import { Star, Heart, Share2, Truck, Shield, RefreshCw, ShoppingBag, Check, Minus, Plus } from 'lucide-react';
-import { fetchProduct, formatPrice } from '../../../lib/services/catalog';
+import { Badge } from '@/components/ui/badge';
+import { ProductClientActions } from '@/components/product/ProductClientActions';
 import ProductReviews from '@/components/reviews/ProductReviews';
-import { toast } from 'sonner';
-import { sanitizeProductDates } from '@/lib/utils/dates';
-import type { Product } from '@prisma/client';
+import { DEFAULT_IMAGES } from '@/lib/cloudinary';
+import { Star, Truck, Shield, RefreshCw } from 'lucide-react';
+import { formatPrice } from '@/lib/services/catalog';
+import type { Product as ProductType } from '@/lib/types/product';
 
-export const dynamic = 'force-dynamic';
+// Enable static generation with ISR
+export const revalidate = 3600; // Revalidate every hour
+export const dynamicParams = true; // Allow dynamic routes
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-interface VariantType {
-  id: string | null;
-  sku: string;
-  priceCents: number;
-  compareAtCents?: number;
-  stock: number;
-  images: string[];
+// Generate static paths for products at build time
+export async function generateStaticParams() {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        status: 'ACTIVE',
+      },
+      select: {
+        slug: true,
+      },
+      take: 100, // Generate top 100 products at build time
+    });
+
+    return products.map((product) => ({
+      slug: product.slug,
+    }));
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
 }
 
-export default function ProductPage({ params }: Props) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [isAdded, setIsAdded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState<VariantType | null>(
-    null
-  );
+// Generate metadata for SEO
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  
+  try {
+    const product = await prisma.product.findFirst({
+      where: {
+        slug,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        shortDescription: true,
+        price: true,
+        comparePrice: true,
+        images: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        brand: {
+          select: {
+            name: true,
+          },
+        },
+        averageRating: true,
+        reviewCount: true,
+      },
+    });
 
-  const { addToCart } = useCartService();
-
-  useEffect(() => {
-    async function loadProduct() {
-      try {
-        const resolvedParams = await params;
-        const foundProduct = await fetchProduct(resolvedParams.slug);
-        if (foundProduct) {
-          setProduct(foundProduct);
-          // Initialize default variant - since we have no real variants, set to null
-          // This will make the cart API treat it as a base product without variants
-          const defaultVariant = {
-            id: null, // No variant ID for base products
-            sku: foundProduct.sku || `${foundProduct.id}-DEFAULT`,
-            priceCents: foundProduct.price * 100,
-            compareAtCents: foundProduct.comparePrice
-              ? foundProduct.comparePrice * 100
-              : undefined,
-            stock: foundProduct.quantity,
-            images:
-              foundProduct.images.length > 0
-                ? foundProduct.images
-                : [DEFAULT_IMAGES.PRODUCT],
-          };
-          setSelectedVariant(defaultVariant);
-        }
-      } catch (error) {
-        console.error("Failed to load product:", error);
-      } finally {
-        setLoading(false);
-      }
+    if (!product) {
+      return {
+        title: 'Product Not Found',
+      };
     }
-    loadProduct();
-  }, [params]);
 
-  if (loading) {
-    return (
-      <Container className="py-6 md:py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="grid gap-6 md:gap-8 lg:grid-cols-2">
-            <div className="aspect-square bg-muted rounded-lg" />
-            <div className="space-y-4">
-              <div className="h-8 w-3/4 bg-muted rounded" />
-              <div className="h-6 w-1/2 bg-muted rounded" />
-              <div className="h-12 w-full bg-muted rounded" />
-            </div>
-          </div>
-        </div>
-      </Container>
-    );
+    const title = `${product.name} | Numa`;
+    const description =
+      product.shortDescription ||
+      product.description?.substring(0, 160) ||
+      `Buy ${product.name} at the best price`;
+    const imageUrl = product.images[0] || DEFAULT_IMAGES.PRODUCT;
+
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: 'website',
+        images: [
+          {
+            url: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: product.name,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [imageUrl],
+      },
+      alternates: {
+        canonical: `/product/${slug}`,
+      },
+    };
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+    return {
+      title: 'Product | Numa',
+    };
   }
+}
+
+// Main product page component (Server Component)
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+
+  // Fetch product data on server
+  const product = await prisma.product.findFirst({
+    where: {
+      slug,
+      isActive: true,
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      brand: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      variants: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+    },
+  });
 
   if (!product) {
-    return notFound();
+    notFound();
   }
 
-  const handleAddToCart = async () => {
-    if (!product || !selectedVariant) return;
+  // Calculate pricing
+  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+  const discountPercentage = hasDiscount
+    ? Math.round(((product.comparePrice! - product.price) / product.comparePrice!) * 100)
+    : 0;
 
-    try {
-      // Sanitize product dates to prevent TypeError
-      const cartProduct = sanitizeProductDates(product);
+  // Check stock status
+  const inStock = product.quantity > 0;
+  const lowStock = product.quantity > 0 && product.quantity <= 10;
 
-      // If selectedVariant has no real ID, pass null instead of creating a fake variant
-      const cartVariant = selectedVariant.id ? {
-        id: selectedVariant.id,
-        productId: product.id,
-        name: `${product.name} - Variant`,
-        sku: selectedVariant.sku,
-        price: selectedVariant.priceCents / 100, // Convert cents to dollars
-        comparePrice: selectedVariant.compareAtCents
-          ? selectedVariant.compareAtCents / 100
-          : null,
-        quantity: selectedVariant.stock,
-        attributes: {},
-        image: selectedVariant.images[0] || null,
-        images: selectedVariant.images,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } : null;
-
-      const result = await addToCart(cartProduct, cartVariant, quantity);
-
-      if (result.success) {
-        setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 2000);
-
-        toast.success(`${product.name} added to cart!`, {
-          description: `${quantity} item${quantity > 1 ? "s" : ""} added successfully.`,
-        });
-      } else {
-        toast.error("Failed to add to cart", {
-          description: result.error || "Please try again.",
-        });
-      }
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      toast.error("Failed to add to cart", {
-        description: "An unexpected error occurred. Please try again.",
-      });
-    }
+  // Generate JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || product.shortDescription || '',
+    image: product.images,
+    sku: product.sku || product.id,
+    brand: product.brand
+      ? {
+          '@type': 'Brand',
+          name: product.brand.name,
+        }
+      : undefined,
+    offers: {
+      '@type': 'Offer',
+      url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://numaiin.vercel.app'}/product/${slug}`,
+      priceCurrency: 'INR',
+      price: product.price,
+      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      availability: inStock
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+    },
+    aggregateRating:
+      product.reviewCount && product.reviewCount > 0
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: product.averageRating || 0,
+            reviewCount: product.reviewCount,
+            bestRating: 5,
+            worstRating: 1,
+          }
+        : undefined,
   };
 
-  const canAddToCart =
-    product.isActive &&
-    product.status === "ACTIVE" &&
-    (selectedVariant?.stock || product.quantity) > 0;
-
-  if (!selectedVariant) {
-    return (
-      <Container className="py-6 md:py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="grid gap-6 md:gap-8 lg:grid-cols-2">
-            <div className="aspect-square bg-muted rounded-lg" />
-            <div className="space-y-4">
-              <div className="h-8 w-3/4 bg-muted rounded" />
-              <div className="h-6 w-1/2 bg-muted rounded" />
-              <div className="h-12 w-full bg-muted rounded" />
-            </div>
-          </div>
-        </div>
-      </Container>
-    );
-  }
-
   return (
-    <div className="min-h-screen">
-      <Container className="py-6 md:py-8">
-        <div className="grid gap-6 md:gap-8 lg:grid-cols-2 lg:gap-12">
-          {/* Product Images */}
+    <>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <Container className="py-8">
+        {/* Breadcrumb */}
+        <nav className="mb-6 text-sm text-muted-foreground">
+          <ol className="flex items-center space-x-2">
+            <li>
+              <Link href="/" className="hover:text-foreground">
+                Home
+              </Link>
+            </li>
+            <li>/</li>
+            {product.category && (
+              <>
+                <li>
+                  <Link
+                    href={`/collection/${product.category.slug}`}
+                    className="hover:text-foreground"
+                  >
+                    {product.category.name}
+                  </Link>
+                </li>
+                <li>/</li>
+              </>
+            )}
+            <li className="text-foreground font-medium">{product.name}</li>
+          </ol>
+        </nav>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Product Images - Server Rendered */}
           <div className="space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+            <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
               <Image
-                src={
-                  selectedVariant?.images[0] ||
-                  product.images[0] ||
-                  DEFAULT_IMAGES.PRODUCT
-                }
+                src={product.images[0] || DEFAULT_IMAGES.PRODUCT}
                 alt={product.name}
                 fill
                 className="object-cover"
                 priority
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
-              {product.badges?.includes("NEW") && (
-                <Badge className="absolute left-4 top-4 bg-brand">NEW</Badge>
-              )}
-              {product.badges?.includes("LIMITED") && (
-                <Badge className="absolute left-4 top-4 bg-foreground">
-                  LIMITED
+              {hasDiscount && (
+                <Badge className="absolute top-4 right-4 bg-red-500">
+                  {discountPercentage}% OFF
                 </Badge>
               )}
-              {product.badges?.includes("SALE") && (
-                <Badge className="absolute left-4 top-4 bg-destructive">
-                  SALE
+              {product.isFeatured && (
+                <Badge className="absolute top-4 left-4 bg-blue-500">
+                  Featured
                 </Badge>
               )}
             </div>
 
             {/* Thumbnail Gallery */}
-            {(selectedVariant?.images?.length || product.images.length) > 1 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {(selectedVariant?.images || product.images).map(
-                  (image: string, index: number) => (
-                    <div
-                      key={index}
-                      className={`relative aspect-square overflow-hidden rounded-md bg-muted cursor-pointer hover:opacity-80 transition-opacity ${
-                        index === selectedImageIndex ? "ring-2 ring-brand" : ""
-                      }`}
-                    >
-                      <Image
-                        src={image}
-                        alt={`${product.name} view ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        onClick={() => setSelectedImageIndex(index)}
-                      />
-                    </div>
-                  )
-                )}
+            {product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.slice(0, 4).map((image, index) => (
+                  <div
+                    key={index}
+                    className="relative aspect-square rounded-md overflow-hidden bg-gray-100 cursor-pointer hover:ring-2 hover:ring-primary"
+                  >
+                    <Image
+                      src={image}
+                      alt={`${product.name} - View ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 25vw, 12vw"
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -230,234 +293,117 @@ export default function ProductPage({ params }: Props) {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {product.name}
-              </h1>
-              {product.subtitle && (
-                <p className="text-lg text-muted-foreground mt-2">
-                  {product.subtitle}
-                </p>
-              )}
-            </div>
+              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
-            {/* Rating */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${
-                      i < Math.round(product.averageRating || 0)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-muted-foreground">
-                ({product.reviewCount || 0} review
-                {product.reviewCount !== 1 ? "s" : ""})
-              </span>
-            </div>
-
-            {/* Price */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <span className="text-3xl font-bold text-brand">
-                  {formatPrice(
-                    selectedVariant
-                      ? selectedVariant.priceCents / 100
-                      : product.price
-                  )}
-                </span>
-                {(selectedVariant?.compareAtCents || product.comparePrice) && (
-                  <span className="text-lg text-muted-foreground line-through">
-                    {formatPrice(
-                      selectedVariant?.compareAtCents
-                        ? selectedVariant.compareAtCents / 100
-                        : product.comparePrice || 0
-                    )}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {(selectedVariant?.stock || product.quantity) > 0
-                  ? `${selectedVariant?.stock || product.quantity} in stock`
-                  : "Out of stock"}
-              </p>
-            </div>
-
-            {/* Description */}
-            {product.description && (
-              <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {product.description}
-                </p>
-              </div>
-            )}
-
-            {/* Materials & Gemstones */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {product.materials.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Materials</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {product.materials.map((material: string) => (
-                      <Badge key={material} variant="secondary">
-                        {material}
-                      </Badge>
+              {/* Rating */}
+              {product.reviewCount && product.reviewCount > 0 ? (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-5 w-5 ${
+                          i < Math.floor(product.averageRating || 0)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
                     ))}
                   </div>
-                </div>
-              )}
-
-              {product.gemstones.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Gemstones</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {product.gemstones.map((gemstone: string) => (
-                      <Badge key={gemstone} variant="secondary">
-                        {gemstone}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <h4 className="font-medium mb-3">Quantity</h4>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center border rounded-md">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="px-4 py-2 min-w-[3rem] text-center">
-                    {quantity}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10"
-                    onClick={() => setQuantity(quantity + 1)}
-                    disabled={
-                      !selectedVariant || quantity >= selectedVariant.stock
-                    }
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {selectedVariant && (
                   <span className="text-sm text-muted-foreground">
-                    {selectedVariant.stock} available
+                    {product.averageRating?.toFixed(1)} ({product.reviewCount} reviews)
                   </span>
-                )}
-              </div>
-            </div>
+                </div>
+              ) : (
+                <div className="mb-4 text-sm text-muted-foreground">No reviews yet</div>
+              )}
 
-            {/* Actions */}
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <CheckoutButton
-                  amount={
-                    (selectedVariant?.priceCents || product.price * 100) / 100
-                  }
-                  label="Buy Now"
-                  className="flex-1"
-                />
-                <Button variant="outline" size="icon">
-                  <Heart className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <Button
-                className={`w-full text-black hover:text-orange-500 ${
-                  isAdded
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-brand hover:bg-brand-dark"
-                }`}
-                onClick={handleAddToCart}
-                disabled={!canAddToCart}
-              >
-                {isAdded ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Added to Cart!
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    Add to Cart
-                  </>
-                )}
-              </Button>
-
-              {!canAddToCart && selectedVariant && (
-                <p className="text-sm text-center text-destructive">
-                  {selectedVariant.stock <= 0
-                    ? "Out of stock"
-                    : "Not enough stock available"}
+              {/* Brand */}
+              {product.brand && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  Brand:{' '}
+                  <span className="text-foreground font-medium">{product.brand.name}</span>
                 </p>
               )}
+
+              {/* Price */}
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="text-3xl font-bold">{formatPrice(product.price)}</span>
+                {hasDiscount && (
+                  <>
+                    <span className="text-xl text-muted-foreground line-through">
+                      {formatPrice(product.comparePrice!)}
+                    </span>
+                    <Badge variant="destructive">{discountPercentage}% OFF</Badge>
+                  </>
+                )}
+              </div>
+
+              {/* Stock Status */}
+              <div className="mb-6">
+                {inStock ? (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <Shield className="h-5 w-5" />
+                    <span className="font-medium">In Stock</span>
+                    {lowStock && (
+                      <span className="text-orange-600 text-sm">
+                        (Only {product.quantity} left!)
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-600">
+                    <Shield className="h-5 w-5" />
+                    <span className="font-medium">Out of Stock</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Short Description */}
+              {product.shortDescription && (
+                <p className="text-muted-foreground mb-6">{product.shortDescription}</p>
+              )}
             </div>
+
+            {/* Client-side Actions (Add to Cart, Wishlist, Share) */}
+            <ProductClientActions 
+              product={product as unknown as ProductType} 
+              inStock={inStock} 
+            />
 
             {/* Features */}
-            <div className="border-t pt-6">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="flex items-center gap-3">
-                  <Truck className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">Free Shipping</p>
-                    <p className="text-xs text-muted-foreground">
-                      On orders over ₹5,000
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">Lifetime Warranty</p>
-                    <p className="text-xs text-muted-foreground">
-                      Against manufacturing defects
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <RefreshCw className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">30-Day Returns</p>
-                    <p className="text-xs text-muted-foreground">
-                      Free returns & exchanges
-                    </p>
-                  </div>
-                </div>
+            <div className="border-t pt-6 space-y-4">
+              <div className="flex items-center gap-3 text-sm">
+                <Truck className="h-5 w-5 text-muted-foreground" />
+                <span>Free delivery on orders over ₹500</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <RefreshCw className="h-5 w-5 text-muted-foreground" />
+                <span>7-day easy returns</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <Shield className="h-5 w-5 text-muted-foreground" />
+                <span>100% authentic products</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Additional sections could go here: Related products, reviews, etc. */}
+        {/* Full Description */}
+        {product.description && (
+          <div className="mt-12 border-t pt-8">
+            <h2 className="text-2xl font-bold mb-4">Product Description</h2>
+            <div className="prose max-w-none text-muted-foreground">
+              {product.description}
+            </div>
+          </div>
+        )}
 
         {/* Reviews Section */}
-        <div className="mt-16">
-          <ProductReviews
-            productId={product.id}
-            productName={product.name}
-            showWriteReview={true}
-          />
+        <div className="mt-12 border-t pt-8">
+          <ProductReviews productId={product.id} productName={product.name} />
         </div>
       </Container>
-    </div>
+    </>
   );
 }
