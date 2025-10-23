@@ -97,27 +97,20 @@ function LoginPageContent() {
     setLoading(true);
     try {
       // Use NextAuth's signIn function for Google OAuth
-      const result = await signIn("google", { 
+      // Let NextAuth handle the redirect to Google's OAuth page
+      await signIn("google", { 
         callbackUrl: redirect,
-        redirect: false  // Handle redirect manually to show errors
+        redirect: true  // Allow redirect to Google OAuth
       });
-      
-      if (result?.error) {
-        throw new Error(result.error);
-      }
-      
-      if (result?.ok) {
-        // Redirect to the desired page
-        window.location.href = redirect;
-      }
+      // Note: If redirect is true, code below won't execute
+      // User will be redirected to Google's sign-in page
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
-      let errorMessage = "Google sign-in failed";
+      let errorMessage = "Google sign-in failed. Please try again.";
       if (err instanceof Error) {
         errorMessage = err.message;
       }
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
   }

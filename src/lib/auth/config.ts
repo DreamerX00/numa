@@ -6,13 +6,132 @@ import { prisma } from "@/lib/prisma";
 import { getFirebaseAdmin } from "@/lib/firebase/admin";
 import type { UserRole } from "@prisma/client";
 
+// Helper to generate MongoDB ObjectId-compatible IDs
+function generateObjectId() {
+  const timestamp = Math.floor(Date.now() / 1000).toString(16).padStart(8, '0');
+  const randomHex = Array.from({ length: 16 }, () => 
+    Math.floor(Math.random() * 16).toString(16)
+  ).join('');
+  return timestamp + randomHex;
+}
+
+// Custom adapter to handle MongoDB ObjectId
+function customPrismaAdapter() {
+  const baseAdapter = PrismaAdapter(prisma);
+  
+  return {
+    ...baseAdapter,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async createUser(data: any) {
+      // Generate MongoDB ObjectId for the user
+      const userId = generateObjectId();
+      
+      console.log('[CustomAdapter] Creating user with ObjectId:', userId);
+      
+      const user = await prisma.user.create({
+        data: {
+          ...data,
+          id: userId,
+          emailVerified: data.emailVerified ? new Date(data.emailVerified) : null,
+        },
+      });
+      
+      console.log('[CustomAdapter] User created successfully:', user.id);
+      return user;
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async linkAccount(data: any) {
+      // Generate MongoDB ObjectId for the account
+      const accountId = generateObjectId();
+      
+      // Ensure userId is a string (handle { $oid: '...' } format)
+      const userId = typeof data.userId === 'string' ? data.userId : (data.userId.$oid || data.userId);
+      
+      console.log('[CustomAdapter] Linking account with ObjectId:', accountId, 'for user:', userId);
+      
+      const account = await prisma.account.create({
+        data: {
+          ...data,
+          id: accountId,
+          userId: userId,
+        },
+      });
+      
+      console.log('[CustomAdapter] Account linked successfully');
+      return account;
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async createSession(data: any) {
+      // Generate MongoDB ObjectId for the session
+      const sessionId = generateObjectId();
+      
+      console.log('[CustomAdapter] Creating session with ObjectId:', sessionId);
+      
+      const session = await prisma.session.create({
+        data: {
+          ...data,
+          id: sessionId,
+        },
+      });
+      
+      console.log('[CustomAdapter] Session created successfully');
+      return session;
+    },
+    async getUserByEmail(email: string) {
+      console.log('[CustomAdapter] Getting user by email:', email);
+      
+      try {
+        // Use raw MongoDB query to get user without type conversion issues
+        const result = await prisma.$runCommandRaw({
+          find: 'users',
+          filter: { email },
+          limit: 1,
+        });
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const users = (result as any).cursor.firstBatch;
+        
+        if (users && users.length > 0) {
+          const user = users[0];
+          
+          // Extract ObjectId string from MongoDB's { $oid: '...' } format
+          const userId = typeof user._id === 'string' ? user._id : user._id.$oid;
+          
+          console.log('[CustomAdapter] Found user:', userId);
+          
+          // Convert MongoDB document to Prisma User format
+          return {
+            id: userId,
+            firebaseUid: user.firebaseUid || null,
+            email: user.email,
+            emailVerified: user.emailVerified ? new Date(user.emailVerified) : null,
+            name: user.name || null,
+            image: user.image || null,
+            role: user.role,
+            isActive: user.isActive,
+            createdAt: new Date(user.createdAt),
+            updatedAt: new Date(user.updatedAt),
+          };
+        }
+        
+        console.log('[CustomAdapter] User not found');
+        return null;
+      } catch (error) {
+        console.error('[CustomAdapter] Error getting user by email:', error);
+        throw error;
+      }
+    },
+  };
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  adapter: PrismaAdapter(prisma) as any, // Type workaround for NextAuth v5 beta
+  adapter: customPrismaAdapter() as any, // Custom MongoDB adapter
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      allowDangerousEmailAccountLinking: true, // Allow linking to existing email accounts
       authorization: {
         params: {
           prompt: "consent",
@@ -110,42 +229,73 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async session({ session, user }) {
       // Add custom fields to session
+      console.log('[Session Callback] Building session for user:', user.id);
+      
       if (session.user) {
         session.user.id = user.id;
         // Fetch full user data to get role and status
         const fullUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { role: true, isActive: true }
+          select: { role: true, isActive: true, name: true }
         });
+        
+        console.log('[Session Callback] Full user data:', fullUser);
         
         if (fullUser) {
           session.user.role = fullUser.role;
           session.user.isActive = fullUser.isActive;
+          // Update name in session if it changed in database
+          if (fullUser.name) {
+            session.user.name = fullUser.name;
+          }
         }
       }
+      
+      console.log('[Session Callback] Final session:', {
+        id: session.user?.id,
+        email: session.user?.email,
+        name: session.user?.name,
+        role: session.user?.role,
+        isActive: session.user?.isActive
+      });
+      
       return session;
     },
-    async signIn({ user }) {
-      // Update or create user on sign in
+    async signIn({ user, account }) {
+      console.log('[SignIn Callback] User:', user.id, 'Account:', account?.provider);
+      
+      // Skip update for OAuth sign-ins during account linking
+      // The user will be created by the adapter with proper ObjectId
+      if (account?.provider === 'google') {
+        console.log('[SignIn Callback] Skipping update for Google OAuth');
+        return true;
+      }
+      
+      // Update or create user on sign in (for credentials provider)
       if (user.id) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { 
-            updatedAt: new Date(),
-          },
-        });
-        
-        // Update profile with last login
-        await prisma.userProfile.upsert({
-          where: { userId: user.id },
-          create: {
-            userId: user.id,
-            lastLoginAt: new Date(),
-          },
-          update: {
-            lastLoginAt: new Date(),
-          },
-        });
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { 
+              updatedAt: new Date(),
+            },
+          });
+          
+          // Update profile with last login
+          await prisma.userProfile.upsert({
+            where: { userId: user.id },
+            create: {
+              userId: user.id,
+              lastLoginAt: new Date(),
+            },
+            update: {
+              lastLoginAt: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error('[SignIn Callback] Error updating user:', error);
+          // Don't block sign-in if update fails
+        }
       }
       return true;
     },
@@ -162,12 +312,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async createUser({ user }) {
       // Create default profile when user is created
       if (user.id) {
-        await prisma.userProfile.create({
-          data: {
-            userId: user.id,
-            lastLoginAt: new Date(),
-          },
-        });
+        try {
+          // Ensure userId is a string (handle { $oid: '...' } format)
+          const userId = typeof user.id === 'string' 
+            ? user.id 
+            : ((user.id as { $oid: string }).$oid || String(user.id));
+          
+          await prisma.userProfile.create({
+            data: {
+              userId: userId,
+              lastLoginAt: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error('[CreateUser Event] Error creating profile:', error);
+          // Don't block user creation if profile fails
+        }
       }
     },
   },
