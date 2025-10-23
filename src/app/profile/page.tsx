@@ -658,12 +658,13 @@ export default function ProfilePage() {
               <PersonalInfoSection
                 personalInfo={profile.personalInfo}
                 onUpdate={(updatedInfo) => {
-                  // Prepare payload for API
+                  // Prepare payload for API - NOW INCLUDING AVATAR!
                   // Use the mutation to update profile
                   updateProfileMutation.mutate({
                     firstName: updatedInfo.firstName || undefined,
                     lastName: updatedInfo.lastName || undefined,
                     displayName: updatedInfo.displayName || undefined,
+                    avatar: updatedInfo.avatar || undefined, // ✅ Include avatar URL from Cloudinary upload
                     phone: updatedInfo.phone || undefined,
                     dateOfBirth: updatedInfo.dateOfBirth || undefined,
                     gender: updatedInfo.gender && updatedInfo.gender.trim() 

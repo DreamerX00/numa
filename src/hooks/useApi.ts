@@ -115,6 +115,7 @@ const api = {
     firstName?: string;
     lastName?: string;
     displayName?: string;
+    avatar?: string; // Cloudinary URL for avatar
     phone?: string;
     dateOfBirth?: string;
     gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';

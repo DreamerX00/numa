@@ -30,6 +30,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUpdateUserProfile } from "@/hooks/useApi";
 import { getUserInitials } from "@/lib/avatar";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { UPLOAD_FOLDERS } from "@/lib/cloudinary";
 import { Upload } from "lucide-react";
 import HeartLoader from "@/components/ui/HeartLoader";
 import { toast } from "sonner";
@@ -60,8 +62,15 @@ interface EditProfileDialogProps {
 }
 
 export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileDialogProps) {
-  const [isUploading, setIsUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string>(initialData.avatar || "");
+  const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
   const updateProfileMutation = useUpdateUserProfile();
+
+  // Use the avatar upload hook
+  const { uploadFile, isUploading, uploadError } = useImageUpload({
+    folder: UPLOAD_FOLDERS.USERS,
+    uploadEndpoint: '/api/user/upload-avatar' // Use user-specific endpoint
+  });
 
   const form = useForm<EditProfileValues>({
     resolver: zodResolver(editProfileSchema),
@@ -77,7 +86,11 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
 
   const onSubmit = async (values: EditProfileValues) => {
     try {
-      await updateProfileMutation.mutateAsync(values);
+      // Include pending avatar if uploaded
+      await updateProfileMutation.mutateAsync({
+        ...values,
+        avatar: pendingAvatar || initialData.avatar, // Include avatar in mutation
+      });
       toast.success("Profile updated successfully!");
       onClose();
     } catch (error) {
@@ -90,16 +103,15 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
     try {
-      // TODO: Implement avatar upload to Cloudinary
-      // const avatarUrl = await uploadToCloudinary(file);
-      // await updateProfileMutation.mutateAsync({ avatar: avatarUrl });
-      toast.success("Avatar uploaded successfully!");
+      const result = await uploadFile(file);
+      if (result) {
+        setPendingAvatar(result.url); // Store the uploaded URL
+        setAvatarPreview(result.url); // Update preview
+        toast.success("Avatar uploaded! Click 'Save Changes' to apply.");
+      }
     } catch {
-      toast.error("Failed to upload avatar");
-    } finally {
-      setIsUploading(false);
+      toast.error(uploadError || "Failed to upload avatar");
     }
   };
 
@@ -118,7 +130,7 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
             {/* Avatar Section */}
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={initialData.avatar} />
+                <AvatarImage src={avatarPreview} />
                 <AvatarFallback>
                   {getUserInitials(initialData.firstName, initialData.lastName)}
                 </AvatarFallback>
@@ -138,7 +150,7 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
                       ) : (
                         <Upload className="h-4 w-4 mr-2" />
                       )}
-                      Change Avatar
+                      {isUploading ? "Uploading..." : "Change Avatar"}
                     </span>
                   </Button>
                 </label>

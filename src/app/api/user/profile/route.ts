@@ -12,6 +12,7 @@ const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
   displayName: z.string().min(1).max(100).optional(),
+  avatar: z.string().url().optional(), // Avatar URL from Cloudinary
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
           firstName: dbUser.profile.firstName || '',
           lastName: dbUser.profile.lastName || '',
           displayName: dbUser.profile.displayName || '',
+          avatar: (dbUser.profile as { avatar?: string | null }).avatar || '', // Include avatar in GET response
           phone: dbUser.profile.phone || '',
           dateOfBirth: dbUser.profile.dateOfBirth || '',
           gender: dbUser.profile.gender || '',
@@ -192,6 +194,7 @@ export async function PUT(request: NextRequest) {
         firstName: true,
         lastName: true,
         displayName: true,
+        avatar: true, // Include avatar in UPDATE response
         phone: true,
         dateOfBirth: true,
         gender: true,
