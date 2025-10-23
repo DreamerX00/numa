@@ -90,7 +90,8 @@ export default function PersonalInfoSection({ personalInfo, onUpdate }: Personal
   }
 
   const { uploadFile, isUploading, uploadError } = useImageUpload({
-    folder: UPLOAD_FOLDERS.USERS
+    folder: UPLOAD_FOLDERS.USERS,
+    uploadEndpoint: '/api/user/upload-avatar' // Use user-specific endpoint instead of admin
   })
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

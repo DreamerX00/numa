@@ -15,6 +15,7 @@ export interface UploadResult {
 export interface UseImageUploadProps {
   folder?: string;
   maxSize?: number; // in MB
+  uploadEndpoint?: string; // Custom upload endpoint (default: /api/admin/upload)
   onSuccess?: (result: UploadResult) => void;
   onError?: (error: string) => void;
 }
@@ -22,6 +23,7 @@ export interface UseImageUploadProps {
 export function useImageUpload({
   folder = 'uploads',
   maxSize = 10,
+  uploadEndpoint = '/api/admin/upload',
   onSuccess,
   onError
 }: UseImageUploadProps = {}) {
@@ -69,7 +71,7 @@ export function useImageUpload({
         });
       }, 200);
 
-      const response = await fetch('/api/admin/upload', {
+      const response = await fetch(uploadEndpoint, {
         method: 'POST',
         body: formData,
       });
@@ -98,7 +100,7 @@ export function useImageUpload({
         setUploadProgress(0);
       }, 1000);
     }
-  }, [folder, onSuccess, onError, validateFile]);
+  }, [folder, uploadEndpoint, onSuccess, onError, validateFile]);
 
   const resetUpload = useCallback(() => {
     setIsUploading(false);
