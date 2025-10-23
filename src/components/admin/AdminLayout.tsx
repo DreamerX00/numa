@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Loader2, Shield } from 'lucide-react';
+import HeartLoader from '@/components/ui/HeartLoader';
+import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -197,17 +199,34 @@ interface NavLinkProps {
 
 function NavLink({ href, label }: NavLinkProps) {
   const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
   const isActive = typeof window !== 'undefined' && window.location.pathname === href;
+
+  const handleClick = async () => {
+    if (isActive || isNavigating) return;
+    
+    setIsNavigating(true);
+    try {
+      router.push(href);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setIsNavigating(false);
+    }
+  };
 
   return (
     <button
-      onClick={() => router.push(href)}
-      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+      onClick={handleClick}
+      disabled={isNavigating}
+      className={cn(
+        "py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2",
         isActive
           ? 'border-primary text-primary'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-      }`}
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+        isNavigating && 'opacity-50 cursor-not-allowed'
+      )}
     >
+      {isNavigating && <HeartLoader size="sm" />}
       {label}
     </button>
   );

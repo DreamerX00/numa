@@ -22,13 +22,14 @@ import {
   ArrowRight
 } from "lucide-react";
 import HeartLoader from "@/components/ui/HeartLoader";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 export const dynamic = 'force-dynamic';
 
 export default function CartPage() {
   const router = useRouter();
   const { items, getTotalPrice, getTotalItems } = useHybridCartStore();
-  const { updateQuantity, removeItem } = useCartService();
+  const { updateQuantity, removeItem, isLoading, operation } = useCartService();
   const [shippingData, setShippingData] = useState({
     cost: 0,
     qualifiesForFree: false,
@@ -109,6 +110,14 @@ export default function CartPage() {
 
   return (
     <Container className="py-6 md:py-8">
+      {/* Loading overlay for cart operations */}
+      {isLoading && (
+        <LoadingOverlay 
+          isVisible={isLoading}
+          message={`${operation.charAt(0).toUpperCase() + operation.slice(1)} cart...`}
+        />
+      )}
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
