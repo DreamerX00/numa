@@ -30,7 +30,7 @@ function customPrismaAdapter() {
     ...baseAdapter,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async createUser(data: any) {
-      // Check if user already exists by email or firebaseUid to prevent duplicates
+      // Check if user already exists by email to prevent duplicates
       devLog('[CustomAdapter] Checking for existing user:', data.email);
       
       try {
@@ -49,7 +49,6 @@ function customPrismaAdapter() {
               name: data.name || existingUser.name,
               image: data.image || existingUser.image,
               emailVerified: data.emailVerified ? new Date(data.emailVerified) : existingUser.emailVerified,
-              firebaseUid: data.firebaseUid || existingUser.firebaseUid,
               updatedAt: new Date(),
             },
           });
@@ -79,18 +78,16 @@ function customPrismaAdapter() {
         devLog('[CustomAdapter] User created successfully:', user.id);
         return user;
       } catch (error) {
-        // If creation fails due to duplicate firebaseUid, try to find and return that user
-        devLog('[CustomAdapter] Error creating user, checking for duplicate:', error);
+        // If creation fails due to duplicate email, try to find and return that user
+        devLog('[CustomAdapter] Error creating user, checking for duplicate email:', error);
         
-        if (data.firebaseUid) {
-          const userByFirebaseUid = await prisma.user.findUnique({
-            where: { firebaseUid: data.firebaseUid },
-          });
-          
-          if (userByFirebaseUid) {
-            devLog('[CustomAdapter] Found existing user by firebaseUid:', userByFirebaseUid.id);
-            return userByFirebaseUid;
-          }
+        const userByEmail = await prisma.user.findUnique({
+          where: { email: data.email },
+        });
+        
+        if (userByEmail) {
+          devLog('[CustomAdapter] Found existing user by email:', userByEmail.id);
+          return userByEmail;
         }
         
         // If still no user found, re-throw the error

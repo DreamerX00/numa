@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const { guestCartItems } = syncCartSchema.parse(body);
 
     const dbUser = await prisma.user.findUnique({
-      where: { firebaseUid: user.uid }
+      where: { id: user.id }
     });
 
     if (!dbUser) {

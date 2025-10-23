@@ -47,7 +47,7 @@ export async function GET(
     // Check authorization
     if (order.userId && user) {
       const dbUser = await prisma.user.findUnique({
-        where: { firebaseUid: user.uid }
+        where: { id: user.id }
       });
 
       if (!dbUser || order.userId !== dbUser.id) {

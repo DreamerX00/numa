@@ -17,7 +17,7 @@ datasource db {
 
 model User {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  firebaseUid   String?  @unique  // Made optional for NextAuth migration
+  firebaseUid   String?  // Legacy field, no longer used (removed @unique to prevent conflicts)
   email         String   @unique
   emailVerified DateTime?  // Changed to DateTime for NextAuth compatibility
   password      String?    // Hashed password for credentials auth
