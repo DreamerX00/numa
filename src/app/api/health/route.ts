@@ -44,7 +44,7 @@ export async function GET() {
   // For detailed checks, use admin dashboard or server logs
   
   try {
-    console.log('🔍 Starting health check...');
+    if (process.env.NODE_ENV === 'development') console.log('🔍 Starting health check...');
     
     const healthStatus: HealthStatus = {
       status: 'healthy',
@@ -60,7 +60,7 @@ export async function GET() {
     };
 
     // 1. Database Connection Check (basic ping only)
-    console.log('🗄️ Testing database connection...');
+    if (process.env.NODE_ENV === 'development') console.log('🗄️ Testing database connection...');
     const dbStart = Date.now();
     
     try {
@@ -74,7 +74,7 @@ export async function GET() {
         connection: 'active'
       };
       
-      console.log(`✅ Database ping successful in ${dbResponseTime}ms`);
+      if (process.env.NODE_ENV === 'development') console.log(`✅ Database ping successful in ${dbResponseTime}ms`);
       
     } catch (dbError: unknown) {
       console.error('❌ Database connection failed:', dbError);
@@ -89,7 +89,7 @@ export async function GET() {
     }
 
     // 2. Environment Variables Check (basic check only - no details exposed)
-    console.log('🔧 Checking environment configuration...');
+    if (process.env.NODE_ENV === 'development') console.log('🔧 Checking environment configuration...');
     
     const criticalEnvVars = [
       'DATABASE_URL',
@@ -104,7 +104,7 @@ export async function GET() {
     };
 
     // 3. Services Check (minimal info)
-    console.log('🔗 Checking external services...');
+    if (process.env.NODE_ENV === 'development') console.log('🔗 Checking external services...');
     
     const hasCloudinary = !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const hasFirebase = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
@@ -132,7 +132,7 @@ export async function GET() {
       healthStatus.status = hasWarnings ? 'degraded' : 'healthy';
     }
 
-    console.log(`🎯 Health check completed in ${totalResponseTime}ms - Status: ${healthStatus.status}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🎯 Health check completed in ${totalResponseTime}ms - Status: ${healthStatus.status}`);
 
     // Return appropriate HTTP status code
     const httpStatus = healthStatus.status === 'healthy' ? 200 : 

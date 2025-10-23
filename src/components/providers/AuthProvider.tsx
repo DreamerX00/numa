@@ -27,7 +27,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loading = status === 'loading' || !isInitialized;
 
   useEffect(() => {
-    console.log('[AuthProvider] Session status changed:', status, 'Session:', session?.user?.email, 'Initialized:', isInitialized);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AuthProvider] Session status changed:', status, 'Session:', session?.user?.email, 'Initialized:', isInitialized);
+    }
     
     if (status === 'authenticated' && session?.user) {
       const authUser = {
@@ -39,11 +41,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isActive: session.user.isActive,
       };
       
-      console.log('[AuthProvider] Setting user:', authUser);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[AuthProvider] Setting user:', authUser);
+      }
       setUser(authUser);
       setIsInitialized(true);
     } else if (status === 'unauthenticated') {
-      console.log('[AuthProvider] User unauthenticated, clearing user state');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[AuthProvider] User unauthenticated, clearing user state');
+      }
       setUser(null);
       setIsInitialized(true);
     }

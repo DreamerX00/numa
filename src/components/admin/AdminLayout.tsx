@@ -40,16 +40,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
-    console.log('[AdminLayout] Auth check:', { 
-      user: user?.email, 
-      role: user?.role,
-      isActive: user?.isActive,
-      loading,
-      isAdmin,
-      hasUser: !!user,
-      hasCheckedAuth,
-      timestamp: new Date().toISOString()
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AdminLayout] Auth check:', { 
+        user: user?.email, 
+        role: user?.role,
+        isActive: user?.isActive,
+        loading,
+        isAdmin,
+        hasUser: !!user,
+        hasCheckedAuth,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Wait a bit before checking to ensure session is loaded
     // Only check auth once loading is complete and we haven't checked yet
@@ -59,21 +61,27 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         setHasCheckedAuth(true);
         
         if (!user) {
-          console.error('[AdminLayout] ❌ No user detected after delay, redirecting to login', {
-            loading,
-            user,
-            timestamp: new Date().toISOString()
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[AdminLayout] ❌ No user detected after delay, redirecting to login', {
+              loading,
+              user,
+              timestamp: new Date().toISOString()
+            });
+          }
           router.push('/login?redirect=/admin');
         } else if (!isAdmin) {
-          console.error('[AdminLayout] ❌ User is not admin, redirecting to home', {
-            role: user.role,
-            isAdmin,
-            timestamp: new Date().toISOString()
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[AdminLayout] ❌ User is not admin, redirecting to home', {
+              role: user.role,
+              isAdmin,
+              timestamp: new Date().toISOString()
+            });
+          }
           router.push('/');
         } else {
-          console.log('[AdminLayout] ✅ User is admin, access granted');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AdminLayout] ✅ User is admin, access granted');
+          }
         }
       }, 500); // Wait 500ms for session to fully load
 
@@ -81,15 +89,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     } else if (!loading && hasCheckedAuth) {
       // If user changes after initial check, update accordingly
       if (!user) {
-        console.error('[AdminLayout] ❌ User lost after initial check, redirecting');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[AdminLayout] ❌ User lost after initial check, redirecting');
+        }
         router.push('/login?redirect=/admin');
       } else if (!isAdmin) {
-        console.error('[AdminLayout] ❌ User role changed, no longer admin');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[AdminLayout] ❌ User role changed, no longer admin');
+        }
         router.push('/');
       }
-    } else if (!loading) {
+    } else if (!loading && process.env.NODE_ENV === 'development') {
       console.log('[AdminLayout] ⏳ Already checked auth, skipping redirect');
-    } else {
+    } else if (process.env.NODE_ENV === 'development') {
       console.log('[AdminLayout] ⏳ Still loading...');
     }
   }, [user, loading, isAdmin, hasCheckedAuth, router]);

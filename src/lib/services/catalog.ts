@@ -119,7 +119,7 @@ function getSampleCollections() {
 
 // Debug logging for production
 if (isServerSide) {
-  console.log('🔍 Server Environment Check:', {
+  if (process.env.NODE_ENV === 'development') console.log('🔍 Server Environment Check:', {
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PHASE: process.env.NEXT_PHASE,
     VERCEL_URL: process.env.VERCEL_URL,
@@ -136,7 +136,7 @@ export async function fetchFeaturedProducts(limit = 8) {
   // During build time or on server-side, use database directly
   if (isServerSide && process.env.DATABASE_URL) {
     try {
-      console.log('🗄️ Server-side: Fetching featured products directly from database');
+      if (process.env.NODE_ENV === 'development') console.log('🗄️ Server-side: Fetching featured products directly from database');
       
       const products = await prisma.product.findMany({
         where: {
@@ -165,7 +165,7 @@ export async function fetchFeaturedProducts(limit = 8) {
         },
       });
 
-      console.log('✅ Database: Featured products fetched successfully:', {
+      if (process.env.NODE_ENV === 'development') console.log('✅ Database: Featured products fetched successfully:', {
         count: products?.length || 0,
         productNames: products?.slice(0, 3).map(p => p.name) || []
       });
@@ -176,7 +176,7 @@ export async function fetchFeaturedProducts(limit = 8) {
       
       // During build, return empty array on error to prevent build failure
       if (isBuildTime) {
-        console.log('🏗️ Build time: Returning empty array due to database error');
+        if (process.env.NODE_ENV === 'development') console.log('🏗️ Build time: Returning empty array due to database error');
         return [];
       }
       
@@ -193,7 +193,7 @@ export async function fetchFeaturedProducts(limit = 8) {
 async function fetchFeaturedProductsFromAPI(limit = 8) {
   try {
     const url = `${API_BASE}/products?featured=true&limit=${limit}&page=1`;
-    console.log('� API: Fetching featured products from:', url);
+    if (process.env.NODE_ENV === 'development') console.log('� API: Fetching featured products from:', url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -216,7 +216,7 @@ async function fetchFeaturedProductsFromAPI(limit = 8) {
     }
 
     const data = await response.json();
-    console.log('✅ API: Featured products fetched successfully:', {
+    if (process.env.NODE_ENV === 'development') console.log('✅ API: Featured products fetched successfully:', {
       count: data?.products?.length || 0,
       productNames: data?.products?.slice(0, 3).map((p: Product) => p.name) || []
     });
@@ -235,7 +235,7 @@ export async function fetchCollections() {
   // During build time or on server-side, use database directly
   if (isServerSide && process.env.DATABASE_URL) {
     try {
-      console.log('🗄️ Server-side: Fetching collections directly from database');
+      if (process.env.NODE_ENV === 'development') console.log('🗄️ Server-side: Fetching collections directly from database');
       
       const categories = await prisma.category.findMany({
         where: {
@@ -279,7 +279,7 @@ export async function fetchCollections() {
         productCount: category._count?.products || 0
       }));
 
-      console.log('✅ Database: Collections fetched successfully:', {
+      if (process.env.NODE_ENV === 'development') console.log('✅ Database: Collections fetched successfully:', {
         count: transformedCategories?.length || 0,
         collectionNames: transformedCategories?.slice(0, 3).map((c: { name: string }) => c.name) || []
       });
@@ -290,7 +290,7 @@ export async function fetchCollections() {
       
       // During build, return empty array on error to prevent build failure
       if (isBuildTime) {
-        console.log('🏗️ Build time: Returning empty array due to database error');
+        if (process.env.NODE_ENV === 'development') console.log('🏗️ Build time: Returning empty array due to database error');
         return [];
       }
       
@@ -307,7 +307,7 @@ export async function fetchCollections() {
 async function fetchCollectionsFromAPI() {
   try {
     const url = `${API_BASE}/categories?includeCounts=true`;
-    console.log('🌐 API: Fetching collections from:', url);
+    if (process.env.NODE_ENV === 'development') console.log('🌐 API: Fetching collections from:', url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -342,7 +342,7 @@ async function fetchCollectionsFromAPI() {
       productCount: category._count?.products || 0
     }));
 
-      console.log('✅ API: Collections fetched successfully:', {
+      if (process.env.NODE_ENV === 'development') console.log('✅ API: Collections fetched successfully:', {
         count: transformedCategories?.length || 0,
         collectionNames: transformedCategories?.slice(0, 3).map((c: { name: string }) => c.name) || []
       });    return transformedCategories || [];
@@ -359,7 +359,7 @@ export async function fetchProductsByCollection(categorySlug: string) {
   // During build time or on server-side, use database directly
   if (isServerSide && process.env.DATABASE_URL) {
     try {
-      console.log(`🗄️ Server-side: Fetching products for category "${categorySlug}" directly from database`);
+      if (process.env.NODE_ENV === 'development') console.log(`🗄️ Server-side: Fetching products for category "${categorySlug}" directly from database`);
       
       const products = await prisma.product.findMany({
         where: {
@@ -392,7 +392,7 @@ export async function fetchProductsByCollection(categorySlug: string) {
         take: 20,
       });
 
-      console.log(`✅ Database: Fetched ${products?.length || 0} products for category "${categorySlug}"`);
+      if (process.env.NODE_ENV === 'development') console.log(`✅ Database: Fetched ${products?.length || 0} products for category "${categorySlug}"`);
       
       return products || [];
     } catch (error) {
@@ -400,7 +400,7 @@ export async function fetchProductsByCollection(categorySlug: string) {
       
       // During build, return empty array on error to prevent build failure
       if (isBuildTime) {
-        console.log('🏗️ Build time: Returning empty array due to database error');
+        if (process.env.NODE_ENV === 'development') console.log('🏗️ Build time: Returning empty array due to database error');
         return [];
       }
       
@@ -417,7 +417,7 @@ export async function fetchProductsByCollection(categorySlug: string) {
 async function fetchProductsByCollectionFromAPI(categorySlug: string) {
   try {
     const url = `${API_BASE}/products?category=${categorySlug}&limit=20&page=1`;
-    console.log(`🌐 API: Fetching products for category "${categorySlug}" from ${url}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🌐 API: Fetching products for category "${categorySlug}" from ${url}`);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -439,7 +439,7 @@ async function fetchProductsByCollectionFromAPI(categorySlug: string) {
     }
     
     const data = await response.json();
-    console.log(`✅ API: Successfully fetched ${data.products?.length || 0} products for category "${categorySlug}"`);
+    if (process.env.NODE_ENV === 'development') console.log(`✅ API: Successfully fetched ${data.products?.length || 0} products for category "${categorySlug}"`);
     return data.products || [];
   } catch (error) {
     console.error(`💥 API fetch error for category "${categorySlug}":`, error);
@@ -452,7 +452,7 @@ export async function fetchProduct(productSlug: string) {
   // During build time or on server-side, use database directly
   if (isServerSide && process.env.DATABASE_URL) {
     try {
-      console.log(`🗄️ Server-side: Fetching product "${productSlug}" directly from database`);
+      if (process.env.NODE_ENV === 'development') console.log(`🗄️ Server-side: Fetching product "${productSlug}" directly from database`);
       
       const product = await prisma.product.findFirst({
         where: {
@@ -486,11 +486,11 @@ export async function fetchProduct(productSlug: string) {
       });
 
       if (!product) {
-        console.log(`❌ Database: Product "${productSlug}" not found`);
+        if (process.env.NODE_ENV === 'development') console.log(`❌ Database: Product "${productSlug}" not found`);
         return null;
       }
 
-      console.log(`✅ Database: Successfully fetched product "${productSlug}"`);
+      if (process.env.NODE_ENV === 'development') console.log(`✅ Database: Successfully fetched product "${productSlug}"`);
       
       return product;
     } catch (error) {
@@ -498,7 +498,7 @@ export async function fetchProduct(productSlug: string) {
       
       // During build, return null on error to prevent build failure
       if (isBuildTime) {
-        console.log('🏗️ Build time: Returning null due to database error');
+        if (process.env.NODE_ENV === 'development') console.log('🏗️ Build time: Returning null due to database error');
         return null;
       }
       
@@ -515,7 +515,7 @@ export async function fetchProduct(productSlug: string) {
 async function fetchProductFromAPI(productSlug: string) {
   try {
     const url = `${API_BASE}/products/${productSlug}`;
-    console.log(`🌐 API: Fetching product "${productSlug}" from ${url}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🌐 API: Fetching product "${productSlug}" from ${url}`);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -528,14 +528,14 @@ async function fetchProductFromAPI(productSlug: string) {
     
     if (!response.ok) {
       if (response.status === 404) {
-        console.log(`❌ API: Product "${productSlug}" not found`);
+        if (process.env.NODE_ENV === 'development') console.log(`❌ API: Product "${productSlug}" not found`);
         return null;
       }
       throw new Error(`Failed to fetch product: ${productSlug} (Status: ${response.status})`);
     }
     
     const product = await response.json();
-    console.log(`✅ API: Successfully fetched product "${productSlug}"`);
+    if (process.env.NODE_ENV === 'development') console.log(`✅ API: Successfully fetched product "${productSlug}"`);
     return product;
   } catch (error) {
     console.error(`💥 API fetch error for product "${productSlug}":`, error);

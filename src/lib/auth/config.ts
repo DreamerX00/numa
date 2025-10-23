@@ -6,6 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { getFirebaseAdmin } from "@/lib/firebase/admin";
 import type { UserRole } from "@prisma/client";
 
+// Development-only logging helper
+const devLog = (message: string, ...args: unknown[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    devLog(message, ...args);
+  }
+};
+
 // Helper to generate MongoDB ObjectId-compatible IDs
 function generateObjectId() {
   const timestamp = Math.floor(Date.now() / 1000).toString(16).padStart(8, '0');
@@ -26,7 +33,7 @@ function customPrismaAdapter() {
       // Generate MongoDB ObjectId for the user
       const userId = generateObjectId();
       
-      console.log('[CustomAdapter] Creating user with ObjectId:', userId);
+      devLog('[CustomAdapter] Creating user with ObjectId:', userId);
       
       const user = await prisma.user.create({
         data: {
@@ -36,7 +43,7 @@ function customPrismaAdapter() {
         },
       });
       
-      console.log('[CustomAdapter] User created successfully:', user.id);
+      devLog('[CustomAdapter] User created successfully:', user.id);
       return user;
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +54,7 @@ function customPrismaAdapter() {
       // Ensure userId is a string (handle { $oid: '...' } format)
       const userId = typeof data.userId === 'string' ? data.userId : (data.userId.$oid || data.userId);
       
-      console.log('[CustomAdapter] Linking account with ObjectId:', accountId, 'for user:', userId);
+      devLog('[CustomAdapter] Linking account with ObjectId:', accountId, 'for user:', userId);
       
       const account = await prisma.account.create({
         data: {
@@ -57,7 +64,7 @@ function customPrismaAdapter() {
         },
       });
       
-      console.log('[CustomAdapter] Account linked successfully');
+      devLog('[CustomAdapter] Account linked successfully');
       return account;
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,7 +72,7 @@ function customPrismaAdapter() {
       // Generate MongoDB ObjectId for the session
       const sessionId = generateObjectId();
       
-      console.log('[CustomAdapter] Creating session with ObjectId:', sessionId);
+      devLog('[CustomAdapter] Creating session with ObjectId:', sessionId);
       
       const session = await prisma.session.create({
         data: {
@@ -74,11 +81,11 @@ function customPrismaAdapter() {
         },
       });
       
-      console.log('[CustomAdapter] Session created successfully');
+      devLog('[CustomAdapter] Session created successfully');
       return session;
     },
     async getUserByEmail(email: string) {
-      console.log('[CustomAdapter] Getting user by email:', email);
+      devLog('[CustomAdapter] Getting user by email:', email);
       
       try {
         // Use raw MongoDB query to get user without type conversion issues
@@ -97,7 +104,7 @@ function customPrismaAdapter() {
           // Extract ObjectId string from MongoDB's { $oid: '...' } format
           const userId = typeof user._id === 'string' ? user._id : user._id.$oid;
           
-          console.log('[CustomAdapter] Found user:', userId);
+          devLog('[CustomAdapter] Found user:', userId);
           
           // Convert MongoDB document to Prisma User format
           return {
@@ -114,7 +121,7 @@ function customPrismaAdapter() {
           };
         }
         
-        console.log('[CustomAdapter] User not found');
+        devLog('[CustomAdapter] User not found');
         return null;
       } catch (error) {
         console.error('[CustomAdapter] Error getting user by email:', error);
@@ -229,7 +236,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async session({ session, user }) {
       // Add custom fields to session
-      console.log('[Session Callback] Building session for user:', user.id);
+      devLog('[Session Callback] Building session for user:', user.id);
       
       if (session.user) {
         session.user.id = user.id;
@@ -239,7 +246,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           select: { role: true, isActive: true, name: true }
         });
         
-        console.log('[Session Callback] Full user data:', fullUser);
+        devLog('[Session Callback] Full user data:', fullUser);
         
         if (fullUser) {
           session.user.role = fullUser.role;
@@ -251,7 +258,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       
-      console.log('[Session Callback] Final session:', {
+      devLog('[Session Callback] Final session:', {
         id: session.user?.id,
         email: session.user?.email,
         name: session.user?.name,
@@ -262,12 +269,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     async signIn({ user, account }) {
-      console.log('[SignIn Callback] User:', user.id, 'Account:', account?.provider);
+      devLog('[SignIn Callback] User:', user.id, 'Account:', account?.provider);
       
       // Skip update for OAuth sign-ins during account linking
       // The user will be created by the adapter with proper ObjectId
       if (account?.provider === 'google') {
-        console.log('[SignIn Callback] Skipping update for Google OAuth');
+        devLog('[SignIn Callback] Skipping update for Google OAuth');
         return true;
       }
       
@@ -351,3 +358,4 @@ declare module "next-auth" {
     isActive: boolean;
   }
 }
+
