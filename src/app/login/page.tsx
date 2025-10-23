@@ -8,8 +8,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion } from "framer-motion";
+import { signIn } from "next-auth/react";
 import { getFirebaseClient } from "@/lib/firebase/client";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,51 +94,25 @@ function LoginPageContent() {
     setError(null);
     setLoading(true);
     try {
-      const { auth, googleProvider } = getFirebaseClient();
-      
-      const cred = await signInWithPopup(auth, googleProvider);
-      const idToken = await cred.user.getIdToken();
-      
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+      // Use NextAuth's signIn function for Google OAuth
+      const result = await signIn("google", { 
+        callbackUrl: redirect,
+        redirect: false  // Handle redirect manually to show errors
       });
       
-      const responseData = await res.json();
-      console.log('🔐 Google Login API response:', { status: res.status, data: responseData });
-      
-      if (!res.ok) {
-        const errorMessage = responseData.details || responseData.error || "Session creation failed";
-        throw new Error(`${res.status} - ${errorMessage}`);
+      if (result?.error) {
+        throw new Error(result.error);
       }
       
-      // Force a small delay to ensure state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Redirect to the desired page
-      window.location.href = redirect;
+      if (result?.ok) {
+        // Redirect to the desired page
+        window.location.href = redirect;
+      }
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
       let errorMessage = "Google sign-in failed";
-      if (err && typeof err === 'object' && 'code' in err) {
-        const firebaseError = err as { code: string; message?: string };
-        console.error("Firebase error code:", firebaseError.code);
-        console.error("Firebase error message:", firebaseError.message);
-        if (firebaseError.code === "auth/popup-closed-by-user") {
-          return; // User closed popup, don't show error
-        } else if (firebaseError.code === "auth/popup-blocked") {
-          errorMessage = "Popup was blocked. Please allow popups and try again";
-        } else if (firebaseError.code === "auth/account-exists-with-different-credential") {
-          errorMessage = "An account already exists with this email using a different sign-in method";
-        } else if (firebaseError.code === "auth/cancelled-popup-request") {
-          return; // User cancelled, don't show error
-        } else {
-          errorMessage = `Google sign-in failed: ${firebaseError.code} - ${firebaseError.message || 'Unknown error'}`;
-        }
-      } else if (err instanceof Error) {
-        console.error("General error:", err.message);
-        errorMessage = `Google sign-in failed: ${err.message}`;
+      if (err instanceof Error) {
+        errorMessage = err.message;
       }
       setError(errorMessage);
     } finally {
