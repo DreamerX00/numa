@@ -740,6 +740,7 @@ export default function ProfilePage() {
           firstName: profile.personalInfo.firstName,
           lastName: profile.personalInfo.lastName,
           displayName: profile.personalInfo.displayName || '',
+          title: profile.personalInfo.title, // ✅ Pass title to dialog
           phone: profile.personalInfo.phone,
           dateOfBirth: profile.personalInfo.dateOfBirth,
           gender: profile.personalInfo.gender,
