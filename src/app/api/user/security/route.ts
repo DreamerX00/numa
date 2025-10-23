@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserFromSession';
+import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/userSession';
 import { getFirebaseAdmin } from '@/lib/firebase/admin';
 import { z } from 'zod';
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       return createAuthErrorResponse(authResult);
     }
 
-    const { firebaseUser, dbUser } = authResult.user;
+    const { dbUser } = authResult.user;
 
     // Get recent login history (mock data for now - in production you'd track this)
     const loginHistory = [
@@ -85,8 +85,8 @@ export async function GET(request: NextRequest) {
       // Security questions (not implemented)
       securityQuestions: [],
       
-      // Email verification status from Firebase
-      emailVerified: firebaseUser.email_verified || false,
+      // Email verification status from database
+      emailVerified: dbUser.emailVerified !== null,
       
       // Account creation date
       accountCreated: dbUser.createdAt.toISOString(),
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
       return createAuthErrorResponse(authResult);
     }
 
-    const { firebaseUser } = authResult.user;
+    const { dbUser } = authResult.user;
     const body = await request.json();
 
     // Validate request body
@@ -142,11 +142,22 @@ export async function PUT(request: NextRequest) {
     // Handle password change
     if (securityData.currentPassword && securityData.newPassword) {
       try {
-        // For password changes, we'd typically verify the current password first
-        // Then update the password in Firebase Auth
+        // For password changes, we verify the current password first
+        // Then update the password in Firebase Auth (still used for password storage)
         const { adminAuth } = getFirebaseAdmin();
         
-        await adminAuth.updateUser(firebaseUser.uid, {
+        // Get firebaseUid from database user
+        if (!dbUser.firebaseUid) {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Firebase authentication not configured for this account' 
+            },
+            { status: 400 }
+          );
+        }
+        
+        await adminAuth.updateUser(dbUser.firebaseUid, {
           password: securityData.newPassword
         });
 

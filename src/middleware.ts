@@ -3,34 +3,24 @@ import type { NextRequest } from 'next/server';
 import { withSecurityHeaders, handleCORS } from '@/lib/security-headers';
 
 // Define protected routes that require authentication
-// Note: /profile and /admin are handled by client-side components due to session timing
 const protectedRoutes = ['/orders', '/wishlist', '/account'];
 
 // Define auth routes that should redirect if user is already logged in
 const authRoutes = ['/login', '/signup'];
 
-// Admin routes that require special handling (handled client-side)
-const adminRoutes = ['/admin'];
-
-// NextAuth session cookie name
+// NextAuth session cookie name (environment-aware)
 const NEXTAUTH_SESSION_COOKIE = process.env.NODE_ENV === 'production' 
   ? '__Secure-next-auth.session-token' 
   : 'next-auth.session-token';
 
 // CSRF protection configuration
-const CSRF_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const CSRF_HEADER_NAME = 'x-csrf-token';
 const CSRF_TOKEN_COOKIE = 'csrf-token';
 
 // Check if user has valid NextAuth session
 function hasValidSession(request: NextRequest): boolean {
-  // Check NextAuth session
-  const nextAuthSession = request.cookies.get(NEXTAUTH_SESSION_COOKIE);
-  if (nextAuthSession?.value) {
-    return true; // NextAuth sessions are validated by NextAuth middleware
-  }
-  
-  return false;
+  return !!request.cookies.get(NEXTAUTH_SESSION_COOKIE)?.value;
 }
 
 // Generate CSRF token
@@ -43,65 +33,57 @@ function generateCSRFToken(): string {
 // Validate CSRF token for state-changing requests
 function validateCSRF(request: NextRequest): boolean {
   // Skip CSRF validation for safe methods
-  if (CSRF_SAFE_METHODS.includes(request.method)) {
+  if (CSRF_SAFE_METHODS.has(request.method)) {
     return true;
   }
   
-  // Skip CSRF validation for API routes (they should handle CSRF separately if needed)
+  // Skip CSRF validation for API routes (they handle CSRF separately if needed)
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return true;
   }
   
-  // Get CSRF token from header
+  // Get CSRF token from header and cookie
   const headerToken = request.headers.get(CSRF_HEADER_NAME);
-  
-  // Get CSRF token from cookie
   const cookieToken = request.cookies.get(CSRF_TOKEN_COOKIE)?.value;
   
   // Both must exist and match
-  if (!headerToken || !cookieToken || headerToken !== cookieToken) {
-    return false;
-  }
-  
-  return true;
+  return !!(headerToken && cookieToken && headerToken === cookieToken);
 }
 
 // Enhanced error handling function
 function createErrorResponse(request: NextRequest, statusCode: number, reason?: string): NextResponse {
-  const url = new URL(`/error?code=${statusCode}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, request.url);
-  
-  const response = NextResponse.rewrite(url, { status: statusCode });
-  return withSecurityHeaders(response);
+  const url = new URL(
+    `/error?code=${statusCode}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, 
+    request.url
+  );
+  return withSecurityHeaders(NextResponse.rewrite(url, { status: statusCode }));
 }
 
-// Rate limiting check (enhanced implementation)
+// Rate limiting configuration
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 100;
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const CLEANUP_THRESHOLD = RATE_LIMIT_WINDOW * 2;
 
 // Cleanup old entries periodically to prevent memory leaks
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
     for (const [key, data] of rateLimitMap.entries()) {
-      if (now - data.lastReset > RATE_LIMIT_WINDOW * 2) {
+      if (now - data.lastReset > CLEANUP_THRESHOLD) {
         rateLimitMap.delete(key);
       }
     }
-  }, 5 * 60 * 1000); // Cleanup every 5 minutes
+  }, CLEANUP_INTERVAL);
 }
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const userLimit = rateLimitMap.get(ip);
   
-  if (!userLimit) {
-    rateLimitMap.set(ip, { count: 1, lastReset: now });
-    return false;
-  }
-  
-  // Reset window if expired
-  if (now - userLimit.lastReset > RATE_LIMIT_WINDOW) {
+  if (!userLimit || now - userLimit.lastReset > RATE_LIMIT_WINDOW) {
+    // Create new or reset expired limit
     rateLimitMap.set(ip, { count: 1, lastReset: now });
     return false;
   }
@@ -120,53 +102,50 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   try {
-    // Handle CORS preflight requests
+    // 1. Handle CORS preflight requests
     const corsResponse = handleCORS(request);
-    if (corsResponse) {
-      return corsResponse;
-    }
+    if (corsResponse) return corsResponse;
 
-    // Basic rate limiting
-    const ip = request.headers.get('X-Forwarded-For') ?? request.headers.get('X-Real-IP') ?? 'unknown';
+    // 2. Rate limiting
+    const ip = request.headers.get('X-Forwarded-For') ?? 
+               request.headers.get('X-Real-IP') ?? 
+               'unknown';
     if (isRateLimited(ip)) {
       return createErrorResponse(request, 429, 'Too many requests');
     }
 
-    // CSRF validation for state-changing requests
+    // 3. CSRF validation
     if (!validateCSRF(request)) {
       console.warn(`CSRF validation failed for ${request.method} ${pathname}`);
       return createErrorResponse(request, 403, 'CSRF validation failed');
     }
 
-    // Check if user has a valid session (Firebase or NextAuth)
+    // 4. Session check
     const hasSession = hasValidSession(request);
 
-    // Handle protected routes (excluding admin routes which are handled client-side)
-    if (protectedRoutes.some(route => pathname.startsWith(route)) && !adminRoutes.some(route => pathname.startsWith(route))) {
-      if (!hasSession) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(loginUrl);
-      }
+    // 5. Protected routes handling
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+    if (isProtectedRoute && !hasSession) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
-    // Handle auth routes (login/signup)
-    if (authRoutes.some(route => pathname.startsWith(route))) {
-      if (hasSession) {
-        const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
-        return NextResponse.redirect(new URL(redirectTo, request.url));
-      }
+    // 6. Auth routes handling (redirect if already logged in)
+    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    if (isAuthRoute && hasSession) {
+      const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
+      return NextResponse.redirect(new URL(redirectTo, request.url));
     }
 
-    // Apply security headers to response
-    const response = NextResponse.next();
-    const secureResponse = withSecurityHeaders(response);
+    // 7. Apply security headers and CSRF token
+    const response = withSecurityHeaders(NextResponse.next());
     
     // Set CSRF token cookie if not present
-    if (!request.cookies.get(CSRF_TOKEN_COOKIE)) {
+    if (!request.cookies.has(CSRF_TOKEN_COOKIE)) {
       const csrfToken = generateCSRFToken();
-      secureResponse.cookies.set(CSRF_TOKEN_COOKIE, csrfToken, {
-        httpOnly: false, // Must be accessible to JavaScript for header setting
+      response.cookies.set(CSRF_TOKEN_COOKIE, csrfToken, {
+        httpOnly: false, // Must be accessible to JavaScript
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         path: '/',
@@ -174,11 +153,10 @@ export function middleware(request: NextRequest) {
       });
     }
     
-    return secureResponse;
+    return response;
     
   } catch (error) {
     console.error('Middleware error:', error);
-    // Return a 500 error response if middleware fails
     return createErrorResponse(request, 500, 'Internal middleware error');
   }
 }

@@ -1,6 +1,6 @@
 // Real API service for catalog data (replaces mock services)
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 interface Product {
   id: string;
@@ -40,12 +40,6 @@ interface Category {
 const isServerSide = typeof window === 'undefined';
 const isProduction = process.env.NODE_ENV === 'production';
 const isBuildTime = isServerSide && process.env.NEXT_PHASE === 'phase-production-build';
-
-// Initialize Prisma only on server side and not during build
-let prisma: PrismaClient | null = null;
-if (isServerSide && !isBuildTime && process.env.DATABASE_URL) {
-  prisma = new PrismaClient();
-}
 
 // Better API base URL construction for production
 const getApiBase = () => {
@@ -139,13 +133,8 @@ if (isServerSide) {
 
 // Fetch featured products for homepage
 export async function fetchFeaturedProducts(limit = 8) {
-  if (isBuildTime || (!API_BASE && !prisma)) {
-    console.log('🏗️ Build time or no API_BASE/prisma - returning empty array');
-    return [];
-  }
-
-  // Use direct database call on server-side, API call on client-side
-  if (isServerSide && prisma) {
+  // During build time or on server-side, use database directly
+  if (isServerSide && process.env.DATABASE_URL) {
     try {
       console.log('🗄️ Server-side: Fetching featured products directly from database');
       
@@ -185,12 +174,18 @@ export async function fetchFeaturedProducts(limit = 8) {
     } catch (error) {
       console.error('💥 Database featured products fetch error:', error);
       
-      // Fallback to API call if database fails
+      // During build, return empty array on error to prevent build failure
+      if (isBuildTime) {
+        console.log('🏗️ Build time: Returning empty array due to database error');
+        return [];
+      }
+      
+      // At runtime, fallback to API call if database fails
       return fetchFeaturedProductsFromAPI(limit);
     }
   }
 
-  // Client-side or fallback: use API call
+  // Client-side: use API call
   return fetchFeaturedProductsFromAPI(limit);
 }
 
@@ -237,13 +232,8 @@ async function fetchFeaturedProductsFromAPI(limit = 8) {
 
 // Fetch categories/collections for homepage
 export async function fetchCollections() {
-  if (isBuildTime || (!API_BASE && !prisma)) {
-    console.log('🏗️ Build time or no API_BASE/prisma - returning empty array');
-    return [];
-  }
-
-  // Use direct database call on server-side, API call on client-side
-  if (isServerSide && prisma) {
+  // During build time or on server-side, use database directly
+  if (isServerSide && process.env.DATABASE_URL) {
     try {
       console.log('🗄️ Server-side: Fetching collections directly from database');
       
@@ -298,12 +288,18 @@ export async function fetchCollections() {
     } catch (error) {
       console.error('💥 Database collections fetch error:', error);
       
-      // Fallback to API call if database fails
+      // During build, return empty array on error to prevent build failure
+      if (isBuildTime) {
+        console.log('🏗️ Build time: Returning empty array due to database error');
+        return [];
+      }
+      
+      // At runtime, fallback to API call if database fails
       return fetchCollectionsFromAPI();
     }
   }
 
-  // Client-side or fallback: use API call
+  // Client-side: use API call
   return fetchCollectionsFromAPI();
 }
 
@@ -360,13 +356,8 @@ async function fetchCollectionsFromAPI() {
 
 // Fetch products by collection/category
 export async function fetchProductsByCollection(categorySlug: string) {
-  if (isBuildTime || (!API_BASE && !prisma)) {
-    console.log('🏗️ Build time or no API_BASE/prisma - returning empty array');
-    return [];
-  }
-
-  // Use direct database call on server-side, API call on client-side
-  if (isServerSide && prisma) {
+  // During build time or on server-side, use database directly
+  if (isServerSide && process.env.DATABASE_URL) {
     try {
       console.log(`🗄️ Server-side: Fetching products for category "${categorySlug}" directly from database`);
       
@@ -407,12 +398,18 @@ export async function fetchProductsByCollection(categorySlug: string) {
     } catch (error) {
       console.error(`💥 Database fetch error for category "${categorySlug}":`, error);
       
-      // Fallback to API call if database fails
+      // During build, return empty array on error to prevent build failure
+      if (isBuildTime) {
+        console.log('🏗️ Build time: Returning empty array due to database error');
+        return [];
+      }
+      
+      // At runtime, fallback to API call if database fails
       return fetchProductsByCollectionFromAPI(categorySlug);
     }
   }
 
-  // Client-side or fallback: use API call
+  // Client-side: use API call
   return fetchProductsByCollectionFromAPI(categorySlug);
 }
 
@@ -452,13 +449,8 @@ async function fetchProductsByCollectionFromAPI(categorySlug: string) {
 
 // Fetch single product by slug
 export async function fetchProduct(productSlug: string) {
-  if (isBuildTime || (!API_BASE && !prisma)) {
-    console.log('🏗️ Build time or no API_BASE/prisma - returning null');
-    return null;
-  }
-
-  // Use direct database call on server-side, API call on client-side
-  if (isServerSide && prisma) {
+  // During build time or on server-side, use database directly
+  if (isServerSide && process.env.DATABASE_URL) {
     try {
       console.log(`🗄️ Server-side: Fetching product "${productSlug}" directly from database`);
       
@@ -504,12 +496,18 @@ export async function fetchProduct(productSlug: string) {
     } catch (error) {
       console.error(`💥 Database fetch error for product "${productSlug}":`, error);
       
-      // Fallback to API call if database fails
+      // During build, return null on error to prevent build failure
+      if (isBuildTime) {
+        console.log('🏗️ Build time: Returning null due to database error');
+        return null;
+      }
+      
+      // At runtime, fallback to API call if database fails
       return fetchProductFromAPI(productSlug);
     }
   }
 
-  // Client-side or fallback: use API call
+  // Client-side: use API call
   return fetchProductFromAPI(productSlug);
 }
 
