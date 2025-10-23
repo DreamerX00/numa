@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/lib/auth/client'
-import { getFirebaseClient } from '@/lib/firebase/client'
 import Image from 'next/image'
 
 interface ReviewFormProps {
@@ -35,13 +34,6 @@ export default function ReviewForm({ productId, productName, onSuccess, onCancel
   const [uploadingImages, setUploadingImages] = useState<boolean[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-
-  const getAuthToken = async () => {
-    const { auth } = getFirebaseClient()
-    const currentUser = auth.currentUser
-    if (!currentUser) throw new Error('Not authenticated')
-    return await currentUser.getIdToken()
-  }
 
   const handleRatingChange = (rating: number) => {
     setFormData(prev => ({ ...prev, rating }))
@@ -129,13 +121,10 @@ export default function ReviewForm({ productId, productName, onSuccess, onCancel
     setError(null)
 
     try {
-      const token = await getAuthToken()
-      
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           productId,

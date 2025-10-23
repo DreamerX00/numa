@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,7 +122,7 @@ export function AuthStep({ onNext, onSkip }: AuthStepProps) {
       const { auth } = getFirebaseClient();
       
       if (isSignUp) {
-        // Create new user
+        // Create new user in Firebase
         const cred = await createUserWithEmailAndPassword(auth, formData.email.trim(), formData.password);
         
         // Update profile with name
@@ -129,24 +130,35 @@ export function AuthStep({ onNext, onSkip }: AuthStepProps) {
           displayName: `${formData.firstName} ${formData.lastName}`.trim()
         });
         
-        // Create server session
-        const idToken = await cred.user.getIdToken();
-        await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken }),
+        // Sign in with NextAuth
+        const result = await signIn("credentials", {
+          email: formData.email.trim(),
+          password: formData.password,
+          redirect: false,
         });
-      } else {
-        // Sign in existing user
-        const cred = await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password);
         
-        // Create server session
-        const idToken = await cred.user.getIdToken();
-        await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken }),
+        if (result?.error) {
+          throw new Error(result.error);
+        }
+        
+        // Sign out from Firebase (only used for user creation)
+        await auth.signOut();
+      } else {
+        // Validate password with Firebase, then create NextAuth session
+        await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password);
+        
+        const result = await signIn("credentials", {
+          email: formData.email.trim(),
+          password: formData.password,
+          redirect: false,
         });
+        
+        if (result?.error) {
+          throw new Error(result.error);
+        }
+        
+        // Sign out from Firebase (only used for validation)
+        await auth.signOut();
       }
       
       onNext();

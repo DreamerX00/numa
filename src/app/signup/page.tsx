@@ -53,20 +53,31 @@ function SignupPageContent() {
     setError(null);
     setLoading(true);
     try {
+      // Create user in Firebase first (for password storage)
       const { auth } = getFirebaseClient();
       const cred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
       if (data.name?.trim()) {
         await updateProfile(cred.user, { displayName: data.name.trim() });
       }
-      const idToken = await cred.user.getIdToken();
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+      
+      // Now sign in with NextAuth (this will create DB user)
+      const result = await signIn("credentials", {
+        email: data.email.trim(),
+        password: data.password,
+        redirect: false,
       });
-      if (!res.ok) throw new Error("Session creation failed");
-      router.push(redirect);
-      router.refresh();
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
+      if (result?.ok) {
+        // Sign out from Firebase (we only used it for user creation)
+        await auth.signOut();
+        
+        router.push(redirect);
+        router.refresh();
+      }
     } catch (err: unknown) {
       let errorMessage = "Signup failed";
       if (err && typeof err === 'object' && 'code' in err) {
@@ -78,6 +89,8 @@ function SignupPageContent() {
         } else if (firebaseError.code === "auth/weak-password") {
           errorMessage = "Password is too weak. Please choose a stronger password";
         }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
       }
       setError(errorMessage);
     } finally {

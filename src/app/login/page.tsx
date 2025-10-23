@@ -45,28 +45,28 @@ function LoginPageContent() {
     setError(null);
     setLoading(true);
     try {
+      // First validate with Firebase to check password
       const { auth } = getFirebaseClient();
-      const cred = await signInWithEmailAndPassword(auth, data.email.trim(), data.password);
-      const idToken = await cred.user.getIdToken();
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+      await signInWithEmailAndPassword(auth, data.email.trim(), data.password);
+      
+      // Password is valid, now sign in with NextAuth
+      const result = await signIn("credentials", {
+        email: data.email.trim(),
+        password: data.password,
+        redirect: false,
       });
       
-      const responseData = await res.json();
-      console.log('🔐 Login API response:', { status: res.status, data: responseData });
-      
-      if (!res.ok) {
-        const errorMessage = responseData.details || responseData.error || "Session creation failed";
-        throw new Error(`${res.status} - ${errorMessage}`);
+      if (result?.error) {
+        throw new Error(result.error);
       }
       
-      // Force a small delay to ensure state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Redirect to the desired page
-      window.location.href = redirect;
+      if (result?.ok) {
+        // Sign out from Firebase (we only used it for password validation)
+        await auth.signOut();
+        
+        // Redirect to the desired page
+        window.location.href = redirect;
+      }
     } catch (err: unknown) {
       let errorMessage = "Login failed";
       if (err && typeof err === 'object' && 'code' in err) {
@@ -82,6 +82,8 @@ function LoginPageContent() {
         } else if (firebaseError.code === "auth/invalid-credential") {
           errorMessage = "Invalid email or password";
         }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
       }
       setError(errorMessage);
     } finally {

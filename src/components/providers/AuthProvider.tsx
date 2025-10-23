@@ -1,14 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { getFirebaseClient } from '@/lib/firebase/client';
+import { useSession, signOut as nextAuthSignOut } from 'next-auth/react';
 
 export interface AuthUser {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  role?: string;
+  isActive?: boolean;
 }
 
 interface AuthContextType {
@@ -20,74 +21,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const loading = status === 'loading';
 
   useEffect(() => {
-    const { auth } = getFirebaseClient();
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Auth state change triggered
-      
-      if (firebaseUser) {
-        // Verify that we also have a valid server-side session
-        try {
-          const response = await fetch('/api/auth/verify');
-          const { authenticated } = await response.json();
-          
-          if (authenticated) {
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-            });
-            // User set from existing session
-          } else {
-            // Firebase auth is valid but no server session - create one
-            const idToken = await firebaseUser.getIdToken();
-            await fetch('/api/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ idToken }),
-            });
-            
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-            });
-            // User set from new session
-          }
-        } catch (error) {
-          console.error('AuthProvider: Session verification error:', error);
-          setUser(null);
-        }
-      } else {
-        // No firebase user, setting user to null
-        setUser(null);
-      }
-      setLoading(false);
-      // Loading set to false
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (status === 'authenticated' && session?.user) {
+      setUser({
+        uid: session.user.id,
+        email: session.user.email || null,
+        displayName: session.user.name || null,
+        photoURL: session.user.image || null,
+        role: session.user.role,
+        isActive: session.user.isActive,
+      });
+    } else if (status === 'unauthenticated') {
+      setUser(null);
+    }
+  }, [session, status]);
 
   const logout = async () => {
     try {
-      const { auth } = getFirebaseClient();
-      await signOut(auth);
-      
-      // Call the logout API to clear the session cookie
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-      
+      await nextAuthSignOut({ redirect: false });
       setUser(null);
-      
-      // Redirect to home page after logout
       window.location.href = '/';
     } catch (error) {
       console.error('Logout failed:', error);

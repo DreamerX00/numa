@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getFirebaseAdmin } from '@/lib/firebase/admin'
+import { getUserFromRequest } from '@/lib/auth/session'
 import { z } from 'zod'
 
 const createReviewSchema = z.object({
@@ -13,24 +13,11 @@ const createReviewSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const { adminAuth } = getFirebaseAdmin()
-    const decodedToken = await adminAuth.verifyIdToken(token)
+    // Check authentication via NextAuth session
+    const user = await getUserFromRequest(request);
     
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { firebaseUid: decodedToken.uid },
-      select: { id: true, isActive: true }
-    })
-
-    if (!user || !user.isActive) {
-      return NextResponse.json({ error: 'User not found or inactive' }, { status: 404 })
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     // Parse and validate request body

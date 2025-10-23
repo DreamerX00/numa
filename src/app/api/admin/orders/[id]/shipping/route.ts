@@ -145,7 +145,7 @@ export async function PATCH(
         carrier,
         estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : null,
         notes: `Order shipped via ${carrier}`,
-        updatedBy: authResult.firebaseUser?.email || 'admin',
+        updatedBy: authResult.sessionUser?.email || 'admin',
       }
     });
 

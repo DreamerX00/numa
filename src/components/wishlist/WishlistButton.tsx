@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth/client'
-import { getFirebaseClient } from '@/lib/firebase/client'
 import { cn } from '@/lib/utils'
 
 interface WishlistButtonProps {
@@ -28,13 +27,6 @@ export default function WishlistButton({
   const [inWishlist, setInWishlist] = useState(initialInWishlist)
   const [isLoading, setIsLoading] = useState(false)
 
-  const getAuthToken = async () => {
-    const { auth } = getFirebaseClient()
-    const currentUser = auth.currentUser
-    if (!currentUser) throw new Error('Not authenticated')
-    return await currentUser.getIdToken()
-  }
-
   const handleToggleWishlist = async () => {
     if (!user) {
       // Redirect to login or show login modal
@@ -45,14 +37,12 @@ export default function WishlistButton({
     setIsLoading(true)
 
     try {
-      const token = await getAuthToken()
       const method = inWishlist ? 'DELETE' : 'POST'
       
       const response = await fetch('/api/wishlist', {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           productId

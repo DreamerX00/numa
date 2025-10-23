@@ -12,49 +12,18 @@ const authRoutes = ['/login', '/signup'];
 // Admin routes that require special handling (handled client-side)
 const adminRoutes = ['/admin'];
 
-// Session cookie names
-const SESSION_COOKIE_NAME = '__session'; // Firebase session
+// NextAuth session cookie name
 const NEXTAUTH_SESSION_COOKIE = process.env.NODE_ENV === 'production' 
   ? '__Secure-next-auth.session-token' 
-  : 'next-auth.session-token'; // NextAuth session
+  : 'next-auth.session-token';
 
 // CSRF protection configuration
 const CSRF_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 const CSRF_HEADER_NAME = 'x-csrf-token';
 const CSRF_TOKEN_COOKIE = 'csrf-token';
 
-// Basic session validation without full Firebase verification
-// (to avoid Edge Runtime incompatibility)
-// Now also checks for NextAuth sessions
-function isValidSessionFormat(sessionCookie: string): boolean {
-  try {
-    // Basic checks for session cookie format
-    if (!sessionCookie || sessionCookie.length < 10) return false;
-    
-    // Check if it looks like a JWT (has proper structure)
-    const parts = sessionCookie.split('.');
-    if (parts.length !== 3) return false;
-    
-    // Basic base64 validation for JWT header
-    try {
-      const header = JSON.parse(atob(parts[0]));
-      return header.alg && header.typ;
-    } catch {
-      return false;
-    }
-  } catch {
-    return false;
-  }
-}
-
-// Check if user has any valid session (Firebase or NextAuth)
+// Check if user has valid NextAuth session
 function hasValidSession(request: NextRequest): boolean {
-  // Check Firebase session
-  const firebaseSession = request.cookies.get(SESSION_COOKIE_NAME);
-  if (firebaseSession?.value && isValidSessionFormat(firebaseSession.value)) {
-    return true;
-  }
-  
   // Check NextAuth session
   const nextAuthSession = request.cookies.get(NEXTAUTH_SESSION_COOKIE);
   if (nextAuthSession?.value) {

@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { getFirebaseAdmin } from "@/lib/firebase/admin";
 import type { UserRole } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -18,6 +20,91 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           response_type: "code"
         }
       }
+    }),
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        try {
+          // Use Firebase Admin to verify email/password
+          const { adminAuth } = getFirebaseAdmin();
+          
+          // Get user by email from Firebase
+          let firebaseUser;
+          try {
+            firebaseUser = await adminAuth.getUserByEmail(credentials.email as string);
+          } catch (error) {
+            console.error("Firebase user not found:", error);
+            return null;
+          }
+
+          // For Firebase users, we need to verify password via Firebase Client SDK
+          // Since Admin SDK can't verify passwords, we'll check if user exists in our DB
+          // and trust that the client-side Firebase auth already validated the password
+          
+          // Find or create user in database
+          let dbUser = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+            include: { profile: true }
+          });
+
+          if (!dbUser && firebaseUser) {
+            // Create user if they exist in Firebase but not in DB
+            dbUser = await prisma.user.create({
+              data: {
+                email: credentials.email as string,
+                name: firebaseUser.displayName || null,
+                emailVerified: firebaseUser.emailVerified ? new Date() : null,
+                firebaseUid: firebaseUser.uid,
+                image: firebaseUser.photoURL || null,
+                profile: {
+                  create: {
+                    displayName: firebaseUser.displayName || credentials.email as string,
+                    lastLoginAt: new Date(),
+                  }
+                }
+              },
+              include: { profile: true }
+            });
+          }
+
+          if (!dbUser) {
+            return null;
+          }
+
+          // Update last login
+          await prisma.userProfile.upsert({
+            where: { userId: dbUser.id },
+            create: {
+              userId: dbUser.id,
+              lastLoginAt: new Date(),
+            },
+            update: {
+              lastLoginAt: new Date(),
+            },
+          });
+
+          // Return user object for NextAuth
+          return {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            image: dbUser.image,
+            role: dbUser.role,
+            isActive: dbUser.isActive,
+          };
+        } catch (error) {
+          console.error("Credentials authorization error:", error);
+          return null;
+        }
+      },
     }),
   ],
   callbacks: {

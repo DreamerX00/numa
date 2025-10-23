@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/lib/auth/client'
-import { getFirebaseClient } from '@/lib/firebase/client'
 import { useCartService } from '@/hooks/useCartService'
 import WishlistButton from './WishlistButton'
 import Image from 'next/image'
@@ -49,13 +48,6 @@ export default function WishlistPage() {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
-  const getAuthToken = async () => {
-    const { auth } = getFirebaseClient()
-    const currentUser = auth.currentUser
-    if (!currentUser) throw new Error('Not authenticated')
-    return await currentUser.getIdToken()
-  }
-
   const fetchWishlist = async (page = 1) => {
     if (!user) {
       setLoading(false)
@@ -64,13 +56,12 @@ export default function WishlistPage() {
 
     try {
       setLoading(true)
-      const token = await getAuthToken()
       
       const response = await fetch(
         `/api/wishlist?page=${page}&limit=20`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json',
           }
         }
       )

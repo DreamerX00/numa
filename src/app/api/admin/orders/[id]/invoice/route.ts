@@ -14,7 +14,7 @@ export async function POST(
 
   // Get admin email for audit trail
   const authResult = await verifyAdminAuth(request);
-  const adminEmail = authResult.success ? authResult.firebaseUser?.email : null;
+  const adminEmail = authResult.success ? authResult.sessionUser?.email : null;
 
   try {
     const orderId = id;
