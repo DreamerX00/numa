@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserFromSession';
+import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/userSession';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 

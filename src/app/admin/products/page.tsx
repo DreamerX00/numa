@@ -36,6 +36,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 // Types
 interface Product {
   id: string;

@@ -1,49 +1,52 @@
 import { NextRequest } from "next/server";
-import { getFirebaseAdmin } from "../firebase/admin";
+import { auth } from "@/lib/auth/config";
+import { prisma } from "@/lib/prisma";
 
-// Session cookie config
-export const SESSION_COOKIE_NAME = "__session"; // Vercel-friendly
-export const SESSION_EXPIRES_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
-
-export async function createSessionCookieValue(idToken: string) {
+/**
+ * Get user from NextAuth session via request
+ * This is used in API routes to authenticate users
+ * @param _req - Not used, kept for API compatibility with existing code
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function getUserFromRequest(_req: NextRequest) {
   try {
-    console.log('🔐 Starting session cookie creation...');
+    // Get session from NextAuth
+    const session = await auth();
     
-    const { adminAuth } = getFirebaseAdmin();
-    console.log('✅ Firebase Admin Auth initialized');
+    if (!session?.user?.id) {
+      return null;
+    }
     
-    const expiresIn = SESSION_EXPIRES_MS;
-    console.log(`⏰ Session expires in: ${expiresIn}ms (${Math.floor(expiresIn / 1000)}s)`);
-    
-    // First verify the ID token is valid
-    console.log('🔍 Verifying ID token...');
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    console.log('✅ ID token verified for user:', decodedToken.uid);
-    
-    // Create session cookie
-    console.log('🍪 Creating session cookie...');
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-    console.log('✅ Session cookie created successfully');
-    
-    return { sessionCookie, maxAge: Math.floor(expiresIn / 1000) };
-  } catch (error) {
-    console.error('💥 Session cookie creation failed:', {
-      error: error instanceof Error ? error.message : String(error),
-      code: (error as { code?: string })?.code,
-      stack: error instanceof Error ? error.stack : undefined
+    // Get full user data from database
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        firebaseUid: true,
+      },
     });
-    throw error;
-  }
-}
-
-export async function getUserFromRequest(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
-  const { adminAuth } = getFirebaseAdmin();
-  try {
-    const decoded = await adminAuth.verifySessionCookie(token, true);
-    return decoded;
-  } catch {
+    
+    if (!user || !user.isActive) {
+      return null;
+    }
+    
+    return {
+      uid: user.firebaseUid || user.id, // For backward compatibility with Firebase uid checks
+      email: user.email,
+      id: user.id,
+      role: user.role,
+      name: user.name,
+    };
+  } catch (error) {
+    console.error('Error getting user from request:', error);
     return null;
   }
 }
+
+// Legacy session cookie config - kept for reference but not used anymore
+export const SESSION_COOKIE_NAME = "__session"; // Vercel-friendly
+export const SESSION_EXPIRES_MS = 5 * 24 * 60 * 60 * 1000; // 5 days

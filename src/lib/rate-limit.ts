@@ -160,4 +160,57 @@ export function authRateLimit() {
   });
 }
 
+/**
+ * User-specific rate limiter (for authenticated requests)
+ * Uses user ID as key instead of IP
+ */
+export function userRateLimit(options: Partial<RateLimitOptions> = {}) {
+  return rateLimit({
+    windowMs: 60 * 1000, // 1 minute default
+    maxAttempts: 60, // 60 requests per minute default
+    ...options,
+    keyGenerator: (req: NextRequest) => {
+      // Try to get user ID from various sources
+      const authHeader = req.headers.get('authorization');
+      if (authHeader) {
+        // Extract user ID from JWT if present
+        try {
+          const token = authHeader.replace('Bearer ', '');
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          return `user:${payload.uid || payload.sub || payload.id}`;
+        } catch {
+          // Fall back to IP if token parsing fails
+        }
+      }
+      
+      // Fall back to IP-based rate limiting
+      return `ip:${getClientIP(req)}`;
+    },
+  });
+}
+
+/**
+ * Get rate limit info without incrementing counter
+ * Useful for displaying remaining requests to users
+ */
+export function getRateLimitInfo(key: string): {
+  remaining: number;
+  resetTime: number;
+  isLimited: boolean;
+} | null {
+  const data = rateLimitStore.get(key);
+  if (!data) return null;
+  
+  const now = Date.now();
+  if (now > data.resetTime) {
+    return null; // Expired
+  }
+  
+  return {
+    remaining: Math.max(0, data.count),
+    resetTime: data.resetTime,
+    isLimited: data.count >= 100, // Using default max as fallback
+  };
+}
+
 export { getClientIP };

@@ -1,4 +1,5 @@
 import type { Product, ProductVariant, CartItem } from '@/lib/types/product';
+import { cartStorage } from '@/lib/storage/cartStorage';
 
 export interface CartOperationResult {
   success: boolean;
@@ -132,18 +133,17 @@ export class CartService {
 
   /**
    * Add item to local cart (guest users)
+   * Uses CartStorage abstraction for better error handling
    */
   private async addToLocalCart(
     product: Product, 
     variant: ProductVariant | null, 
     quantity: number
   ): Promise<CartOperationResult> {
-    // Get cart from localStorage
-    const cartData = localStorage.getItem('numa-cart');
-    const cart = cartData ? JSON.parse(cartData) : { state: { items: [] } };
+    const items = cartStorage.getItems();
     
     const variantId = variant?.id || null;
-    const existingItemIndex = cart.state.items.findIndex(
+    const existingItemIndex = items.findIndex(
       (item: CartItem) => item.productId === product.id && item.variantId === variantId
     );
 
@@ -151,7 +151,14 @@ export class CartService {
     
     if (existingItemIndex > -1) {
       // Update existing item quantity
-      cart.state.items[existingItemIndex].quantity += quantity;
+      items[existingItemIndex].quantity += quantity;
+      const success = cartStorage.setItems(items);
+      
+      if (!success) {
+        return { success: false, error: 'Failed to save cart' };
+      }
+      
+      return { success: true, cartItem: items[existingItemIndex] };
     } else {
       // Add new item
       const newItem: CartItem = {
@@ -164,16 +171,15 @@ export class CartService {
         addedAt: new Date(),
         price: itemPrice,
       };
-      cart.state.items.push(newItem);
+      
+      const success = cartStorage.upsertItem(newItem);
+      
+      if (!success) {
+        return { success: false, error: 'Failed to save cart' };
+      }
+      
+      return { success: true, cartItem: newItem };
     }
-
-    // Save back to localStorage
-    localStorage.setItem('numa-cart', JSON.stringify(cart));
-    
-    return { 
-      success: true, 
-      cartItem: cart.state.items[existingItemIndex] || cart.state.items[cart.state.items.length - 1]
-    };
   }
 
   /**
@@ -222,20 +228,12 @@ export class CartService {
    * Get cart items from local storage
    */
   private getLocalCartItems(): CartItem[] {
-    try {
-      const cartData = localStorage.getItem('numa-cart');
-      if (!cartData) return [];
-      
-      const cart = JSON.parse(cartData);
-      return cart.state?.items || [];
-    } catch (error) {
-      console.error('Error reading local cart:', error);
-      return [];
-    }
+    return cartStorage.getItems();
   }
 
   /**
    * Sync local cart with server cart when user logs in
+   * Uses batch sync endpoint for optimal performance
    */
   async syncCartOnLogin(): Promise<CartSyncResult> {
     try {
@@ -243,28 +241,43 @@ export class CartService {
       const localItems = this.getLocalCartItems();
       
       if (localItems.length === 0) {
-        return { success: true, mergedItems: [] };
+        // No local items, just fetch server cart
+        const serverItems = await this.getServerCartItems();
+        return { success: true, mergedItems: serverItems };
       }
 
-      // Get server cart items (to check for conflicts, but for now just merge)
-      await this.getServerCartItems();
-      
-      // Merge local items to server
-      const syncPromises = localItems.map(async (localItem) => {
-        return await this.addToServerCart(
-          localItem.product, 
-          localItem.variant, 
-          localItem.quantity
-        );
+      // Use batch sync endpoint (single API call instead of N+1)
+      const response = await fetch('/api/cart/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guestCartItems: localItems.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId || undefined,
+            quantity: item.quantity,
+          }))
+        }),
       });
 
-      await Promise.all(syncPromises);
+      if (!response.ok) {
+        throw new Error('Failed to sync cart');
+      }
+
+      const data = await response.json();
+      const mergedItems = data.items?.map((raw: {
+        id: string;
+        productId: string;
+        variantId: string | null;
+        quantity: number;
+        price: number;
+        createdAt?: string;
+        product: Product & { variants?: ProductVariant[] };
+      }) => this.transformServerCartItem(raw)) || [];
       
       // Clear local cart after successful sync
       this.clearLocalCart();
-      
-      // Get updated server cart
-      const mergedItems = await this.getServerCartItems();
       
       return { 
         success: true, 
@@ -291,14 +304,12 @@ export class CartService {
         return { success: true, mergedItems: [] };
       }
 
-      // Save to local storage
-      const cartData = {
-        state: {
-          items: serverItems
-        }
-      };
+      // Save to local storage using CartStorage
+      const success = cartStorage.setItems(serverItems);
       
-      localStorage.setItem('numa-cart', JSON.stringify(cartData));
+      if (!success) {
+        throw new Error('Failed to save cart to localStorage');
+      }
       
       return { 
         success: true, 
@@ -317,7 +328,7 @@ export class CartService {
    * Clear local cart
    */
   private clearLocalCart(): void {
-    localStorage.removeItem('numa-cart');
+    cartStorage.clear();
   }
 
   /**
@@ -379,32 +390,37 @@ export class CartService {
    * Update quantity in local storage
    */
   private async updateLocalQuantity(itemId: string, quantity: number): Promise<CartOperationResult> {
-    const cartData = localStorage.getItem('numa-cart');
-    if (!cartData) {
-      throw new Error('Cart not found');
-    }
-
-    const cart = JSON.parse(cartData);
-    const itemIndex = cart.state.items.findIndex((item: CartItem) => item.id === itemId);
+    const items = cartStorage.getItems();
+    
+    const itemIndex = items.findIndex((item: CartItem) => item.id === itemId);
     
     if (itemIndex === -1) {
-      throw new Error('Item not found');
+      return { success: false, error: 'Item not found' };
     }
 
     if (quantity <= 0) {
       // Remove item
-      cart.state.items.splice(itemIndex, 1);
+      const success = cartStorage.removeItem(itemId);
+      return success 
+        ? { success: true } 
+        : { success: false, error: 'Failed to remove item' };
     } else {
       // Update quantity
-      cart.state.items[itemIndex].quantity = quantity;
+      const success = cartStorage.updateQuantity(itemId, quantity);
+      
+      if (!success) {
+        return { success: false, error: 'Failed to update quantity' };
+      }
+      
+      // Get updated item
+      const updatedItems = cartStorage.getItems();
+      const updatedItem = updatedItems.find(item => item.id === itemId);
+      
+      return { 
+        success: true, 
+        cartItem: updatedItem 
+      };
     }
-
-    localStorage.setItem('numa-cart', JSON.stringify(cart));
-    
-    return { 
-      success: true, 
-      cartItem: cart.state.items[itemIndex] 
-    };
   }
 
   /**

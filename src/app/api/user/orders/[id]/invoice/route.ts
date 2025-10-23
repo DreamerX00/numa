@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/getUserFromSession';
+import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/userSession';
 import { generateInvoiceHTML, generateInvoicePDF } from '@/lib/invoice/generator';
 
 export async function GET(

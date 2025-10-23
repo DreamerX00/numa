@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 interface HealthCheck {
@@ -37,16 +37,14 @@ interface HealthStatus {
   };
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const startTime = Date.now();
   
-  // Get query parameters for detailed checks
-  const { searchParams } = new URL(request.url);
-  const detailed = searchParams.get('detailed') === 'true';
-  const includeData = searchParams.get('data') === 'true';
+  // Simple health check - no detailed information exposed
+  // For detailed checks, use admin dashboard or server logs
   
   try {
-    console.log('🔍 Starting health check...');
+    if (process.env.NODE_ENV === 'development') console.log('🔍 Starting health check...');
     
     const healthStatus: HealthStatus = {
       status: 'healthy',
@@ -61,149 +59,60 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // 1. Database Connection Check
-    console.log('🗄️ Testing database connection...');
+    // 1. Database Connection Check (basic ping only)
+    if (process.env.NODE_ENV === 'development') console.log('🗄️ Testing database connection...');
     const dbStart = Date.now();
     
     try {
       // Test basic connection with MongoDB ping
-      const pingResult = await prisma.$runCommandRaw({ ping: 1 });
+      await prisma.$runCommandRaw({ ping: 1 });
       const dbResponseTime = Date.now() - dbStart;
       
       healthStatus.checks.database = {
         status: 'healthy',
         responseTime: dbResponseTime,
-        connection: 'active',
-        ping: pingResult
+        connection: 'active'
       };
       
-      console.log(`✅ Database ping successful in ${dbResponseTime}ms`);
-      
-      // Additional database checks if detailed=true
-      if (detailed) {
-        console.log('📊 Running detailed database checks...');
-        
-        // Test actual data operations
-        const [userCount, productCount, categoryCount] = await Promise.all([
-          prisma.user.count(),
-          prisma.product.count(),
-          prisma.category.count()
-        ]);
-        
-        healthStatus.checks.database.collections = {
-          users: userCount,
-          products: productCount,
-          categories: categoryCount
-        };
-        
-        // Test a simple query
-        const recentUser = await prisma.user.findFirst({
-          orderBy: { createdAt: 'desc' },
-          select: { id: true, email: true, createdAt: true }
-        });
-        
-        healthStatus.checks.database.lastActivity = {
-          recentUser: recentUser ? {
-            id: recentUser.id,
-            email: recentUser.email.replace(/(.{2}).*@/, '$1***@'),
-            createdAt: recentUser.createdAt
-          } : null
-        };
-      }
+      if (process.env.NODE_ENV === 'development') console.log(`✅ Database ping successful in ${dbResponseTime}ms`);
       
     } catch (dbError: unknown) {
       console.error('❌ Database connection failed:', dbError);
       
-      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';
-      const errorCode = dbError instanceof Error && 'code' in dbError ? (dbError as Error & { code: string }).code : undefined;
-      
       healthStatus.checks.database = {
         status: 'unhealthy',
         responseTime: Date.now() - dbStart,
-        error: errorMessage,
-        errorCode: errorCode,
         connection: 'failed'
       };
       
       healthStatus.status = 'unhealthy';
     }
 
-    // 2. Environment Variables Check
-    console.log('🔧 Checking environment configuration...');
+    // 2. Environment Variables Check (basic check only - no details exposed)
+    if (process.env.NODE_ENV === 'development') console.log('🔧 Checking environment configuration...');
     
-    const requiredEnvVars = [
+    const criticalEnvVars = [
       'DATABASE_URL',
       'NEXTAUTH_SECRET',
-      'NEXT_PUBLIC_FIREBASE_API_KEY',
-      'FIREBASE_PROJECT_ID',
-      'FIREBASE_CLIENT_EMAIL',
-      'FIREBASE_PRIVATE_KEY',
-      'PHONEPE_MERCHANT_ID',
-      'PHONEPE_SALT_KEY',
-      'PHONEPE_HOST_URL',
-      'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
-      'CLOUDINARY_API_KEY',
-      'CLOUDINARY_API_SECRET',
-      'NEXT_PUBLIC_APP_URL'
+      'NEXT_PUBLIC_FIREBASE_API_KEY'
     ];
     
-    const envStatus = requiredEnvVars.map(envVar => ({
-      name: envVar,
-      present: !!process.env[envVar],
-      value: process.env[envVar] ? 
-        (envVar.includes('SECRET') || envVar.includes('KEY') ? 
-          '***HIDDEN***' : 
-          process.env[envVar]?.substring(0, 20) + '...'
-        ) : undefined
-    }));
-    
-    const missingEnvVars = envStatus.filter(env => !env.present);
+    const missingCritical = criticalEnvVars.filter(envVar => !process.env[envVar]);
     
     healthStatus.checks.environment = {
-      status: missingEnvVars.length === 0 ? 'healthy' : 'warning',
-      required: envStatus.length,
-      present: envStatus.length - missingEnvVars.length,
-      missing: missingEnvVars.map(env => env.name),
-      ...(detailed && { details: envStatus })
+      status: missingCritical.length === 0 ? 'healthy' : 'unhealthy'
     };
 
-    // 3. Services Check
-    console.log('🔗 Checking external services...');
+    // 3. Services Check (minimal info)
+    if (process.env.NODE_ENV === 'development') console.log('🔗 Checking external services...');
     
-    const serviceChecks = {
-      cloudinary: !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-      firebase: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      phonepe: !!process.env.PHONEPE_MERCHANT_ID,
-      email: !!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY
-    };
+    const hasCloudinary = !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const hasFirebase = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    const hasPayment = !!process.env.PHONEPE_MERCHANT_ID;
     
     healthStatus.checks.services = {
-      status: Object.values(serviceChecks).every(Boolean) ? 'healthy' : 'warning',
-      available: serviceChecks
+      status: (hasCloudinary && hasFirebase && hasPayment) ? 'healthy' : 'degraded'
     };
-
-    // 4. Sample Data Check (if requested)
-    if (includeData && healthStatus.checks.database.status === 'healthy') {
-      console.log('📦 Fetching sample data...');
-      
-      try {
-        const sampleCategories = await prisma.category.findMany({
-          take: 3,
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            _count: {
-              select: { products: true }
-            }
-          }
-        });
-        
-        healthStatus.checks.database.sampleData = sampleCategories;
-      } catch (sampleError) {
-        console.warn('⚠️ Could not fetch sample data:', sampleError);
-      }
-    }
 
     // Calculate total response time
     const totalResponseTime = Date.now() - startTime;
@@ -218,12 +127,12 @@ export async function GET(request: NextRequest) {
       healthStatus.status = 'unhealthy';
     } else {
       const hasWarnings = Object.values(healthStatus.checks).some(
-        check => check.status === 'warning'
+        check => check.status === 'degraded'
       );
       healthStatus.status = hasWarnings ? 'degraded' : 'healthy';
     }
 
-    console.log(`🎯 Health check completed in ${totalResponseTime}ms - Status: ${healthStatus.status}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🎯 Health check completed in ${totalResponseTime}ms - Status: ${healthStatus.status}`);
 
     // Return appropriate HTTP status code
     const httpStatus = healthStatus.status === 'healthy' ? 200 : 
@@ -241,7 +150,6 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('💥 Health check failed:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const totalResponseTime = Date.now() - startTime;
     
     return NextResponse.json({
@@ -249,16 +157,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
       responseTime: totalResponseTime,
-      error: errorMessage,
-      message: 'Health check system failure',
-      troubleshooting: {
-        steps: [
-          'Check server logs for detailed error information',
-          'Verify environment variables are properly set',
-          'Ensure database connection string is correct',
-          'Check if all required services are accessible'
-        ]
-      }
+      message: 'Health check system failure'
     }, { 
       status: 500,
       headers: {

@@ -3,10 +3,12 @@
 import { useAuth } from '@/lib/auth/client';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
-import { Loader2, Shield, AlertTriangle } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
+import HeartLoader from '@/components/ui/HeartLoader';
+import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,19 +25,88 @@ async function checkAdminAccess() {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   
-  const { data: adminData, isLoading: adminLoading, error } = useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data: _adminData, isLoading: adminLoading, error } = useQuery({
     queryKey: ['admin', 'access'],
     queryFn: checkAdminAccess,
     enabled: !!user && !loading,
-    retry: false
+    retry: false,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on component mount
   });
 
+  // Check if user has admin role
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AdminLayout] Auth check:', { 
+        user: user?.email, 
+        role: user?.role,
+        isActive: user?.isActive,
+        loading,
+        isAdmin,
+        hasUser: !!user,
+        hasCheckedAuth,
+        timestamp: new Date().toISOString()
+      });
     }
-  }, [user, loading, router]);
+
+    // Wait a bit before checking to ensure session is loaded
+    // Only check auth once loading is complete and we haven't checked yet
+    if (!loading && !hasCheckedAuth) {
+      // Add a small delay to ensure session is fully loaded
+      const timeoutId = setTimeout(() => {
+        setHasCheckedAuth(true);
+        
+        if (!user) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[AdminLayout] ❌ No user detected after delay, redirecting to login', {
+              loading,
+              user,
+              timestamp: new Date().toISOString()
+            });
+          }
+          router.push('/login?redirect=/admin');
+        } else if (!isAdmin) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[AdminLayout] ❌ User is not admin, redirecting to home', {
+              role: user.role,
+              isAdmin,
+              timestamp: new Date().toISOString()
+            });
+          }
+          router.push('/');
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AdminLayout] ✅ User is admin, access granted');
+          }
+        }
+      }, 500); // Wait 500ms for session to fully load
+
+      return () => clearTimeout(timeoutId);
+    } else if (!loading && hasCheckedAuth) {
+      // If user changes after initial check, update accordingly
+      if (!user) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[AdminLayout] ❌ User lost after initial check, redirecting');
+        }
+        router.push('/login?redirect=/admin');
+      } else if (!isAdmin) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[AdminLayout] ❌ User role changed, no longer admin');
+        }
+        router.push('/');
+      }
+    } else if (!loading && process.env.NODE_ENV === 'development') {
+      console.log('[AdminLayout] ⏳ Already checked auth, skipping redirect');
+    } else if (process.env.NODE_ENV === 'development') {
+      console.log('[AdminLayout] ⏳ Still loading...');
+    }
+  }, [user, loading, isAdmin, hasCheckedAuth, router]);
 
   if (loading || adminLoading) {
     return (
@@ -53,26 +124,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
-  if (error || !adminData) {
+  // Show error only if the API check failed (not if user doesn't have role)
+  if (error) {
+    console.error('[AdminLayout] API Error:', error);
+  }
+
+  // If user loaded but is not admin, the useEffect will redirect
+  // Show loading state while redirect is happening
+  if (!user || !isAdmin) {
     return (
       <Container className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md border-destructive">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-            </div>
-            <CardTitle className="text-destructive">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-muted-foreground mb-4">
-              You don&apos;t have permission to access the admin panel.
-            </p>
-            <button
-              onClick={() => router.push('/')}
-              className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Return to Homepage
-            </button>
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Redirecting...</h3>
           </CardContent>
         </Card>
       </Container>
@@ -134,17 +199,34 @@ interface NavLinkProps {
 
 function NavLink({ href, label }: NavLinkProps) {
   const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
   const isActive = typeof window !== 'undefined' && window.location.pathname === href;
+
+  const handleClick = async () => {
+    if (isActive || isNavigating) return;
+    
+    setIsNavigating(true);
+    try {
+      router.push(href);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setIsNavigating(false);
+    }
+  };
 
   return (
     <button
-      onClick={() => router.push(href)}
-      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+      onClick={handleClick}
+      disabled={isNavigating}
+      className={cn(
+        "py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2",
         isActive
           ? 'border-primary text-primary'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-      }`}
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+        isNavigating && 'opacity-50 cursor-not-allowed'
+      )}
     >
+      {isNavigating && <HeartLoader size="sm" />}
       {label}
     </button>
   );

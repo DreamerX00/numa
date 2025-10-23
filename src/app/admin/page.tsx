@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import HeartLoader from '@/components/ui/HeartLoader';
 
+export const dynamic = 'force-dynamic';
+
 interface DashboardData {
   stats: {
     totalUsers: { value: number; change: string; trend: string };

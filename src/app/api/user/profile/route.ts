@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromSession, createAuthErrorResponse, getUserPhotoURL } from '@/lib/auth/getUserFromSession';
+import { getUserFromSession, createAuthErrorResponse, getUserPhotoURL } from '@/lib/auth/userSession';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
       return createAuthErrorResponse(authResult);
     }
 
-    const { firebaseUser, dbUser } = authResult.user;
+    const { sessionUser, dbUser } = authResult.user;
 
-    // Get Firebase photo URL for avatar
-    const photoURL = getUserPhotoURL(firebaseUser);
+    // Get photo URL from session or database
+    const photoURL = getUserPhotoURL(sessionUser);
 
     return NextResponse.json({
       success: true,
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         isActive: dbUser.isActive,
         createdAt: dbUser.createdAt.toISOString(),
         updatedAt: dbUser.updatedAt.toISOString(),
-        photoURL, // From Firebase auth
+        photoURL, // From NextAuth session
         profile: dbUser.profile ? {
           id: dbUser.profile.id,
           firstName: dbUser.profile.firstName || '',

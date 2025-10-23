@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       const authResult = await getUserFromRequest(request);
       let userId = 'guest';
       
-      if (authResult && authResult.success) {
-        userId = authResult.user.uid;
+      if (authResult) {
+        userId = authResult.uid;
       }
 
       // Parse and validate request body

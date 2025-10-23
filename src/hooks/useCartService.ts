@@ -10,6 +10,7 @@ import { useHybridCartStore } from '@/lib/store/hybridCart';
 export function useCartService() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [operation, setOperation] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   // Using store via getState() to avoid unnecessary re-renders here
 
@@ -21,6 +22,7 @@ export function useCartService() {
     quantity: number = 1
   ): Promise<CartOperationResult> => {
     setIsLoading(true);
+    setOperation('adding');
     setError(null);
 
     try {
@@ -47,6 +49,7 @@ export function useCartService() {
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+      setOperation('');
     }
   }, [isAuthenticated]);
 
@@ -55,6 +58,7 @@ export function useCartService() {
     quantity: number
   ): Promise<CartOperationResult> => {
     setIsLoading(true);
+    setOperation('updating');
     setError(null);
 
     try {
@@ -81,11 +85,13 @@ export function useCartService() {
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+      setOperation('');
     }
   }, [isAuthenticated]);
 
   const removeItem = useCallback(async (itemId: string): Promise<CartOperationResult> => {
     setIsLoading(true);
+    setOperation('removing');
     setError(null);
 
     try {
@@ -112,11 +118,13 @@ export function useCartService() {
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+      setOperation('');
     }
   }, [isAuthenticated]);
 
   const getCartItems = useCallback(async () => {
     setIsLoading(true);
+    setOperation('loading');
     setError(null);
 
     try {
@@ -128,11 +136,13 @@ export function useCartService() {
       return [];
     } finally {
       setIsLoading(false);
+      setOperation('');
     }
   }, [isAuthenticated]);
 
   const syncCartOnLogin = useCallback(async () => {
     setIsLoading(true);
+    setOperation('syncing');
     setError(null);
 
     try {
@@ -149,11 +159,13 @@ export function useCartService() {
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+      setOperation('');
     }
   }, []);
 
   const syncCartOnLogout = useCallback(async () => {
     setIsLoading(true);
+    setOperation('syncing');
     setError(null);
 
     try {
@@ -170,6 +182,7 @@ export function useCartService() {
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+      setOperation('');
     }
   }, []);
 
@@ -181,6 +194,7 @@ export function useCartService() {
     syncCartOnLogin,
     syncCartOnLogout,
     isLoading,
+    operation,
     error,
     isAuthenticated,
     clearError: () => setError(null)

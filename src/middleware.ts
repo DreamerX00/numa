@@ -3,69 +3,94 @@ import type { NextRequest } from 'next/server';
 import { withSecurityHeaders, handleCORS } from '@/lib/security-headers';
 
 // Define protected routes that require authentication
-// Note: /profile and /admin are handled by client-side components due to session timing
 const protectedRoutes = ['/orders', '/wishlist', '/account'];
 
 // Define auth routes that should redirect if user is already logged in
 const authRoutes = ['/login', '/signup'];
 
-// Admin routes that require special handling (handled client-side)
-const adminRoutes = ['/admin'];
+// NextAuth session cookie name (environment-aware)
+const NEXTAUTH_SESSION_COOKIE = process.env.NODE_ENV === 'production' 
+  ? '__Secure-next-auth.session-token' 
+  : 'next-auth.session-token';
 
-// Session cookie name (matching the one set in login API)
-const SESSION_COOKIE_NAME = '__session';
+// CSRF protection configuration
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CSRF_HEADER_NAME = 'x-csrf-token';
+const CSRF_TOKEN_COOKIE = 'csrf-token';
 
-// Basic session validation without full Firebase verification
-// (to avoid Edge Runtime incompatibility)
-function isValidSessionFormat(sessionCookie: string): boolean {
-  try {
-    // Basic checks for session cookie format
-    if (!sessionCookie || sessionCookie.length < 10) return false;
-    
-    // Check if it looks like a JWT (has proper structure)
-    const parts = sessionCookie.split('.');
-    if (parts.length !== 3) return false;
-    
-    // Basic base64 validation for JWT header
-    try {
-      const header = JSON.parse(atob(parts[0]));
-      return header.alg && header.typ;
-    } catch {
-      return false;
-    }
-  } catch {
-    return false;
+// Check if user has valid NextAuth session
+function hasValidSession(request: NextRequest): boolean {
+  return !!request.cookies.get(NEXTAUTH_SESSION_COOKIE)?.value;
+}
+
+// Generate CSRF token
+function generateCSRFToken(): string {
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// Validate CSRF token for state-changing requests
+function validateCSRF(request: NextRequest): boolean {
+  // Skip CSRF validation for safe methods
+  if (CSRF_SAFE_METHODS.has(request.method)) {
+    return true;
   }
+  
+  // Skip CSRF validation for API routes (they handle CSRF separately if needed)
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return true;
+  }
+  
+  // Get CSRF token from header and cookie
+  const headerToken = request.headers.get(CSRF_HEADER_NAME);
+  const cookieToken = request.cookies.get(CSRF_TOKEN_COOKIE)?.value;
+  
+  // Both must exist and match
+  return !!(headerToken && cookieToken && headerToken === cookieToken);
 }
 
 // Enhanced error handling function
 function createErrorResponse(request: NextRequest, statusCode: number, reason?: string): NextResponse {
-  const url = new URL(`/error?code=${statusCode}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, request.url);
-  
-  const response = NextResponse.rewrite(url, { status: statusCode });
-  return withSecurityHeaders(response);
+  const url = new URL(
+    `/error?code=${statusCode}${reason ? `&reason=${encodeURIComponent(reason)}` : ''}`, 
+    request.url
+  );
+  return withSecurityHeaders(NextResponse.rewrite(url, { status: statusCode }));
 }
 
-// Rate limiting check (basic implementation)
+// Rate limiting configuration
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 100;
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const CLEANUP_THRESHOLD = RATE_LIMIT_WINDOW * 2;
+
+// Cleanup old entries periodically to prevent memory leaks
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, data] of rateLimitMap.entries()) {
+      if (now - data.lastReset > CLEANUP_THRESHOLD) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }, CLEANUP_INTERVAL);
+}
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const userLimit = rateLimitMap.get(ip);
   
-  if (!userLimit) {
+  if (!userLimit || now - userLimit.lastReset > RATE_LIMIT_WINDOW) {
+    // Create new or reset expired limit
     rateLimitMap.set(ip, { count: 1, lastReset: now });
     return false;
   }
   
-  if (now - userLimit.lastReset > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(ip, { count: 1, lastReset: now });
-    return false;
-  }
-  
+  // Check if limit exceeded
   if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+    console.warn(`Rate limit exceeded for IP: ${ip}`);
     return true;
   }
   
@@ -77,46 +102,61 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   try {
-    // Handle CORS preflight requests
+    // 1. Handle CORS preflight requests
     const corsResponse = handleCORS(request);
-    if (corsResponse) {
-      return corsResponse;
-    }
+    if (corsResponse) return corsResponse;
 
-    // Basic rate limiting
-    const ip = request.headers.get('X-Forwarded-For') ?? request.headers.get('X-Real-IP') ?? 'unknown';
+    // 2. Rate limiting
+    const ip = request.headers.get('X-Forwarded-For') ?? 
+               request.headers.get('X-Real-IP') ?? 
+               'unknown';
     if (isRateLimited(ip)) {
       return createErrorResponse(request, 429, 'Too many requests');
     }
 
-    // Check if user has a valid session cookie format
-    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
-    const hasValidSessionFormat = sessionCookie?.value ? isValidSessionFormat(sessionCookie.value) : false;
-
-    // Handle protected routes (excluding admin routes which are handled client-side)
-    if (protectedRoutes.some(route => pathname.startsWith(route)) && !adminRoutes.some(route => pathname.startsWith(route))) {
-      if (!hasValidSessionFormat) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(loginUrl);
-      }
+    // 3. CSRF validation
+    if (!validateCSRF(request)) {
+      console.warn(`CSRF validation failed for ${request.method} ${pathname}`);
+      return createErrorResponse(request, 403, 'CSRF validation failed');
     }
 
-    // Handle auth routes (login/signup)
-    if (authRoutes.some(route => pathname.startsWith(route))) {
-      if (hasValidSessionFormat) {
-        const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
-        return NextResponse.redirect(new URL(redirectTo, request.url));
-      }
+    // 4. Session check
+    const hasSession = hasValidSession(request);
+
+    // 5. Protected routes handling
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+    if (isProtectedRoute && !hasSession) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
-    // Apply security headers to response
-    const response = NextResponse.next();
-    return withSecurityHeaders(response);
+    // 6. Auth routes handling (redirect if already logged in)
+    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    if (isAuthRoute && hasSession) {
+      const redirectTo = request.nextUrl.searchParams.get('redirect') || '/';
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
+
+    // 7. Apply security headers and CSRF token
+    const response = withSecurityHeaders(NextResponse.next());
+    
+    // Set CSRF token cookie if not present
+    if (!request.cookies.has(CSRF_TOKEN_COOKIE)) {
+      const csrfToken = generateCSRFToken();
+      response.cookies.set(CSRF_TOKEN_COOKIE, csrfToken, {
+        httpOnly: false, // Must be accessible to JavaScript
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 60 * 60 * 24 // 24 hours
+      });
+    }
+    
+    return response;
     
   } catch (error) {
     console.error('Middleware error:', error);
-    // Return a 500 error response if middleware fails
     return createErrorResponse(request, 500, 'Internal middleware error');
   }
 }

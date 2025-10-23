@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { AdminLogAction, UserRole } from '@prisma/client';
-import { DecodedIdToken } from 'firebase-admin/auth';
 import { Prisma } from '@prisma/client';
 
 interface AdminAuthResult {
@@ -12,7 +11,13 @@ interface AdminAuthResult {
     role: UserRole;
     isActive: boolean;
   };
-  firebaseUser?: DecodedIdToken;
+  sessionUser?: {
+    uid: string;
+    email: string;
+    id: string;
+    role: UserRole;
+    name: string | null;
+  };
   error?: string;
 }
 
@@ -26,7 +31,7 @@ export async function verifyAdminAuth(req: NextRequest): Promise<AdminAuthResult
 
     // Check if user exists in database and has admin role
     const dbUser = await prisma.user.findUnique({
-      where: { firebaseUid: user.uid },
+      where: { id: user.id },
       select: { 
         id: true, 
         role: true, 
@@ -72,7 +77,7 @@ export async function verifyAdminAuth(req: NextRequest): Promise<AdminAuthResult
         role: dbUser.role,
         isActive: dbUser.isActive
       },
-      firebaseUser: user 
+      sessionUser: user 
     };
   } catch (error) {
     console.error('Admin authentication error:', error);

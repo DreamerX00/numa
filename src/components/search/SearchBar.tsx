@@ -52,6 +52,7 @@ function SearchBarContent({
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   
@@ -102,6 +103,14 @@ function SearchBarContent({
       setLoading(false);
     }
   }, []);
+
+  // Helper function to navigate with loading state
+  const handleNavigate = useCallback((url: string) => {
+    setIsNavigating(true);
+    setIsOpen(false);
+    inputRef.current?.blur();
+    router.push(url);
+  }, [router]);
 
   // Fetch suggestions when debounced query changes
   useEffect(() => {
@@ -289,8 +298,9 @@ function SearchBarContent({
                           {suggestions.categories.map((category) => (
                             <button
                               key={category.id}
-                              onClick={() => router.push(`/collection/${category.slug}`)}
-                              className="flex items-center space-x-2 w-full text-left px-2 py-2 text-sm hover:bg-muted rounded transition-colors"
+                              onClick={() => handleNavigate(`/collection/${category.slug}`)}
+                              disabled={isNavigating}
+                              className="flex items-center space-x-2 w-full text-left px-2 py-2 text-sm hover:bg-muted rounded transition-colors disabled:opacity-50"
                             >
                               <span className="flex-1">{category.name}</span>
                               <Badge variant="secondary" className="text-xs">
@@ -314,8 +324,9 @@ function SearchBarContent({
                           {suggestions.products.map((product) => (
                             <button
                               key={product.id}
-                              onClick={() => router.push(`/product/${product.slug}`)}
-                              className="flex items-center space-x-3 w-full text-left px-2 py-2 hover:bg-muted rounded transition-colors"
+                              onClick={() => handleNavigate(`/product/${product.slug}`)}
+                              disabled={isNavigating}
+                              className="flex items-center space-x-3 w-full text-left px-2 py-2 hover:bg-muted rounded transition-colors disabled:opacity-50"
                             >
                               {product.image && (
                                 <Image

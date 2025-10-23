@@ -3,14 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/client";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
 import { 
   CreditCard,
-  Shield,
   Check,
   AlertCircle,
-  Lock
+  Lock,
+  Banknote,
+  Wallet
 } from "lucide-react";
 import HeartLoader from "@/components/ui/HeartLoader";
 import type { CartItem } from "@/lib/types/product";
@@ -61,10 +64,12 @@ export function PaymentStep({
 }: PaymentStepProps) {
   const { user } = useAuth();
   const [error, setError] = useState<string>("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'phonepe' | 'razorpay' | 'cod'>('phonepe');
 
   // Calculate amounts using passed shipping cost
-  const taxAmount = (subtotal + shippingCost) * 0.18;
-  const totalAmount = subtotal + shippingCost + taxAmount;
+  const codFee = selectedPaymentMethod === 'cod' ? 50 : 0; // ₹50 COD handling fee
+  const taxAmount = (subtotal + shippingCost + codFee) * 0.18;
+  const totalAmount = subtotal + shippingCost + codFee + taxAmount;
 
   // Check if order is ready for payment
   const isOrderReady = cartItems.length > 0 && 
@@ -135,7 +140,8 @@ export function PaymentStep({
           alternatePhone: checkoutData.address.alternatePhone
         },
         shippingMethod: 'STANDARD',
-        currency: 'INR'
+        currency: 'INR',
+        paymentMethod: selectedPaymentMethod
       };
       
       // Create order on server
@@ -173,8 +179,16 @@ export function PaymentStep({
         throw new Error(orderResult.error || 'Failed to create order');
       }
 
-      // Initiate PhonePe payment
-      await initiatePhonePePayment(orderResult.order);
+      // Handle payment based on selected method
+      if (selectedPaymentMethod === 'phonepe') {
+        await initiatePhonePePayment(orderResult.order);
+      } else if (selectedPaymentMethod === 'razorpay') {
+        // Razorpay is currently disabled
+        throw new Error('Razorpay payment is currently unavailable. Please use PhonePe or Cash on Delivery.');
+      } else if (selectedPaymentMethod === 'cod') {
+        // For COD, just redirect to success page
+        window.location.href = `/order-success?orderId=${orderResult.order.id}&status=cod_placed`;
+      }
 
     } catch (error) {
       console.error('Order creation failed:', error);
@@ -224,6 +238,105 @@ export function PaymentStep({
     }
   };
 
+  // Razorpay payment function - Currently disabled
+  // Uncomment and enable when Razorpay integration is ready
+  /*
+  const initiateRazorpayPayment = async (order: Order) => {
+    try {
+      setLoading(true);
+      
+      // Create Razorpay order
+      const paymentResponse = await fetch('/api/payments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Math.round(totalAmount * 100), // Convert to paise
+          currency: 'INR',
+          orderId: order.id
+        }),
+      });
+
+      const paymentResult = await paymentResponse.json();
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Failed to create Razorpay order');
+      }
+
+      // Load Razorpay SDK dynamically
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_RKeHBoAZktp7ua',
+          amount: paymentResult.order.amount,
+          currency: paymentResult.order.currency,
+          name: 'NUMA Store',
+          description: `Order #${order.id}`,
+          order_id: paymentResult.order.id,
+          handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+            try {
+              // Verify payment
+              const verifyResponse = await fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: order.id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature
+                }),
+              });
+
+              const verifyResult = await verifyResponse.json();
+
+              if (verifyResult.success) {
+                window.location.href = `/order-success?orderId=${order.id}&status=success`;
+              } else {
+                throw new Error('Payment verification failed');
+              }
+            } catch (error) {
+              console.error('Payment verification error:', error);
+              window.location.href = `/payment-failed?orderId=${order.id}&error=verification_failed`;
+            }
+          },
+          prefill: {
+            name: `${checkoutData.address?.firstName} ${checkoutData.address?.lastName}`,
+            email: user?.email || checkoutData.address?.alternateEmail || '',
+            contact: checkoutData.address?.phone || ''
+          },
+          theme: {
+            color: '#E7654D'
+          },
+          modal: {
+            ondismiss: () => {
+              setLoading(false);
+              setError('Payment cancelled');
+            }
+          }
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const razorpay = new (window as any).Razorpay(options);
+        razorpay.open();
+      };
+
+      script.onerror = () => {
+        setLoading(false);
+        setError('Failed to load Razorpay SDK');
+      };
+    } catch (error) {
+      console.error('Razorpay payment initiation failed:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Payment initiation failed';
+      setError(errorMsg);
+      onError(errorMsg);
+      setLoading(false);
+    }
+  };
+  */
+
   return (
     <div className="space-y-6">
       <Card>
@@ -236,25 +349,113 @@ export function PaymentStep({
         <CardContent className="space-y-6">
           {/* Payment Method */}
           <div className="space-y-4">
-            <h4 className="font-medium">Payment Method</h4>
+            <h4 className="font-medium">Select Payment Method</h4>
             
-            <div className="p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <CreditCard className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h5 className="font-medium text-blue-900">PhonePe</h5>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      Secure
-                    </Badge>
+            <RadioGroup 
+              value={selectedPaymentMethod} 
+              onValueChange={(value) => setSelectedPaymentMethod(value as 'phonepe' | 'razorpay' | 'cod')}
+              className="space-y-3"
+            >
+              {/* PhonePe */}
+              <div className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                selectedPaymentMethod === 'phonepe' 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-blue-300'
+              }`}>
+                <RadioGroupItem value="phonepe" id="phonepe" className="mt-0" />
+                <Label htmlFor="phonepe" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Wallet className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">PhonePe</span>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                          Popular
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        UPI, Cards, NetBanking, Wallets
+                      </p>
+                    </div>
+                    {selectedPaymentMethod === 'phonepe' && (
+                      <Check className="h-5 w-5 text-blue-600" />
+                    )}
                   </div>
-                  <p className="text-sm text-blue-700">
-                    Pay securely with UPI, Credit Card, Debit Card, Net Banking, or Wallets
-                  </p>
-                </div>
-                <Shield className="h-8 w-8 text-blue-600" />
+                </Label>
+              </div>
+
+              {/* Razorpay */}
+              <div className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg opacity-60 cursor-not-allowed transition-all border-gray-200 bg-gray-50`}>
+                <RadioGroupItem value="razorpay" id="razorpay" className="mt-0" disabled />
+                <Label htmlFor="razorpay" className="flex-1 cursor-not-allowed">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-600">Razorpay</span>
+                        <Badge variant="secondary" className="bg-gray-200 text-gray-600 text-xs">
+                          Coming Soon
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Currently unavailable - Use PhonePe or COD
+                      </p>
+                    </div>
+                  </div>
+                </Label>
+              </div>
+
+              {/* Cash on Delivery */}
+              <div className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                selectedPaymentMethod === 'cod' 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-blue-300'
+              }`}>
+                <RadioGroupItem value="cod" id="cod" className="mt-0" />
+                <Label htmlFor="cod" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Banknote className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Cash on Delivery</span>
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
+                          +₹50 Fee
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Pay when you receive your order
+                      </p>
+                    </div>
+                    {selectedPaymentMethod === 'cod' && (
+                      <Check className="h-5 w-5 text-blue-600" />
+                    )}
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+
+            {/* Payment method specific info */}
+            {selectedPaymentMethod === 'cod' && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800">
+                  <strong>Note:</strong> A convenience fee of ₹50 applies for Cash on Delivery orders. Please keep exact change ready.
+                </p>
+              </div>
+            )}
+
+            {/* Razorpay info banner */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-blue-800">
+                  <strong>Razorpay Payment:</strong> Currently under maintenance. Please use PhonePe for instant payment or choose Cash on Delivery.
+                </p>
               </div>
             </div>
           </div>
@@ -279,6 +480,13 @@ export function PaymentStep({
                   )}
                 </span>
               </div>
+
+              {codFee > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>COD Handling Fee</span>
+                  <span>{formatPriceFromFloat(codFee)}</span>
+                </div>
+              )}
               
               <div className="flex justify-between text-sm">
                 <span>Tax (GST 18%)</span>
@@ -377,6 +585,11 @@ export function PaymentStep({
                 <>
                   <Lock className="h-4 w-4 mr-2" />
                   Complete Address Details
+                </>
+              ) : selectedPaymentMethod === 'cod' ? (
+                <>
+                  <Banknote className="h-4 w-4 mr-2" />
+                  Place Order (Pay on Delivery)
                 </>
               ) : (
                 <>
