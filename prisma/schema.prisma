@@ -101,6 +101,7 @@ model UserProfile {
   firstName         String?
   lastName          String?
   displayName       String?
+  title             String?
   avatar            String?
   phone             String?
   dateOfBirth       DateTime?

@@ -83,6 +83,7 @@ export async function getUserFromSession(_request: NextRequest): Promise<AuthRes
             firstName: true,
             lastName: true,
             displayName: true,
+            title: true, // Include title field
             avatar: true, // ✅ Include avatar field
             phone: true,
             dateOfBirth: true,

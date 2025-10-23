@@ -664,6 +664,7 @@ export default function ProfilePage() {
                     firstName: updatedInfo.firstName || undefined,
                     lastName: updatedInfo.lastName || undefined,
                     displayName: updatedInfo.displayName || undefined,
+                    title: updatedInfo.title || undefined, // ✅ Include title/suffix
                     avatar: updatedInfo.avatar || undefined, // ✅ Include avatar URL from Cloudinary upload
                     phone: updatedInfo.phone || undefined,
                     dateOfBirth: updatedInfo.dateOfBirth || undefined,

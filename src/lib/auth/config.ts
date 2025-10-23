@@ -30,21 +30,72 @@ function customPrismaAdapter() {
     ...baseAdapter,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async createUser(data: any) {
-      // Generate MongoDB ObjectId for the user
+      // Check if user already exists by email or firebaseUid to prevent duplicates
+      devLog('[CustomAdapter] Checking for existing user:', data.email);
+      
+      try {
+        // First, try to find existing user by email
+        const existingUser = await prisma.user.findUnique({
+          where: { email: data.email },
+        });
+        
+        if (existingUser) {
+          devLog('[CustomAdapter] Found existing user by email:', existingUser.id);
+          
+          // Update the existing user with any new data from OAuth
+          const updatedUser = await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              name: data.name || existingUser.name,
+              image: data.image || existingUser.image,
+              emailVerified: data.emailVerified ? new Date(data.emailVerified) : existingUser.emailVerified,
+              firebaseUid: data.firebaseUid || existingUser.firebaseUid,
+              updatedAt: new Date(),
+            },
+          });
+          
+          devLog('[CustomAdapter] Updated existing user:', updatedUser.id);
+          return updatedUser;
+        }
+      } catch (error) {
+        devLog('[CustomAdapter] Error checking for existing user:', error);
+        // Continue to create new user if check fails
+      }
+      
+      // If no existing user found, create a new one
       const userId = generateObjectId();
       
-      devLog('[CustomAdapter] Creating user with ObjectId:', userId);
+      devLog('[CustomAdapter] Creating new user with ObjectId:', userId);
       
-      const user = await prisma.user.create({
-        data: {
-          ...data,
-          id: userId,
-          emailVerified: data.emailVerified ? new Date(data.emailVerified) : null,
-        },
-      });
-      
-      devLog('[CustomAdapter] User created successfully:', user.id);
-      return user;
+      try {
+        const user = await prisma.user.create({
+          data: {
+            ...data,
+            id: userId,
+            emailVerified: data.emailVerified ? new Date(data.emailVerified) : null,
+          },
+        });
+        
+        devLog('[CustomAdapter] User created successfully:', user.id);
+        return user;
+      } catch (error) {
+        // If creation fails due to duplicate firebaseUid, try to find and return that user
+        devLog('[CustomAdapter] Error creating user, checking for duplicate:', error);
+        
+        if (data.firebaseUid) {
+          const userByFirebaseUid = await prisma.user.findUnique({
+            where: { firebaseUid: data.firebaseUid },
+          });
+          
+          if (userByFirebaseUid) {
+            devLog('[CustomAdapter] Found existing user by firebaseUid:', userByFirebaseUid.id);
+            return userByFirebaseUid;
+          }
+        }
+        
+        // If still no user found, re-throw the error
+        throw error;
+      }
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async linkAccount(data: any) {
