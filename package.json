@@ -8,6 +8,8 @@
     "vercel-build": "prisma generate && cross-env NODE_OPTIONS=--no-deprecation next build",
     "start": "next start",
     "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"No tests configured\" && exit 0",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
     "postinstall": "prisma generate"

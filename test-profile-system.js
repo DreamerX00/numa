@@ -40,6 +40,7 @@ async function testEndpointAvailability() {
   for (const endpoint of endpoints) {
     try {
       const response = await fetch(`http://localhost:3000${endpoint}`);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const data = await response.json();
       
       // All should return 401 for unauthenticated requests

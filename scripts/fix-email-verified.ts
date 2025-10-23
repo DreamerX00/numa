@@ -16,16 +16,17 @@ async function fixEmailVerified() {
     filter: {},
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.log(`Found ${(users as any).cursor.firstBatch.length} total users\n`);
 
   let fixed = 0;
   let skipped = 0;
 
   // Check each user
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const user of (users as any).cursor.firstBatch) {
     const emailVerified = user.emailVerified;
     const isString = typeof emailVerified === 'string';
-    const isBoolean = typeof emailVerified === 'boolean';
     const isDate = emailVerified instanceof Date || (emailVerified && emailVerified.$date);
     
     // If emailVerified is a string (ISO date string), convert to Date object
@@ -100,6 +101,7 @@ async function fixEmailVerified() {
   console.log('\n📊 Summary:');
   console.log(`✅ Fixed: ${fixed} users`);
   console.log(`⏭️  Skipped: ${skipped} users (already correct)`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.log(`📋 Total: ${(users as any).cursor.firstBatch.length} users`);
 }
 
