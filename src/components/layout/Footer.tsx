@@ -81,10 +81,10 @@ export function Footer() {
             © {new Date().getFullYear()} NUMA. All rights reserved.
           </p>
           <div className="flex space-x-6 text-xs">
-            <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/terms-of-service" className="text-muted-foreground hover:text-foreground transition-colors">
               Terms of Service
             </Link>
           </div>

@@ -115,6 +115,8 @@ const api = {
     firstName?: string;
     lastName?: string;
     displayName?: string;
+    title?: string; // Title/suffix (Mr, Mrs, Ms, etc.)
+    avatar?: string; // Cloudinary URL for avatar
     phone?: string;
     dateOfBirth?: string;
     gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';

@@ -40,6 +40,12 @@ export default function PersonalInfoSection({ personalInfo, onUpdate }: Personal
   const [isLoading, setIsLoading] = React.useState(false)
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null)
 
+  // Sync formData with personalInfo prop when it changes (e.g., after mutation refetch)
+  React.useEffect(() => {
+    setFormData(personalInfo)
+    setAvatarPreview(null) // Reset preview when prop updates
+  }, [personalInfo])
+
   const validateField = (name: string, value: string): string => {
     switch (name) {
       case 'firstName':
@@ -90,7 +96,8 @@ export default function PersonalInfoSection({ personalInfo, onUpdate }: Personal
   }
 
   const { uploadFile, isUploading, uploadError } = useImageUpload({
-    folder: UPLOAD_FOLDERS.USERS
+    folder: UPLOAD_FOLDERS.USERS,
+    uploadEndpoint: '/api/user/upload-avatar' // Use user-specific endpoint instead of admin
   })
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
