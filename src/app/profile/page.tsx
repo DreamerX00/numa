@@ -18,14 +18,13 @@ import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { getUserAvatar, getUserInitials } from "@/lib/avatar";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-export const dynamic = 'force-dynamic';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import PersonalInfoSection from "@/components/profile/PersonalInfoSection";
 import { OrderManagement } from "@/components/profile/OrderManagement";
 import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
@@ -35,7 +34,8 @@ import { LoyaltyTab } from "@/components/profile/LoyaltyTab";
 import { SecurityTab } from "@/components/profile/SecurityTab";
 import { NotificationsTab } from "@/components/profile/NotificationsTab";
 import { SettingsTab } from "@/components/profile/SettingsTab";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+
+export const dynamic = 'force-dynamic';
 import {
   User,
   Settings,
@@ -657,7 +657,7 @@ export default function ProfilePage() {
             <TabsContent value="personal">
               <PersonalInfoSection
                 personalInfo={profile.personalInfo}
-                onUpdate={(updatedInfo) => {
+                onUpdate={(updatedInfo: typeof profile.personalInfo) => {
                   // Prepare payload for API - NOW INCLUDING AVATAR!
                   // Use the mutation to update profile
                   updateProfileMutation.mutate({

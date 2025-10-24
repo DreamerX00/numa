@@ -633,8 +633,9 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                           </Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="More options">
                                 <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">More options</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">

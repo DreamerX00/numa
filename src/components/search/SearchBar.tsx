@@ -219,8 +219,10 @@ function SearchBarContent({
             variant="ghost"
             onClick={clearSearch}
             className="absolute right-2 top-1/2 h-6 w-6 p-0 -translate-y-1/2 hover:bg-muted"
+            aria-label="Clear search"
           >
             <X className="h-4 w-4" />
+            <span className="sr-only">Clear search</span>
           </Button>
         )}
         
