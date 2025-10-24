@@ -1,0 +1,12 @@
+# Browsers that we support
+# Target modern browsers to reduce bundle size
+
+> 0.5%
+last 2 versions
+not dead
+not IE 11
+not op_mini all
+Firefox ESR
+Chrome >= 88
+Safari >= 14
+Edge >= 88
