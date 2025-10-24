@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       
       if (user) {
         dbUser = await prisma.user.findUnique({
-          where: { firebaseUid: user.uid }
+          where: { id: user.id }
         });
         
         if (!dbUser) {

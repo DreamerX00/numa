@@ -69,6 +69,7 @@ export function getPublicIdFromCloudinaryUrl(url: string): string | null {
 
 /**
  * Generate a Cloudinary transformation URL for optimized image delivery
+ * ✅ Now with automatic modern format detection and DPR support
  */
 export function generateOptimizedImageUrl(
   originalUrl: string,
@@ -76,15 +77,25 @@ export function generateOptimizedImageUrl(
     width?: number;
     height?: number;
     quality?: 'auto' | number;
-    format?: 'auto' | 'webp' | 'jpg' | 'png';
+    format?: 'auto' | 'webp' | 'avif' | 'jpg' | 'png';
     crop?: 'fill' | 'fit' | 'scale' | 'crop';
+    dpr?: 'auto' | number;
+    gravity?: 'auto' | 'face' | 'center';
   } = {}
 ): string {
   if (!originalUrl.includes('cloudinary.com')) {
     return originalUrl; // Return original if not a Cloudinary URL
   }
 
-  const { width, height, quality = 'auto', format = 'auto', crop = 'fill' } = options;
+  const { 
+    width, 
+    height, 
+    quality = 'auto', 
+    format = 'auto', // ✅ Auto-detect WebP/AVIF support
+    crop = 'fill',
+    dpr = 'auto', // ✅ Auto device pixel ratio
+    gravity = 'auto'
+  } = options;
   
   // Insert transformation parameters before the version number
   const transformations = [];
@@ -92,8 +103,10 @@ export function generateOptimizedImageUrl(
   if (width) transformations.push(`w_${width}`);
   if (height) transformations.push(`h_${height}`);
   if (crop) transformations.push(`c_${crop}`);
+  if (gravity) transformations.push(`g_${gravity}`);
   if (quality) transformations.push(`q_${quality}`);
   if (format) transformations.push(`f_${format}`);
+  if (dpr) transformations.push(`dpr_${dpr}`);
   
   if (transformations.length === 0) return originalUrl;
   

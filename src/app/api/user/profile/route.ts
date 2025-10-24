@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
         id: dbUser.id,
         email: dbUser.email,
         emailVerified: dbUser.emailVerified,
-        firebaseUid: dbUser.firebaseUid,
         role: dbUser.role,
         isActive: dbUser.isActive,
         createdAt: dbUser.createdAt.toISOString(),

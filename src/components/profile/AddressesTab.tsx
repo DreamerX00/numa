@@ -540,11 +540,13 @@ function AddressCard({
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onEdit}>
+            <Button variant="ghost" size="sm" onClick={onEdit} aria-label="Edit address">
               <Edit className="h-4 w-4" />
+              <span className="sr-only">Edit address</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={onDelete}>
+            <Button variant="ghost" size="sm" onClick={onDelete} aria-label="Delete address">
               <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Delete address</span>
             </Button>
           </div>
         </div>

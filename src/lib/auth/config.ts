@@ -3,13 +3,13 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import { getFirebaseAdmin } from "@/lib/firebase/admin";
 import type { UserRole } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 // Development-only logging helper
 const devLog = (message: string, ...args: unknown[]) => {
   if (process.env.NODE_ENV === 'development') {
-    devLog(message, ...args);
+    console.log(`[Auth] ${message}`, ...args);
   }
 };
 
@@ -30,7 +30,7 @@ function customPrismaAdapter() {
     ...baseAdapter,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async createUser(data: any) {
-      // Check if user already exists by email or firebaseUid to prevent duplicates
+      // Check if user already exists by email to prevent duplicates
       devLog('[CustomAdapter] Checking for existing user:', data.email);
       
       try {
@@ -49,7 +49,6 @@ function customPrismaAdapter() {
               name: data.name || existingUser.name,
               image: data.image || existingUser.image,
               emailVerified: data.emailVerified ? new Date(data.emailVerified) : existingUser.emailVerified,
-              firebaseUid: data.firebaseUid || existingUser.firebaseUid,
               updatedAt: new Date(),
             },
           });
@@ -79,18 +78,16 @@ function customPrismaAdapter() {
         devLog('[CustomAdapter] User created successfully:', user.id);
         return user;
       } catch (error) {
-        // If creation fails due to duplicate firebaseUid, try to find and return that user
-        devLog('[CustomAdapter] Error creating user, checking for duplicate:', error);
+        // If creation fails due to duplicate email, try to find and return that user
+        devLog('[CustomAdapter] Error creating user, checking for duplicate email:', error);
         
-        if (data.firebaseUid) {
-          const userByFirebaseUid = await prisma.user.findUnique({
-            where: { firebaseUid: data.firebaseUid },
-          });
-          
-          if (userByFirebaseUid) {
-            devLog('[CustomAdapter] Found existing user by firebaseUid:', userByFirebaseUid.id);
-            return userByFirebaseUid;
-          }
+        const userByEmail = await prisma.user.findUnique({
+          where: { email: data.email },
+        });
+        
+        if (userByEmail) {
+          devLog('[CustomAdapter] Found existing user by email:', userByEmail.id);
+          return userByEmail;
         }
         
         // If still no user found, re-throw the error
@@ -160,7 +157,6 @@ function customPrismaAdapter() {
           // Convert MongoDB document to Prisma User format
           return {
             id: userId,
-            firebaseUid: user.firebaseUid || null,
             email: user.email,
             emailVerified: user.emailVerified ? new Date(user.emailVerified) : null,
             name: user.name || null,
@@ -210,49 +206,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         try {
-          // Use Firebase Admin to verify email/password
-          const { adminAuth } = getFirebaseAdmin();
-          
-          // Get user by email from Firebase
-          let firebaseUser;
-          try {
-            firebaseUser = await adminAuth.getUserByEmail(credentials.email as string);
-          } catch (error) {
-            console.error("Firebase user not found:", error);
-            return null;
-          }
-
-          // For Firebase users, we need to verify password via Firebase Client SDK
-          // Since Admin SDK can't verify passwords, we'll check if user exists in our DB
-          // and trust that the client-side Firebase auth already validated the password
-          
-          // Find or create user in database
-          let dbUser = await prisma.user.findUnique({
+          // Find user in database
+          const dbUser = await prisma.user.findUnique({
             where: { email: credentials.email as string },
             include: { profile: true }
           });
 
-          if (!dbUser && firebaseUser) {
-            // Create user if they exist in Firebase but not in DB
-            dbUser = await prisma.user.create({
-              data: {
-                email: credentials.email as string,
-                name: firebaseUser.displayName || null,
-                emailVerified: firebaseUser.emailVerified ? new Date() : null,
-                firebaseUid: firebaseUser.uid,
-                image: firebaseUser.photoURL || null,
-                profile: {
-                  create: {
-                    displayName: firebaseUser.displayName || credentials.email as string,
-                    lastLoginAt: new Date(),
-                  }
-                }
-              },
-              include: { profile: true }
-            });
+          // Check if user exists
+          if (!dbUser) {
+            console.error("User not found:", credentials.email);
+            return null;
           }
 
-          if (!dbUser) {
+          // Check if user has a password (not OAuth-only user)
+          if (!dbUser.password) {
+            console.error("User has no password set (OAuth user):", credentials.email);
+            return null;
+          }
+
+          // Verify password using bcrypt
+          const passwordMatch = await bcrypt.compare(
+            credentials.password as string,
+            dbUser.password
+          );
+
+          if (!passwordMatch) {
+            console.error("Invalid password for user:", credentials.email);
+            return null;
+          }
+
+          // Check if user account is active
+          if (!dbUser.isActive) {
+            console.error("User account is inactive:", credentials.email);
             return null;
           }
 
@@ -376,9 +361,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? user.id 
             : ((user.id as { $oid: string }).$oid || String(user.id));
           
-          await prisma.userProfile.create({
-            data: {
+          // Use upsert to avoid conflicts if profile was already created
+          await prisma.userProfile.upsert({
+            where: { userId: userId },
+            create: {
               userId: userId,
+              lastLoginAt: new Date(),
+            },
+            update: {
               lastLoginAt: new Date(),
             },
           });

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/userSession';
-import { getFirebaseAdmin } from '@/lib/firebase/admin';
+import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
 
 // Force dynamic rendering for Next.js 15 compatibility
 export const dynamic = 'force-dynamic';
@@ -142,23 +143,46 @@ export async function PUT(request: NextRequest) {
     // Handle password change
     if (securityData.currentPassword && securityData.newPassword) {
       try {
-        // For password changes, we verify the current password first
-        // Then update the password in Firebase Auth (still used for password storage)
-        const { adminAuth } = getFirebaseAdmin();
-        
-        // Get firebaseUid from database user
-        if (!dbUser.firebaseUid) {
+        // Fetch user with password field (not included in getUserFromSession for security)
+        const userWithPassword = await prisma.user.findUnique({
+          where: { id: dbUser.id },
+          select: { password: true }
+        });
+
+        // Verify the user has a password set (not OAuth-only user)
+        if (!userWithPassword?.password) {
           return NextResponse.json(
             { 
               success: false, 
-              error: 'Firebase authentication not configured for this account' 
+              error: 'Password authentication not configured for this account. This account uses social login (Google).' 
             },
             { status: 400 }
           );
         }
-        
-        await adminAuth.updateUser(dbUser.firebaseUid, {
-          password: securityData.newPassword
+
+        // Verify current password
+        const passwordMatch = await bcrypt.compare(
+          securityData.currentPassword,
+          userWithPassword.password
+        );
+
+        if (!passwordMatch) {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Current password is incorrect' 
+            },
+            { status: 400 }
+          );
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(securityData.newPassword, 12);
+
+        // Update password in database
+        await prisma.user.update({
+          where: { id: dbUser.id },
+          data: { password: hashedPassword }
         });
 
         return NextResponse.json({
@@ -166,8 +190,8 @@ export async function PUT(request: NextRequest) {
           message: 'Password updated successfully'
         });
 
-      } catch (firebaseError) {
-        console.error('Error updating password in Firebase:', firebaseError);
+      } catch (error) {
+        console.error('Error updating password:', error);
         return NextResponse.json(
           { 
             success: false, 

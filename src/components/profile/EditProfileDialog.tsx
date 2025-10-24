@@ -40,6 +40,7 @@ const editProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   displayName: z.string().min(1, "Display name is required"),
+  title: z.enum(["Mr", "Mrs", "Ms", "Dr", "Prof"]).optional(), // ✅ Added title field
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]).optional(),
@@ -54,6 +55,7 @@ interface EditProfileDialogProps {
     firstName: string;
     lastName: string;
     displayName: string;
+    title?: string; // ✅ Added title field
     phone?: string;
     dateOfBirth?: string;
     gender?: string;
@@ -78,6 +80,7 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
       firstName: initialData.firstName,
       lastName: initialData.lastName,
       displayName: initialData.displayName,
+      title: initialData.title as "Mr" | "Mrs" | "Ms" | "Dr" | "Prof" | undefined, // ✅ Added title
       phone: initialData.phone || "",
       dateOfBirth: initialData.dateOfBirth || "",
       gender: (initialData.gender?.toUpperCase() as "MALE" | "FEMALE" | "OTHER") || undefined,
@@ -166,6 +169,32 @@ export function EditProfileDialog({ isOpen, onClose, initialData }: EditProfileD
                 </p>
               </div>
             </div>
+
+            {/* Title Field */}
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select title" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Mr">Mr</SelectItem>
+                      <SelectItem value="Mrs">Mrs</SelectItem>
+                      <SelectItem value="Ms">Ms</SelectItem>
+                      <SelectItem value="Dr">Dr</SelectItem>
+                      <SelectItem value="Prof">Prof</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Personal Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

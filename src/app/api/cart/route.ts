@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { firebaseUid: user.uid }
+      where: { id: user.id }
     });
 
     if (!dbUser) {
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       const { productId, variantId, quantity } = validationResult.data;
 
     const dbUser = await prisma.user.findUnique({
-      where: { firebaseUid: user.uid }
+      where: { id: user.id }
     });
 
     if (!dbUser) {
@@ -269,7 +269,7 @@ export async function PUT(req: NextRequest) {
       const { itemId, quantity } = validationResult.data;
 
       const dbUser = await prisma.user.findUnique({
-        where: { firebaseUid: user.uid }
+        where: { id: user.id }
       });
 
       if (!dbUser) {
@@ -353,7 +353,7 @@ export async function DELETE(req: NextRequest) {
       }
 
       const dbUser = await prisma.user.findUnique({
-        where: { firebaseUid: user.uid }
+        where: { id: user.id }
       });
 
       if (!dbUser) {

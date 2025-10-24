@@ -1,19 +1,15 @@
 import { NextRequest } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase/admin';
+import { auth } from '@/lib/auth/config';
 import { prisma } from '@/lib/prisma';
-import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export interface AuthenticatedUser {
-  // Firebase user data
-  firebaseUser: DecodedIdToken;
   // Database user data with profile
   dbUser: {
     id: string;
     email: string;
-    emailVerified: Date | null;  // Changed from boolean to Date | null
-    firebaseUid: string | null;  // Made optional for NextAuth migration
-    name: string | null;  // Added for NextAuth
-    image: string | null;  // Added for NextAuth
+    emailVerified: Date | null;
+    name: string | null;
+    image: string | null;
     role: string;
     isActive: boolean;
     createdAt: Date;
@@ -23,6 +19,8 @@ export interface AuthenticatedUser {
       firstName: string | null;
       lastName: string | null;
       displayName: string | null;
+      title: string | null; // ✅ Added title field
+      avatar: string | null; // ✅ Added avatar field
       phone: string | null;
       dateOfBirth: Date | null;
       gender: string | null;
@@ -50,15 +48,16 @@ export interface AuthError {
 }
 
 /**
- * Authenticates a user from a Next.js request and returns both Firebase and database user data
+ * Authenticates a user from a Next.js request using NextAuth session
  * Used across all /api/user/* endpoints for consistent authentication
  */
-export async function getUserFromSession(request: NextRequest): Promise<AuthResult | AuthError> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function getUserFromSession(_request: NextRequest): Promise<AuthResult | AuthError> {
   try {
-    // Get session cookie from request
-    const sessionCookie = request.cookies.get('__session')?.value;
+    // Get session from NextAuth
+    const session = await auth();
     
-    if (!sessionCookie) {
+    if (!session?.user?.id) {
       return {
         success: false,
         error: 'Authentication required. Please log in.',
@@ -66,24 +65,9 @@ export async function getUserFromSession(request: NextRequest): Promise<AuthResu
       };
     }
 
-    // Verify Firebase session cookie
-    const { adminAuth } = getFirebaseAdmin();
-    let firebaseUser: DecodedIdToken;
-    
-    try {
-      firebaseUser = await adminAuth.verifySessionCookie(sessionCookie, true);
-    } catch (firebaseError) {
-      console.error('Firebase session verification failed:', firebaseError);
-      return {
-        success: false,
-        error: 'Invalid or expired session. Please log in again.',
-        statusCode: 401
-      };
-    }
-
-    // Get user from database
+    // Get user from database with profile
     const dbUser = await prisma.user.findUnique({
-      where: { firebaseUid: firebaseUser.uid },
+      where: { id: session.user.id },
       include: {
         profile: {
           select: {
@@ -91,6 +75,8 @@ export async function getUserFromSession(request: NextRequest): Promise<AuthResu
             firstName: true,
             lastName: true,
             displayName: true,
+            title: true, // ✅ Include title field
+            avatar: true, // ✅ Include avatar field
             phone: true,
             dateOfBirth: true,
             gender: true,
@@ -108,7 +94,7 @@ export async function getUserFromSession(request: NextRequest): Promise<AuthResu
     });
 
     if (!dbUser) {
-      console.error('User not found in database for Firebase UID:', firebaseUser.uid);
+      console.error('User not found in database for ID:', session.user.id);
       return {
         success: false,
         error: 'User account not found. Please contact support.',
@@ -127,11 +113,9 @@ export async function getUserFromSession(request: NextRequest): Promise<AuthResu
     return {
       success: true,
       user: {
-        firebaseUser,
         dbUser
       }
     };
-
   } catch (error) {
     console.error('Authentication error:', error);
     return {
@@ -161,10 +145,10 @@ export async function userHasRole(request: NextRequest, requiredRole: string[]):
 }
 
 /**
- * Helper function to get user's Firebase photo URL for avatar
+ * Helper function to get user's photo URL for avatar
  */
-export function getUserPhotoURL(firebaseUser: DecodedIdToken): string | undefined {
-  return firebaseUser.picture || undefined;
+export function getUserPhotoURL(user: { image?: string | null }): string | undefined {
+  return user.image || undefined;
 }
 
 /**

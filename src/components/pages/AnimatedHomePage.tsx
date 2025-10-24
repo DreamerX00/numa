@@ -277,8 +277,9 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                 src={carouselSlides[currentSlide].image}
                 alt={carouselSlides[currentSlide].title}
                 fill
+                priority // ✅ Preload hero carousel image for faster LCP
                 className="object-cover"
-                priority
+                sizes="100vw"
               />
               
               {/* Gradient Overlay */}
@@ -350,19 +351,23 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
             <button
               className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
               onClick={() => paginate(-1)}
+              aria-label="Previous slide"
             >
               <ChevronLeft className="h-6 w-6 text-white" />
+              <span className="sr-only">Previous slide</span>
             </button>
             
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full p-3 transition-all duration-300"
               onClick={() => paginate(1)}
+              aria-label="Next slide"
             >
               <ChevronRight className="h-6 w-6 text-white" />
+              <span className="sr-only">Next slide</span>
             </button>
 
             {/* Slide Indicators */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3 z-10">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3 z-10" role="tablist" aria-label="Carousel slides">
               {carouselSlides.map((_, index) => (
                 <button
                   key={index}
@@ -375,6 +380,9 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                     setDirection(index > currentSlide ? 1 : -1);
                     setCurrentSlide(index);
                   }}
+                  aria-label={`Go to slide ${index + 1}`}
+                  aria-current={index === currentSlide ? 'true' : 'false'}
+                  role="tab"
                 />
               ))}
             </div>
