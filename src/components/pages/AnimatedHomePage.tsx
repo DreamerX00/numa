@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatPrice } from "../../lib/services/catalog";
 import type { Product } from "@prisma/client";
 import HeartLoader from "../ui/HeartLoader";
+import { MostLovedProductsCarousel } from "./MostLovedProductsCarousel";
+import { InstagramCarousel } from "./InstagramCarousel";
 
 interface CarouselSlide {
   id: string;
@@ -682,6 +684,12 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
         </Container>
       </section>
 
+      {/* Instagram Carousel Section - Before Most Loved Products */}
+      <InstagramCarousel />
+
+      {/* Most Loved Products Carousel - Gold Digger Inspired */}
+      <MostLovedProductsCarousel products={featured} />
+
       {/* Features Section - Professional & Minimal */}
       <motion.section 
         className="py-16 bg-[#FAF9F7]"
@@ -814,119 +822,6 @@ export function AnimatedHomePage({ featured, collections }: AnimatedHomePageProp
                 </motion.div>
               ))}
             </motion.div>
-          </motion.div>
-        </Container>
-      </motion.section>
-
-      {/* Collections Section */}
-      <motion.section 
-        className="py-20"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-      >
-        <Container>
-          <motion.div 
-            className="flex items-center justify-between mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tight animated-gradient-text">
-                Featured Collections
-              </h2>
-              <p className="text-muted-foreground">Discover our curated jewelry collections</p>
-            </div>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button variant="outline" asChild>
-                <Link href="/collections">
-                  View All
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </motion.div>
-          </motion.div>
-
-          <motion.div 
-            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-            variants={staggeredContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {collections && collections.length > 0 ? collections.slice(0, 4).map((collection) => (
-              <motion.div
-                key={collection.slug}
-                variants={itemVariants}
-                whileHover="hover"
-                initial="rest"
-              >
-                <motion.div variants={cardHoverVariants}>
-                  <Card className="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover-lift">
-                    <Link href={`/collection/${collection.slug}`}>
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <Image
-                          src={collection.image || collection.heroImage || DEFAULT_IMAGES.CATEGORY}
-                          alt={collection.name}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100"
-                          transition={{ duration: 0.3 }}
-                        />
-                      </div>
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold group-hover:text-brand transition-colors">
-                            {collection.name}
-                          </h3>
-                          <motion.div
-                            initial={{ x: 0 }}
-                            whileHover={{ x: 5 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-brand transition-colors" />
-                          </motion.div>
-                        </div>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                </motion.div>
-              </motion.div>
-            )) : (
-              // Loading state for collections
-              Array.from({ length: 4 }).map((_, index) => (
-                <motion.div
-                  key={`collection-loading-${index}`}
-                  variants={itemVariants}
-                  whileHover="hover"
-                  initial="rest"
-                >
-                  <motion.div variants={cardHoverVariants}>
-                    <Card className="overflow-hidden border-0 shadow-lg">
-                      <div className="relative aspect-[4/3] bg-muted animate-pulse">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <HeartLoader size="sm" color="primary" />
-                        </div>
-                      </div>
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="h-5 bg-muted rounded animate-pulse w-3/4" />
-                          <div className="h-4 w-4 bg-muted rounded animate-pulse" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </motion.div>
-              ))
-            )}
           </motion.div>
         </Container>
       </motion.section>
