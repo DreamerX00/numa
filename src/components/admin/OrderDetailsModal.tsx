@@ -8,12 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +35,7 @@ import {
   DollarSign,
   Edit3,
   Save,
-  X
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -51,7 +46,11 @@ interface OrderDetailsModalProps {
   onClose: () => void;
 }
 
-export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModalProps) {
+export default function OrderDetailsModal({
+  orderId,
+  isOpen,
+  onClose,
+}: OrderDetailsModalProps) {
   const [noteText, setNoteText] = useState("");
   const [isInternal, setIsInternal] = useState(true);
   const [editingStatus, setEditingStatus] = useState(false);
@@ -61,76 +60,78 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
 
   // Fetch order details
   const { data: order, isLoading } = useQuery({
-    queryKey: ['admin', 'order', orderId],
+    queryKey: ["admin", "order", orderId],
     queryFn: async () => {
       if (!orderId) return null;
       const response = await fetch(`/api/admin/orders/${orderId}`);
-      if (!response.ok) throw new Error('Failed to fetch order');
+      if (!response.ok) throw new Error("Failed to fetch order");
       return response.json();
     },
-    enabled: !!orderId && isOpen
+    enabled: !!orderId && isOpen,
   });
 
   // Fetch order notes
   const { data: notesData } = useQuery({
-    queryKey: ['admin', 'order', orderId, 'notes'],
+    queryKey: ["admin", "order", orderId, "notes"],
     queryFn: async () => {
       if (!orderId) return { notes: [] };
       const response = await fetch(`/api/admin/orders/${orderId}/notes`);
-      if (!response.ok) throw new Error('Failed to fetch notes');
+      if (!response.ok) throw new Error("Failed to fetch notes");
       return response.json();
     },
-    enabled: !!orderId && isOpen
+    enabled: !!orderId && isOpen,
   });
 
   // Add note mutation
   const addNoteMutation = useMutation({
     mutationFn: async (noteData: { note: string; isInternal: boolean }) => {
       const response = await fetch(`/api/admin/orders/${orderId}/notes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(noteData)
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(noteData),
       });
-      if (!response.ok) throw new Error('Failed to add note');
+      if (!response.ok) throw new Error("Failed to add note");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'order', orderId, 'notes'] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "order", orderId, "notes"],
+      });
       setNoteText("");
-    }
+    },
   });
 
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async (status: string) => {
       const response = await fetch(`/api/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
       });
-      if (!response.ok) throw new Error('Failed to update status');
+      if (!response.ok) throw new Error("Failed to update status");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'order', orderId] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
       setEditingStatus(false);
-    }
+    },
   });
 
   // Generate invoice mutation
   const generateInvoiceMutation = useMutation({
-    mutationFn: async (format: 'pdf' | 'html') => {
+    mutationFn: async (format: "pdf" | "html") => {
       const response = await fetch(`/api/admin/orders/${orderId}/invoice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format }),
       });
-      
-      if (format === 'pdf') {
+
+      if (format === "pdf") {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = `invoice-${order?.orderNumber || orderId}.pdf`;
         a.click();
@@ -144,7 +145,7 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
           newWindow.document.close();
         }
       }
-    }
+    },
   });
 
   useEffect(() => {
@@ -159,6 +160,9 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Loading Order Details...</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
@@ -170,18 +174,19 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
   if (!order) return null;
 
   const statusColors = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-blue-100 text-blue-800',
-    PROCESSING: 'bg-purple-100 text-purple-800',
-    SHIPPED: 'bg-orange-100 text-orange-800',
-    DELIVERED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
-    REFUNDED: 'bg-gray-100 text-gray-800',
+    PENDING: "bg-yellow-100 text-yellow-800",
+    CONFIRMED: "bg-blue-100 text-blue-800",
+    PROCESSING: "bg-purple-100 text-purple-800",
+    SHIPPED: "bg-orange-100 text-orange-800",
+    DELIVERED: "bg-green-100 text-green-800",
+    CANCELLED: "bg-red-100 text-red-800",
+    REFUNDED: "bg-gray-100 text-gray-800",
   };
 
-  const customerName = order.user.profile?.firstName && order.user.profile?.lastName
-    ? `${order.user.profile.firstName} ${order.user.profile.lastName}`
-    : order.user.email;
+  const customerName =
+    order.user.profile?.firstName && order.user.profile?.lastName
+      ? `${order.user.profile.firstName} ${order.user.profile.lastName}`
+      : order.user.email;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -227,7 +232,11 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Badge className={statusColors[order.status as keyof typeof statusColors]}>
+                  <Badge
+                    className={
+                      statusColors[order.status as keyof typeof statusColors]
+                    }
+                  >
                     {order.status}
                   </Badge>
                   <Button
@@ -265,9 +274,12 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                 <CardContent>
                   <div className="space-y-1">
                     <p className="font-medium">{customerName}</p>
-                    <p className="text-sm text-muted-foreground">{order.user.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {order.user.email}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Customer since {format(new Date(order.user.createdAt), 'MMM yyyy')}
+                      Customer since{" "}
+                      {format(new Date(order.user.createdAt), "MMM yyyy")}
                     </p>
                   </div>
                 </CardContent>
@@ -284,17 +296,24 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                 <CardContent>
                   <div className="space-y-1">
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Date:</span>{' '}
-                      {format(new Date(order.createdAt), 'MMM dd, yyyy')}
+                      <span className="text-muted-foreground">Date:</span>{" "}
+                      {format(new Date(order.createdAt), "MMM dd, yyyy")}
                     </p>
-                    <p className="text-sm">
-                      <span className="text-muted-foreground">Payment:</span>{' '}
-                      <Badge variant={order.paymentStatus === 'PAID' ? 'default' : 'secondary'}>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Payment:</span>{" "}
+                      <Badge
+                        variant={
+                          order.paymentStatus === "PAID"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
                         {order.paymentStatus}
                       </Badge>
-                    </p>
+                    </div>
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Items:</span> {order.items.length}
+                      <span className="text-muted-foreground">Items:</span>{" "}
+                      {order.items.length}
                     </p>
                   </div>
                 </CardContent>
@@ -311,12 +330,12 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                 <CardContent>
                   <div className="space-y-1">
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Subtotal:</span>{' '}
-                      ₹{order.subtotal.toFixed(2)}
+                      <span className="text-muted-foreground">Subtotal:</span> ₹
+                      {order.subtotal.toFixed(2)}
                     </p>
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Shipping:</span>{' '}
-                      ₹{order.shippingAmount.toFixed(2)}
+                      <span className="text-muted-foreground">Shipping:</span> ₹
+                      {order.shippingAmount.toFixed(2)}
                     </p>
                     <p className="text-lg font-bold">
                       Total: ₹{order.totalAmount.toFixed(2)}
@@ -339,15 +358,22 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                   <CardContent>
                     <div className="text-sm">
                       <p className="font-medium">
-                        {order.shippingAddress.firstName} {order.shippingAddress.lastName}
+                        {order.shippingAddress.firstName}{" "}
+                        {order.shippingAddress.lastName}
                       </p>
                       <p>{order.shippingAddress.address1}</p>
-                      {order.shippingAddress.address2 && <p>{order.shippingAddress.address2}</p>}
+                      {order.shippingAddress.address2 && (
+                        <p>{order.shippingAddress.address2}</p>
+                      )}
                       <p>
-                        {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+                        {order.shippingAddress.city},{" "}
+                        {order.shippingAddress.state}{" "}
+                        {order.shippingAddress.zipCode}
                       </p>
                       <p>{order.shippingAddress.country}</p>
-                      {order.shippingAddress.phone && <p>Phone: {order.shippingAddress.phone}</p>}
+                      {order.shippingAddress.phone && (
+                        <p>Phone: {order.shippingAddress.phone}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -364,12 +390,17 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                   <CardContent>
                     <div className="text-sm">
                       <p className="font-medium">
-                        {order.billingAddress.firstName} {order.billingAddress.lastName}
+                        {order.billingAddress.firstName}{" "}
+                        {order.billingAddress.lastName}
                       </p>
                       <p>{order.billingAddress.address1}</p>
-                      {order.billingAddress.address2 && <p>{order.billingAddress.address2}</p>}
+                      {order.billingAddress.address2 && (
+                        <p>{order.billingAddress.address2}</p>
+                      )}
                       <p>
-                        {order.billingAddress.city}, {order.billingAddress.state} {order.billingAddress.zipCode}
+                        {order.billingAddress.city},{" "}
+                        {order.billingAddress.state}{" "}
+                        {order.billingAddress.zipCode}
                       </p>
                       <p>{order.billingAddress.country}</p>
                     </div>
@@ -386,34 +417,51 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.items.map((item: { id: string; product: { images: string[]; name: string }; name?: string; variant?: string; sku?: string; quantity: number; price: number }) => (
-                    <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="w-16 h-16 relative">
-                        <Image
-                          src={item.product.images[0] || '/placeholder.png'}
-                          alt={item.product.name}
-                          fill
-                          className="object-cover rounded"
-                        />
+                  {order.items.map(
+                    (item: {
+                      id: string;
+                      product: { images: string[]; name: string };
+                      name?: string;
+                      variant?: string;
+                      sku?: string;
+                      quantity: number;
+                      price: number;
+                    }) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-4 p-4 border rounded-lg"
+                      >
+                        <div className="w-16 h-16 relative">
+                          <Image
+                            src={item.product.images[0] || "/placeholder.png"}
+                            alt={item.product.name}
+                            fill
+                            className="object-cover rounded"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.product.name}</h4>
+                          {item.name !== item.product.name && (
+                            <p className="text-sm text-muted-foreground">
+                              {item.name}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            SKU: {item.sku || "N/A"}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">Qty: {item.quantity}</p>
+                          <p className="text-sm text-muted-foreground">
+                            ₹{item.price.toFixed(2)} each
+                          </p>
+                          <p className="font-bold">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{item.product.name}</h4>
-                        {item.name !== item.product.name && (
-                          <p className="text-sm text-muted-foreground">{item.name}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground">
-                          SKU: {item.sku || 'N/A'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">Qty: {item.quantity}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ₹{item.price.toFixed(2)} each
-                        </p>
-                        <p className="font-bold">₹{(item.price * item.quantity).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -430,23 +478,38 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">Tracking Number</Label>
-                    <p className="text-sm">{order.trackingNumber || 'Not assigned'}</p>
+                    <Label className="text-sm font-medium">
+                      Tracking Number
+                    </Label>
+                    <p className="text-sm">
+                      {order.trackingNumber || "Not assigned"}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Carrier</Label>
-                    <p className="text-sm">{order.carrier || 'Not specified'}</p>
+                    <p className="text-sm">
+                      {order.carrier || "Not specified"}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Shipped Date</Label>
                     <p className="text-sm">
-                      {order.shippedAt ? format(new Date(order.shippedAt), 'MMM dd, yyyy') : 'Not shipped'}
+                      {order.shippedAt
+                        ? format(new Date(order.shippedAt), "MMM dd, yyyy")
+                        : "Not shipped"}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Estimated Delivery</Label>
+                    <Label className="text-sm font-medium">
+                      Estimated Delivery
+                    </Label>
                     <p className="text-sm">
-                      {order.estimatedDelivery ? format(new Date(order.estimatedDelivery), 'MMM dd, yyyy') : 'Not estimated'}
+                      {order.estimatedDelivery
+                        ? format(
+                            new Date(order.estimatedDelivery),
+                            "MMM dd, yyyy"
+                          )
+                        : "Not estimated"}
                     </p>
                   </div>
                 </div>
@@ -483,7 +546,9 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                       </Label>
                     </div>
                     <Button
-                      onClick={() => addNoteMutation.mutate({ note: noteText, isInternal })}
+                      onClick={() =>
+                        addNoteMutation.mutate({ note: noteText, isInternal })
+                      }
                       disabled={!noteText.trim() || addNoteMutation.isPending}
                     >
                       Add Note
@@ -493,29 +558,44 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
 
                 {/* Notes List */}
                 <div className="space-y-2">
-                  {notesData?.notes?.map((note: { id: string; authorName: string; isInternal: boolean; content: string; createdAt: string }) => (
-                    <div
-                      key={note.id}
-                      className={`p-3 rounded-lg border ${
-                        note.isInternal ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium">{note.authorName}</span>
-                        <div className="flex items-center gap-2">
-                          {note.isInternal && (
-                            <Badge variant="secondary" className="text-xs">
-                              Internal
-                            </Badge>
-                          )}
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(note.createdAt), 'MMM dd, yyyy HH:mm')}
+                  {notesData?.notes?.map(
+                    (note: {
+                      id: string;
+                      authorName: string;
+                      isInternal: boolean;
+                      content: string;
+                      createdAt: string;
+                    }) => (
+                      <div
+                        key={note.id}
+                        className={`p-3 rounded-lg border ${
+                          note.isInternal
+                            ? "bg-yellow-50 border-yellow-200"
+                            : "bg-blue-50 border-blue-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium">
+                            {note.authorName}
                           </span>
+                          <div className="flex items-center gap-2">
+                            {note.isInternal && (
+                              <Badge variant="secondary" className="text-xs">
+                                Internal
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {format(
+                                new Date(note.createdAt),
+                                "MMM dd, yyyy HH:mm"
+                              )}
+                            </span>
+                          </div>
                         </div>
+                        <p className="text-sm">{note.content}</p>
                       </div>
-                      <p className="text-sm">{note.content}</p>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -534,7 +614,7 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => generateInvoiceMutation.mutate('pdf')}
+                    onClick={() => generateInvoiceMutation.mutate("pdf")}
                     disabled={generateInvoiceMutation.isPending}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -543,7 +623,7 @@ export default function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDet
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => generateInvoiceMutation.mutate('html')}
+                    onClick={() => generateInvoiceMutation.mutate("html")}
                     disabled={generateInvoiceMutation.isPending}
                   >
                     <FileText className="h-4 w-4 mr-2" />
