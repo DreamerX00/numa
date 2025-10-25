@@ -33,6 +33,9 @@ export async function GET() {
         codInstructions: settings.payments.codInstructions,
         minOrderAmount: settings.payments.minOrderAmount,
       },
+      company: {
+        gstRate: settings.company.gstRate,
+      },
       seo: {
         metaTitle: settings.seo.metaTitle,
         metaDescription: settings.seo.metaDescription,

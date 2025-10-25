@@ -64,15 +64,16 @@ export function PaymentStep({
   setLoading,
 }: PaymentStepProps) {
   const { user } = useAuth();
-  const { shipping } = useSettings();
+  const { shipping, company, getAvailablePaymentMethods } = useSettings();
+  const availableMethods = getAvailablePaymentMethods();
   const [error, setError] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "phonepe" | "razorpay" | "cod"
-  >("phonepe");
+  >((availableMethods[0]?.id as "phonepe" | "razorpay" | "cod") || "phonepe");
 
-  // Calculate amounts using passed shipping cost and dynamic COD charges
+  // Calculate amounts using passed shipping cost, dynamic COD charges, and dynamic GST rate
   const codFee = selectedPaymentMethod === "cod" ? shipping.codCharges : 0;
-  const taxAmount = (subtotal + shippingCost + codFee) * 0.18;
+  const taxAmount = (subtotal + shippingCost + codFee) * (company.gstRate || 0);
   const totalAmount = subtotal + shippingCost + codFee + taxAmount;
 
   // Check if order is ready for payment
@@ -398,110 +399,85 @@ export function PaymentStep({
               }
               className="space-y-3"
             >
-              {/* PhonePe */}
-              <div
-                className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedPaymentMethod === "phonepe"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-blue-300"
-                }`}
-              >
-                <RadioGroupItem value="phonepe" id="phonepe" className="mt-0" />
-                <Label htmlFor="phonepe" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Wallet className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">PhonePe</span>
-                        <Badge
-                          variant="secondary"
-                          className="bg-blue-100 text-blue-800 text-xs"
-                        >
-                          Popular
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        UPI, Cards, NetBanking, Wallets
-                      </p>
-                    </div>
-                    {selectedPaymentMethod === "phonepe" && (
-                      <Check className="h-5 w-5 text-blue-600" />
-                    )}
-                  </div>
-                </Label>
-              </div>
+              {availableMethods.map((method) => {
+                const isPhonePe = method.id === "phonepe";
+                const isRazorpay = method.id === "razorpay";
+                const isCOD = method.id === "cod";
+                const isSelected = selectedPaymentMethod === method.id;
 
-              {/* Razorpay */}
-              <div
-                className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg opacity-60 cursor-not-allowed transition-all border-gray-200 bg-gray-50`}
-              >
-                <RadioGroupItem
-                  value="razorpay"
-                  id="razorpay"
-                  className="mt-0"
-                  disabled
-                />
-                <Label htmlFor="razorpay" className="flex-1 cursor-not-allowed">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-600">
-                          Razorpay
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className="bg-gray-200 text-gray-600 text-xs"
-                        >
-                          Coming Soon
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Currently unavailable - Use PhonePe or COD
-                      </p>
-                    </div>
-                  </div>
-                </Label>
-              </div>
+                // Icon configuration
+                const IconComponent = isPhonePe
+                  ? Wallet
+                  : isRazorpay
+                    ? CreditCard
+                    : Banknote;
+                const iconBgColor = isPhonePe
+                  ? "bg-purple-100"
+                  : isRazorpay
+                    ? "bg-blue-100"
+                    : "bg-green-100";
+                const iconColor = isPhonePe
+                  ? "text-purple-600"
+                  : isRazorpay
+                    ? "text-blue-600"
+                    : "text-green-600";
 
-              {/* Cash on Delivery */}
-              <div
-                className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedPaymentMethod === "cod"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-blue-300"
-                }`}
-              >
-                <RadioGroupItem value="cod" id="cod" className="mt-0" />
-                <Label htmlFor="cod" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Banknote className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Cash on Delivery</span>
-                        <Badge
-                          variant="secondary"
-                          className="bg-amber-100 text-amber-800 text-xs"
+                return (
+                  <div
+                    key={method.id}
+                    className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-300"
+                    }`}
+                  >
+                    <RadioGroupItem
+                      value={method.id}
+                      id={method.id}
+                      className="mt-0"
+                    />
+                    <Label
+                      htmlFor={method.id}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 ${iconBgColor} rounded-lg flex items-center justify-center`}
                         >
-                          +₹{shipping.codCharges} Fee
-                        </Badge>
+                          <IconComponent className={`h-5 w-5 ${iconColor}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{method.name}</span>
+                            {isPhonePe && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-blue-100 text-blue-800 text-xs"
+                              >
+                                Popular
+                              </Badge>
+                            )}
+                            {isCOD && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-amber-100 text-amber-800 text-xs"
+                              >
+                                +₹{shipping.codCharges} Fee
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {method.description}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <Check className="h-5 w-5 text-blue-600" />
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Pay when you receive your order
-                      </p>
-                    </div>
-                    {selectedPaymentMethod === "cod" && (
-                      <Check className="h-5 w-5 text-blue-600" />
-                    )}
+                    </Label>
                   </div>
-                </Label>
-              </div>
+                );
+              })}
             </RadioGroup>
 
             {/* Payment method specific info */}
@@ -557,7 +533,7 @@ export function PaymentStep({
               )}
 
               <div className="flex justify-between text-sm">
-                <span>Tax (GST 18%)</span>
+                <span>Tax (GST {(company.gstRate * 100).toFixed(1)}%)</span>
                 <span>{formatPriceFromFloat(taxAmount)}</span>
               </div>
 

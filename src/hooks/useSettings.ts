@@ -26,6 +26,10 @@ interface PaymentSettings {
   minOrderAmount: number;
 }
 
+interface CompanySettings {
+  gstRate: number;
+}
+
 export function useSettings() {
   const [shipping, setShipping] = useState<ShippingSettings>({
     freeShippingThreshold: 500,
@@ -51,6 +55,10 @@ export function useSettings() {
     minOrderAmount: 100,
   });
 
+  const [company, setCompany] = useState<CompanySettings>({
+    gstRate: 0.18,
+  });
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,6 +76,9 @@ export function useSettings() {
             }
             if (data.settings.payments) {
               setPayments((prev) => ({ ...prev, ...data.settings.payments }));
+            }
+            if (data.settings.company) {
+              setCompany((prev) => ({ ...prev, ...data.settings.company }));
             }
           }
         }
@@ -124,6 +135,7 @@ export function useSettings() {
     shipping,
     general,
     payments,
+    company,
     loading,
     getAvailablePaymentMethods,
   };

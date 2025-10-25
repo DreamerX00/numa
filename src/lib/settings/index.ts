@@ -61,6 +61,7 @@ interface Settings {
     companyEmail: string;
     companyWebsite: string;
     gstin: string;
+    gstRate: number;
   };
 }
 
@@ -117,7 +118,7 @@ const defaultSettings: Settings = {
     analyticsId: "",
   },
   company: {
-    companyName: "Numa Store",
+    companyName: "",
     companyAddress: "",
     companyCity: "",
     companyState: "",
@@ -127,6 +128,7 @@ const defaultSettings: Settings = {
     companyEmail: "contact@numa.com",
     companyWebsite: "",
     gstin: "",
+    gstRate: 0.18,
   },
 };
 
