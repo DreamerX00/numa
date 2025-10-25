@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logAdminAction, verifyAdminAuth } from '@/lib/auth/admin';
-import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
-import { Prisma } from '@prisma/client';
+import { NextRequest, NextResponse } from "next/server";
+import { logAdminAction, verifyAdminAuth } from "@/lib/auth/admin";
+import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 const productSchema = z.object({
-  name: z.string().min(1),
-  slug: z.string().min(1),
+  name: z.string().min(1, "Product name is required"),
+  slug: z.string().min(1, "Product slug is required"),
   description: z.string().optional(),
   shortDescription: z.string().optional(),
-  price: z.number().min(0),
+  price: z.number().min(0, "Price must be at least 0"),
   comparePrice: z.number().min(0).optional(),
   costPrice: z.number().min(0).optional(),
   sku: z.string().optional(),
@@ -22,10 +22,10 @@ const productSchema = z.object({
   videos: z.array(z.string()).default([]),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
-  categoryId: z.string(),
+  categoryId: z.string().min(1, "Category is required"),
   brandId: z.string().optional(),
   tags: z.array(z.string()).default([]),
-  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).default('DRAFT'),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).default("DRAFT"),
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   hasVariants: z.boolean().default(false),
@@ -34,7 +34,7 @@ const productSchema = z.object({
   shippingLength: z.number().min(0).optional(),
   shippingWidth: z.number().min(0).optional(),
   shippingHeight: z.number().min(0).optional(),
-  shippingClass: z.string().default('standard'),
+  shippingClass: z.string().default("standard"),
   requiresSpecialHandling: z.boolean().default(false),
   domesticOnly: z.boolean().default(false),
   individualShippingRate: z.number().min(0).optional(),
@@ -50,13 +50,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const search = searchParams.get('search');
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const search = searchParams.get("search");
+    const status = searchParams.get("status");
+    const category = searchParams.get("category");
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
 
     const skip = (page - 1) * limit;
 
@@ -65,9 +65,9 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -81,10 +81,10 @@ export async function GET(req: NextRequest) {
 
     // Build orderBy clause
     const orderBy: Prisma.ProductOrderByWithRelationInput = {};
-    if (sortBy === 'name' || sortBy === 'price' || sortBy === 'createdAt') {
-      orderBy[sortBy] = sortOrder as 'asc' | 'desc';
+    if (sortBy === "name" || sortBy === "price" || sortBy === "createdAt") {
+      orderBy[sortBy] = sortOrder as "asc" | "desc";
     } else {
-      orderBy.createdAt = sortOrder as 'asc' | 'desc';
+      orderBy.createdAt = sortOrder as "asc" | "desc";
     }
 
     const [products, totalCount, categories, brands] = await Promise.all([
@@ -94,21 +94,21 @@ export async function GET(req: NextRequest) {
           category: { select: { id: true, name: true } },
           brand: { select: { id: true, name: true } },
           variants: { select: { id: true, name: true, price: true } },
-          _count: { select: { reviews: true } }
+          _count: { select: { reviews: true } },
         },
         orderBy,
         skip,
-        take: limit
+        take: limit,
       }),
       prisma.product.count({ where }),
       prisma.category.findMany({
         where: { isActive: true },
-        select: { id: true, name: true }
+        select: { id: true, name: true },
       }),
       prisma.brand.findMany({
         where: { isActive: true },
-        select: { id: true, name: true }
-      })
+        select: { id: true, name: true },
+      }),
     ]);
 
     return NextResponse.json({
@@ -117,18 +117,17 @@ export async function GET(req: NextRequest) {
         page,
         limit,
         totalCount,
-        totalPages: Math.ceil(totalCount / limit)
+        totalPages: Math.ceil(totalCount / limit),
       },
       filters: {
         categories,
-        brands
-      }
+        brands,
+      },
     });
-
   } catch (error) {
-    console.error('Error fetching admin products:', error);
+    console.error("Error fetching admin products:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -148,38 +147,40 @@ export async function POST(req: NextRequest) {
       data: validatedData,
       include: {
         category: true,
-        brand: true
-      }
+        brand: true,
+      },
     });
 
     // Log admin action
     if (adminCheck?.user) {
       await logAdminAction(
         adminCheck.user.id,
-        'CREATE',
-        'product',
+        "CREATE",
+        "product",
         product.id,
         { productName: product.name },
         req
       );
     }
 
-    return NextResponse.json({
-      message: 'Product created successfully',
-      product
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        message: "Product created successfully",
+        product,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.issues },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }
 
-    console.error('Error creating product:', error);
+    console.error("Error creating product:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

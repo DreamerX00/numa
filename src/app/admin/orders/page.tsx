@@ -1,31 +1,32 @@
 "use client";
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import ShippingModal from '@/components/admin/ShippingModal';
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import HeartLoader from '@/components/ui/HeartLoader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import ShippingModal from "@/components/admin/ShippingModal";
+import OrderDetailsModal from "@/components/admin/OrderDetailsModal";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import HeartLoader from "@/components/ui/HeartLoader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { 
-  Search, 
+} from "@/components/ui/select";
+import {
+  Search,
   MoreHorizontal,
   Eye,
   Package,
@@ -33,23 +34,28 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  DollarSign
-} from 'lucide-react';
+  DollarSign,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import Link from 'next/link';
+} from "@/components/ui/dropdown-menu";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Types
 interface Order {
   id: string;
   orderNumber: string;
-  status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  status:
+    | "PENDING"
+    | "CONFIRMED"
+    | "PROCESSING"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
   totalAmount: number;
   createdAt: string;
   trackingNumber?: string;
@@ -100,53 +106,62 @@ interface OrdersResponse {
 
 // API functions
 const api = {
-  getOrders: async (page = 1, limit = 20, search = '', status = 'all'): Promise<OrdersResponse> => {
+  getOrders: async (
+    page = 1,
+    limit = 20,
+    search = "",
+    status = "all"
+  ): Promise<OrdersResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
       ...(search && { search }),
-      ...(status !== 'all' && { status })
+      ...(status !== "all" && { status }),
     });
     const response = await fetch(`/api/admin/orders?${params}`);
-    if (!response.ok) throw new Error('Failed to fetch orders');
+    if (!response.ok) throw new Error("Failed to fetch orders");
     return response.json();
   },
 
   updateOrderStatus: async (id: string, status: string) => {
     const response = await fetch(`/api/admin/orders/${id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    if (!response.ok) throw new Error('Failed to update order status');
+    if (!response.ok) throw new Error("Failed to update order status");
     return response.json();
-  }
+  },
 };
 
 const statusConfig = {
-  PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-  CONFIRMED: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
-  PROCESSING: { color: 'bg-purple-100 text-purple-800', icon: Package },
-  SHIPPED: { color: 'bg-orange-100 text-orange-800', icon: Truck },
-  DELIVERED: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  CANCELLED: { color: 'bg-red-100 text-red-800', icon: XCircle },
+  PENDING: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
+  CONFIRMED: { color: "bg-blue-100 text-blue-800", icon: CheckCircle },
+  PROCESSING: { color: "bg-purple-100 text-purple-800", icon: Package },
+  SHIPPED: { color: "bg-orange-100 text-orange-800", icon: Truck },
+  DELIVERED: { color: "bg-green-100 text-green-800", icon: CheckCircle },
+  CANCELLED: { color: "bg-red-100 text-red-800", icon: XCircle },
 };
 
 export default function AdminOrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [limit] = useState(20);
   const [shippingModal, setShippingModal] = useState<{
     isOpen: boolean;
     order?: Order;
   }>({ isOpen: false });
-  
+  const [orderDetailsModal, setOrderDetailsModal] = useState<{
+    isOpen: boolean;
+    orderId: string | null;
+  }>({ isOpen: false, orderId: null });
+
   const queryClient = useQueryClient();
 
   // Fetch orders
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'orders', currentPage, searchTerm, statusFilter, limit],
+    queryKey: ["admin", "orders", currentPage, searchTerm, statusFilter, limit],
     queryFn: () => api.getOrders(currentPage, limit, searchTerm, statusFilter),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -156,7 +171,13 @@ export default function AdminOrdersPage() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.updateOrderStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update order status:", error);
+      alert(
+        error.message || "Failed to update order status. Please try again."
+      );
     },
   });
 
@@ -178,7 +199,15 @@ export default function AdminOrdersPage() {
   };
 
   const handleShippingUpdate = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+  };
+
+  const handleOpenOrderDetails = (orderId: string) => {
+    setOrderDetailsModal({ isOpen: true, orderId });
+  };
+
+  const handleCloseOrderDetails = () => {
+    setOrderDetailsModal({ isOpen: false, orderId: null });
   };
 
   const orders = data?.orders || [];
@@ -186,9 +215,9 @@ export default function AdminOrdersPage() {
   const pagination = data?.pagination;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -196,7 +225,7 @@ export default function AdminOrdersPage() {
     if (order.user?.profile?.firstName && order.user?.profile?.lastName) {
       return `${order.user.profile.firstName} ${order.user.profile.lastName}`;
     }
-    return order.user?.email || 'Unknown Customer';
+    return order.user?.email || "Unknown Customer";
   };
 
   // Add safety check for order items
@@ -204,10 +233,14 @@ export default function AdminOrdersPage() {
     const items = order.items || [];
     return {
       count: items.length,
-      displayNames: items.length > 0 
-        ? items.slice(0, 2).map(item => item?.product?.name || 'Unknown Product').join(', ')
-        : 'No items',
-      hasMore: items.length > 2
+      displayNames:
+        items.length > 0
+          ? items
+              .slice(0, 2)
+              .map((item) => item?.product?.name || "Unknown Product")
+              .join(", ")
+          : "No items",
+      hasMore: items.length > 2,
     };
   };
 
@@ -218,37 +251,39 @@ export default function AdminOrdersPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-            <p className="text-gray-600">Manage customer orders and fulfillment</p>
+            <p className="text-gray-600">
+              Manage customer orders and fulfillment
+            </p>
           </div>
         </div>
 
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatsCard 
-              title="Total Revenue" 
-              value={formatCurrency(stats.totalRevenue)} 
+            <StatsCard
+              title="Total Revenue"
+              value={formatCurrency(stats.totalRevenue)}
               icon={DollarSign}
               trend="up"
               change="+12%"
             />
-            <StatsCard 
-              title="Total Orders" 
-              value={stats.totalOrders.toString()} 
+            <StatsCard
+              title="Total Orders"
+              value={stats.totalOrders.toString()}
               icon={Package}
               trend="up"
               change="+8%"
             />
-            <StatsCard 
-              title="Pending Orders" 
-              value={stats.pendingOrders.toString()} 
+            <StatsCard
+              title="Pending Orders"
+              value={stats.pendingOrders.toString()}
               icon={Clock}
               trend="down"
               change="-5%"
             />
-            <StatsCard 
-              title="Shipped Orders" 
-              value={stats.shippedOrders.toString()} 
+            <StatsCard
+              title="Shipped Orders"
+              value={stats.shippedOrders.toString()}
               icon={Truck}
               trend="up"
               change="+15%"
@@ -262,7 +297,10 @@ export default function AdminOrdersPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Order List</CardTitle>
               <div className="flex items-center space-x-2">
-                <form onSubmit={handleSearch} className="flex items-center space-x-2">
+                <form
+                  onSubmit={handleSearch}
+                  className="flex items-center space-x-2"
+                >
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
@@ -318,114 +356,174 @@ export default function AdminOrdersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.length > 0 ? orders.map((order) => {
-                      const StatusIcon = statusConfig[order.status]?.icon || Clock;
-                      const statusStyle = statusConfig[order.status]?.color || 'bg-gray-100 text-gray-800';
-                      const itemsDisplay = getOrderItemsDisplay(order);
-                      
-                      return (
-                        <TableRow key={order.id}>
-                          <TableCell>
-                            <div className="font-medium">#{order.orderNumber || 'Unknown'}</div>
-                            <div className="text-sm text-gray-500">{order.id?.slice(0, 8) || 'No ID'}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{getCustomerName(order)}</div>
-                            <div className="text-sm text-gray-500">{order.user?.email || 'No email'}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {itemsDisplay.count} item{itemsDisplay.count !== 1 ? 's' : ''}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {itemsDisplay.displayNames}
-                              {itemsDisplay.hasMore && '...'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{formatCurrency(order.totalAmount || 0)}</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={statusStyle}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
-                              {order.status || 'UNKNOWN'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Unknown date'}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/orders/${order.id}`}>
+                    {orders.length > 0 ? (
+                      orders.map((order) => {
+                        const StatusIcon =
+                          statusConfig[order.status]?.icon || Clock;
+                        const statusStyle =
+                          statusConfig[order.status]?.color ||
+                          "bg-gray-100 text-gray-800";
+                        const itemsDisplay = getOrderItemsDisplay(order);
+
+                        return (
+                          <TableRow key={order.id}>
+                            <TableCell>
+                              <div className="font-medium">
+                                #{order.orderNumber || "Unknown"}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {order.id?.slice(0, 8) || "No ID"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">
+                                {getCustomerName(order)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {order.user?.email || "No email"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {itemsDisplay.count} item
+                                {itemsDisplay.count !== 1 ? "s" : ""}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {itemsDisplay.displayNames}
+                                {itemsDisplay.hasMore && "..."}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">
+                                {formatCurrency(order.totalAmount || 0)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={statusStyle}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {order.status || "UNKNOWN"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {order.createdAt
+                                  ? new Date(
+                                      order.createdAt
+                                    ).toLocaleDateString()
+                                  : "Unknown date"}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {order.createdAt
+                                  ? new Date(
+                                      order.createdAt
+                                    ).toLocaleTimeString()
+                                  : ""}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleOpenOrderDetails(order.id)
+                                    }
+                                  >
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Details
-                                  </Link>
-                                </DropdownMenuItem>
-                                {order.status === 'PENDING' && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleStatusUpdate(order.id, 'CONFIRMED')}
-                                  >
-                                    Confirm Order
                                   </DropdownMenuItem>
-                                )}
-                                {order.status === 'CONFIRMED' && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleStatusUpdate(order.id, 'PROCESSING')}
-                                  >
-                                    Start Processing
-                                  </DropdownMenuItem>
-                                )}
-                                {order.status === 'PROCESSING' && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleOpenShippingModal(order)}
-                                  >
-                                    <Truck className="h-4 w-4 mr-2" />
-                                    Manage Shipping
-                                  </DropdownMenuItem>
-                                )}
-                                {['SHIPPED', 'DELIVERED'].includes(order.status) && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleOpenShippingModal(order)}
-                                  >
-                                    <Truck className="h-4 w-4 mr-2" />
-                                    Update Shipping
-                                  </DropdownMenuItem>
-                                )}
-                                {order.status === 'SHIPPED' && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleStatusUpdate(order.id, 'DELIVERED')}
-                                  >
-                                    Mark as Delivered
-                                  </DropdownMenuItem>
-                                )}
-                                {['PENDING', 'CONFIRMED'].includes(order.status) && (
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() => handleStatusUpdate(order.id, 'CANCELLED')}
-                                  >
-                                    Cancel Order
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }) : (
+                                  {order.status === "PENDING" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleStatusUpdate(
+                                          order.id,
+                                          "CONFIRMED"
+                                        )
+                                      }
+                                    >
+                                      Confirm Order
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status === "CONFIRMED" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleStatusUpdate(
+                                          order.id,
+                                          "PROCESSING"
+                                        )
+                                      }
+                                    >
+                                      Start Processing
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status === "PROCESSING" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleOpenShippingModal(order)
+                                      }
+                                    >
+                                      <Truck className="h-4 w-4 mr-2" />
+                                      Manage Shipping
+                                    </DropdownMenuItem>
+                                  )}
+                                  {["SHIPPED", "DELIVERED"].includes(
+                                    order.status
+                                  ) && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleOpenShippingModal(order)
+                                      }
+                                    >
+                                      <Truck className="h-4 w-4 mr-2" />
+                                      Update Shipping
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status === "SHIPPED" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleStatusUpdate(
+                                          order.id,
+                                          "DELIVERED"
+                                        )
+                                      }
+                                    >
+                                      Mark as Delivered
+                                    </DropdownMenuItem>
+                                  )}
+                                  {["PENDING", "CONFIRMED"].includes(
+                                    order.status
+                                  ) && (
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() =>
+                                        handleStatusUpdate(
+                                          order.id,
+                                          "CANCELLED"
+                                        )
+                                      }
+                                    >
+                                      Cancel Order
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-gray-500"
+                        >
                           No orders found
                         </TableCell>
                       </TableRow>
@@ -437,7 +535,12 @@ export default function AdminOrdersPage() {
                 {pagination && pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
                     <div className="text-sm text-gray-600">
-                      Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.totalCount)} of {pagination.totalCount} orders
+                      Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                      {Math.min(
+                        pagination.page * pagination.limit,
+                        pagination.totalCount
+                      )}{" "}
+                      of {pagination.totalCount} orders
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
@@ -475,6 +578,13 @@ export default function AdminOrdersPage() {
           onUpdate={handleShippingUpdate}
         />
       )}
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        orderId={orderDetailsModal.orderId}
+        isOpen={orderDetailsModal.isOpen}
+        onClose={handleCloseOrderDetails}
+      />
     </AdminLayout>
   );
 }
@@ -483,15 +593,21 @@ interface StatsCardProps {
   title: string;
   value: string;
   icon: React.ElementType;
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
   change: string;
 }
 
-function StatsCard({ title, value, icon: Icon, trend, change }: StatsCardProps) {
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  change,
+}: StatsCardProps) {
   const trendColors = {
-    up: 'text-green-600',
-    down: 'text-red-600',
-    neutral: 'text-gray-600'
+    up: "text-green-600",
+    down: "text-red-600",
+    neutral: "text-gray-600",
   };
 
   return (

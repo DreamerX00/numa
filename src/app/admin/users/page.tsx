@@ -1,30 +1,30 @@
 "use client";
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/lib/auth/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { 
-  Search, 
+} from "@/components/ui/select";
+import {
+  Search,
   MoreHorizontal,
   Edit,
   Ban,
@@ -32,24 +32,24 @@ import {
   User,
   Users,
   Crown,
-  Mail
-} from 'lucide-react';
+  Mail,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import Image from 'next/image';
+} from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Types
 interface User {
   id: string;
   email: string;
   emailVerified: boolean;
-  role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
+  role: "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
   isActive: boolean;
   createdAt: string;
   lastLoginAt?: string;
@@ -84,82 +84,109 @@ interface UsersResponse {
 
 // API functions
 const api = {
-  getUsers: async (page = 1, limit = 20, search = '', role = 'all', status = 'all'): Promise<UsersResponse> => {
+  getUsers: async (
+    page = 1,
+    limit = 20,
+    search = "",
+    role = "all",
+    status = "all"
+  ): Promise<UsersResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
       ...(search && { search }),
-      ...(role !== 'all' && { role }),
-      ...(status !== 'all' && { status })
+      ...(role !== "all" && { role }),
+      ...(status !== "all" && { status }),
     });
     const response = await fetch(`/api/admin/users?${params}`);
-    if (!response.ok) throw new Error('Failed to fetch users');
+    if (!response.ok) throw new Error("Failed to fetch users");
     return response.json();
   },
 
   updateUserRole: async (id: string, role: string) => {
     const response = await fetch(`/api/admin/users/${id}/role`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role }),
     });
-    if (!response.ok) throw new Error('Failed to update user role');
+    if (!response.ok) throw new Error("Failed to update user role");
     return response.json();
   },
 
   updateUserStatus: async (id: string, isActive: boolean) => {
     const response = await fetch(`/api/admin/users/${id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive }),
     });
-    if (!response.ok) throw new Error('Failed to update user status');
+    if (!response.ok) throw new Error("Failed to update user status");
     return response.json();
   },
 
   deleteUser: async (id: string) => {
     const response = await fetch(`/api/admin/users/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
-    if (!response.ok) throw new Error('Failed to delete user');
+    if (!response.ok) throw new Error("Failed to delete user");
     return response.json();
-  }
+  },
 };
 
 const roleConfig = {
-  CUSTOMER: { color: 'bg-blue-100 text-blue-800', icon: User, label: 'Customer' },
-  ADMIN: { color: 'bg-purple-100 text-purple-800', icon: Shield, label: 'Admin' },
-  SUPER_ADMIN: { color: 'bg-red-100 text-red-800', icon: Crown, label: 'Super Admin' },
+  CUSTOMER: {
+    color: "bg-blue-100 text-blue-800",
+    icon: User,
+    label: "Customer",
+  },
+  ADMIN: {
+    color: "bg-purple-100 text-purple-800",
+    icon: Shield,
+    label: "Admin",
+  },
+  SUPER_ADMIN: {
+    color: "bg-red-100 text-red-800",
+    icon: Crown,
+    label: "Super Admin",
+  },
 };
 
 export default function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [limit] = useState(20);
-  
+
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   // Get current user's role from database to verify permissions
   const { data: currentUserData } = useQuery({
-    queryKey: ['current-user-role'],
+    queryKey: ["current-user-role"],
     queryFn: async () => {
-      const response = await fetch('/api/admin/current-user');
-      if (!response.ok) throw new Error('Failed to get current user');
+      const response = await fetch("/api/admin/current-user");
+      if (!response.ok) throw new Error("Failed to get current user");
       return response.json();
     },
     enabled: !!user,
   });
-  
+
   const currentUserRole = currentUserData?.role;
-  const isSuperAdmin = currentUserRole === 'SUPER_ADMIN';
+  const isSuperAdmin = currentUserRole === "SUPER_ADMIN";
 
   // Fetch users
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'users', currentPage, searchTerm, roleFilter, statusFilter, limit],
-    queryFn: () => api.getUsers(currentPage, limit, searchTerm, roleFilter, statusFilter),
+    queryKey: [
+      "admin",
+      "users",
+      currentPage,
+      searchTerm,
+      roleFilter,
+      statusFilter,
+      limit,
+    ],
+    queryFn: () =>
+      api.getUsers(currentPage, limit, searchTerm, roleFilter, statusFilter),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -168,7 +195,11 @@ export default function AdminUsersPage() {
     mutationFn: ({ id, role }: { id: string; role: string }) =>
       api.updateUserRole(id, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update user role:", error);
+      alert(error.message || "Failed to update user role. Please try again.");
     },
   });
 
@@ -177,7 +208,11 @@ export default function AdminUsersPage() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.updateUserStatus(id, isActive),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update user status:", error);
+      alert(error.message || "Failed to update user status. Please try again.");
     },
   });
 
@@ -185,7 +220,11 @@ export default function AdminUsersPage() {
   const deleteUserMutation = useMutation({
     mutationFn: api.deleteUser,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to delete user:", error);
+      alert(error.message || "Failed to delete user. Please try again.");
     },
   });
 
@@ -195,20 +234,41 @@ export default function AdminUsersPage() {
   };
 
   const handleRoleUpdate = (userId: string, newRole: string) => {
-    if (confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
+    // Prevent modifying own role
+    if (userId === user?.uid) {
+      alert("You cannot change your own role.");
+      return;
+    }
+    if (
+      confirm(`Are you sure you want to change this user's role to ${newRole}?`)
+    ) {
       updateRoleMutation.mutate({ id: userId, role: newRole });
     }
   };
 
   const handleStatusUpdate = (userId: string, newStatus: boolean) => {
-    const action = newStatus ? 'activate' : 'deactivate';
+    // Prevent deactivating own account
+    if (userId === user?.uid) {
+      alert("You cannot deactivate your own account.");
+      return;
+    }
+    const action = newStatus ? "activate" : "deactivate";
     if (confirm(`Are you sure you want to ${action} this user?`)) {
       updateStatusMutation.mutate({ id: userId, isActive: newStatus });
     }
   };
 
   const handleDeleteUser = (userId: string) => {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    // Prevent deleting own account
+    if (userId === user?.uid) {
+      alert("You cannot delete your own account.");
+      return;
+    }
+    if (
+      confirm(
+        "Are you sure you want to delete this user? This action cannot be undone."
+      )
+    ) {
       deleteUserMutation.mutate(userId);
     }
   };
@@ -234,37 +294,39 @@ export default function AdminUsersPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-            <p className="text-gray-600">Manage user accounts and permissions</p>
+            <p className="text-gray-600">
+              Manage user accounts and permissions
+            </p>
           </div>
         </div>
 
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatsCard 
-              title="Total Users" 
-              value={stats.totalUsers.toString()} 
+            <StatsCard
+              title="Total Users"
+              value={stats.totalUsers.toString()}
               icon={Users}
               trend="up"
               change="+12%"
             />
-            <StatsCard 
-              title="Active Users" 
-              value={stats.activeUsers.toString()} 
+            <StatsCard
+              title="Active Users"
+              value={stats.activeUsers.toString()}
               icon={User}
               trend="up"
               change="+8%"
             />
-            <StatsCard 
-              title="Admin Users" 
-              value={stats.adminUsers.toString()} 
+            <StatsCard
+              title="Admin Users"
+              value={stats.adminUsers.toString()}
               icon={Shield}
               trend="neutral"
               change="0%"
             />
-            <StatsCard 
-              title="New This Month" 
-              value={stats.newUsersThisMonth.toString()} 
+            <StatsCard
+              title="New This Month"
+              value={stats.newUsersThisMonth.toString()}
               icon={Users}
               trend="up"
               change="+25%"
@@ -278,7 +340,10 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <CardTitle>User List</CardTitle>
               <div className="flex items-center space-x-2">
-                <form onSubmit={handleSearch} className="flex items-center space-x-2">
+                <form
+                  onSubmit={handleSearch}
+                  className="flex items-center space-x-2"
+                >
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
@@ -361,9 +426,13 @@ export default function AdminUsersPage() {
                                 )}
                               </div>
                               <div>
-                                <div className="font-medium">{getUserName(user)}</div>
+                                <div className="font-medium">
+                                  {getUserName(user)}
+                                </div>
                                 {user.profile?.phone && (
-                                  <div className="text-sm text-gray-500">{user.profile.phone}</div>
+                                  <div className="text-sm text-gray-500">
+                                    {user.profile.phone}
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -383,7 +452,9 @@ export default function AdminUsersPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={user.isActive ? "default" : "secondary"}>
+                            <Badge
+                              variant={user.isActive ? "default" : "secondary"}
+                            >
                               {user.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
@@ -402,10 +473,11 @@ export default function AdminUsersPage() {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {user.lastLoginAt 
-                                ? new Date(user.lastLoginAt).toLocaleDateString()
-                                : 'Never'
-                              }
+                              {user.lastLoginAt
+                                ? new Date(
+                                    user.lastLoginAt
+                                  ).toLocaleDateString()
+                                : "Never"}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -420,51 +492,61 @@ export default function AdminUsersPage() {
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit Profile
                                 </DropdownMenuItem>
-                                
+
                                 {/* Only Super Admins can promote users to Admin role */}
-                                {user.role === 'CUSTOMER' && isSuperAdmin && (
+                                {user.role === "CUSTOMER" && isSuperAdmin && (
                                   <DropdownMenuItem
-                                    onClick={() => handleRoleUpdate(user.id, 'ADMIN')}
+                                    onClick={() =>
+                                      handleRoleUpdate(user.id, "ADMIN")
+                                    }
                                   >
                                     <Shield className="h-4 w-4 mr-2" />
                                     Make Admin
                                   </DropdownMenuItem>
                                 )}
-                                
+
                                 {/* Only Super Admins can modify Admin users */}
-                                {user.role === 'ADMIN' && isSuperAdmin && (
+                                {user.role === "ADMIN" && isSuperAdmin && (
                                   <>
                                     <DropdownMenuItem
-                                      onClick={() => handleRoleUpdate(user.id, 'CUSTOMER')}
+                                      onClick={() =>
+                                        handleRoleUpdate(user.id, "CUSTOMER")
+                                      }
                                     >
                                       Remove Admin
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      onClick={() => handleRoleUpdate(user.id, 'SUPER_ADMIN')}
+                                      onClick={() =>
+                                        handleRoleUpdate(user.id, "SUPER_ADMIN")
+                                      }
                                     >
                                       <Crown className="h-4 w-4 mr-2" />
                                       Make Super Admin
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                                
+
                                 {/* Show restricted message for regular admins */}
-                                {(user.role === 'CUSTOMER' || user.role === 'ADMIN') && !isSuperAdmin && (
-                                  <DropdownMenuItem disabled>
-                                    <Shield className="h-4 w-4 mr-2 opacity-50" />
-                                    Manage Role (Super Admin Only)
-                                  </DropdownMenuItem>
-                                )}
-                                
+                                {(user.role === "CUSTOMER" ||
+                                  user.role === "ADMIN") &&
+                                  !isSuperAdmin && (
+                                    <DropdownMenuItem disabled>
+                                      <Shield className="h-4 w-4 mr-2 opacity-50" />
+                                      Manage Role (Super Admin Only)
+                                    </DropdownMenuItem>
+                                  )}
+
                                 <DropdownMenuItem
-                                  onClick={() => handleStatusUpdate(user.id, !user.isActive)}
+                                  onClick={() =>
+                                    handleStatusUpdate(user.id, !user.isActive)
+                                  }
                                 >
                                   <Ban className="h-4 w-4 mr-2" />
-                                  {user.isActive ? 'Deactivate' : 'Activate'}
+                                  {user.isActive ? "Deactivate" : "Activate"}
                                 </DropdownMenuItem>
-                                
+
                                 {/* Only Super Admins can delete admin users */}
-                                {(user.role === 'CUSTOMER' || isSuperAdmin) && (
+                                {(user.role === "CUSTOMER" || isSuperAdmin) && (
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => handleDeleteUser(user.id)}
@@ -472,13 +554,18 @@ export default function AdminUsersPage() {
                                     Delete User
                                   </DropdownMenuItem>
                                 )}
-                                
+
                                 {/* Show restricted message for deleting admin users */}
-                                {(user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && !isSuperAdmin && (
-                                  <DropdownMenuItem disabled className="text-gray-400">
-                                    Delete User (Super Admin Only)
-                                  </DropdownMenuItem>
-                                )}
+                                {(user.role === "ADMIN" ||
+                                  user.role === "SUPER_ADMIN") &&
+                                  !isSuperAdmin && (
+                                    <DropdownMenuItem
+                                      disabled
+                                      className="text-gray-400"
+                                    >
+                                      Delete User (Super Admin Only)
+                                    </DropdownMenuItem>
+                                  )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -492,7 +579,12 @@ export default function AdminUsersPage() {
                 {pagination && pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
                     <div className="text-sm text-gray-600">
-                      Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.totalCount)} of {pagination.totalCount} users
+                      Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                      {Math.min(
+                        pagination.page * pagination.limit,
+                        pagination.totalCount
+                      )}{" "}
+                      of {pagination.totalCount} users
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
@@ -528,15 +620,21 @@ interface StatsCardProps {
   title: string;
   value: string;
   icon: React.ElementType;
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
   change: string;
 }
 
-function StatsCard({ title, value, icon: Icon, trend, change }: StatsCardProps) {
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  change,
+}: StatsCardProps) {
   const trendColors = {
-    up: 'text-green-600',
-    down: 'text-red-600',
-    neutral: 'text-gray-600'
+    up: "text-green-600",
+    down: "text-red-600",
+    neutral: "text-gray-600",
   };
 
   return (

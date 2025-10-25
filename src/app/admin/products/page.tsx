@@ -1,42 +1,42 @@
 "use client";
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import HeartLoader from '@/components/ui/HeartLoader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import Image from 'next/image';
-import { 
-  Plus, 
-  Search, 
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import HeartLoader from "@/components/ui/HeartLoader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import Image from "next/image";
+import {
+  Plus,
+  Search,
   Filter,
   MoreHorizontal,
   Edit,
   Trash2,
   Eye,
   Package,
-  AlertTriangle
-} from 'lucide-react';
+  AlertTriangle,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import Link from 'next/link';
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Types
 interface Product {
@@ -73,46 +73,50 @@ interface ProductsResponse {
 
 // API functions
 const api = {
-  getProducts: async (page = 1, limit = 20, search = ''): Promise<ProductsResponse> => {
+  getProducts: async (
+    page = 1,
+    limit = 20,
+    search = ""
+  ): Promise<ProductsResponse> => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      ...(search && { search })
+      ...(search && { search }),
     });
     const response = await fetch(`/api/admin/products?${params}`);
-    if (!response.ok) throw new Error('Failed to fetch products');
+    if (!response.ok) throw new Error("Failed to fetch products");
     return response.json();
   },
 
   deleteProduct: async (id: string) => {
     const response = await fetch(`/api/admin/products/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
-    if (!response.ok) throw new Error('Failed to delete product');
+    if (!response.ok) throw new Error("Failed to delete product");
     return response.json();
   },
 
   toggleProductStatus: async (id: string, isActive: boolean) => {
     const response = await fetch(`/api/admin/products/${id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive }),
     });
-    if (!response.ok) throw new Error('Failed to update product status');
+    if (!response.ok) throw new Error("Failed to update product status");
     return response.json();
-  }
+  },
 };
 
 export default function AdminProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [limit] = useState(20);
-  
+
   const queryClient = useQueryClient();
 
   // Fetch products
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'products', currentPage, searchTerm, limit],
+    queryKey: ["admin", "products", currentPage, searchTerm, limit],
     queryFn: () => api.getProducts(currentPage, limit, searchTerm),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -121,7 +125,11 @@ export default function AdminProductsPage() {
   const deleteProductMutation = useMutation({
     mutationFn: api.deleteProduct,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to delete product:", error);
+      alert(error.message || "Failed to delete product. Please try again.");
     },
   });
 
@@ -130,7 +138,13 @@ export default function AdminProductsPage() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.toggleProductStatus(id, isActive),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update product status:", error);
+      alert(
+        error.message || "Failed to update product status. Please try again."
+      );
     },
   });
 
@@ -140,13 +154,16 @@ export default function AdminProductsPage() {
   };
 
   const handleDeleteProduct = (id: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
+    if (confirm("Are you sure you want to delete this product?")) {
       deleteProductMutation.mutate(id);
     }
   };
 
   const handleToggleStatus = (id: string, currentStatus: boolean) => {
-    toggleStatusMutation.mutate({ id, isActive: !currentStatus });
+    const action = currentStatus ? "deactivate" : "activate";
+    if (confirm(`Are you sure you want to ${action} this product?`)) {
+      toggleStatusMutation.mutate({ id, isActive: !currentStatus });
+    }
   };
 
   const products = data?.products || [];
@@ -172,30 +189,30 @@ export default function AdminProductsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatsCard 
-            title="Total Products" 
-            value={total.toString()} 
+          <StatsCard
+            title="Total Products"
+            value={total.toString()}
             icon={Package}
             trend="up"
             change="+12%"
           />
-          <StatsCard 
-            title="Active Products" 
-            value={products.filter(p => p.isActive).length.toString()} 
+          <StatsCard
+            title="Active Products"
+            value={products.filter((p) => p.isActive).length.toString()}
             icon={Package}
             trend="up"
             change="+8%"
           />
-          <StatsCard 
-            title="Low Stock" 
-            value={products.filter(p => p.quantity <= 10).length.toString()} 
+          <StatsCard
+            title="Low Stock"
+            value={products.filter((p) => p.quantity <= 10).length.toString()}
             icon={AlertTriangle}
             trend="down"
             change="-5%"
           />
-          <StatsCard 
-            title="Out of Stock" 
-            value={products.filter(p => p.quantity === 0).length.toString()} 
+          <StatsCard
+            title="Out of Stock"
+            value={products.filter((p) => p.quantity === 0).length.toString()}
             icon={AlertTriangle}
             trend="neutral"
             change="0%"
@@ -208,7 +225,10 @@ export default function AdminProductsPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Product List</CardTitle>
               <div className="flex items-center space-x-2">
-                <form onSubmit={handleSearch} className="flex items-center space-x-2">
+                <form
+                  onSubmit={handleSearch}
+                  className="flex items-center space-x-2"
+                >
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
@@ -259,8 +279,8 @@ export default function AdminProductsPage() {
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gray-200 rounded-md overflow-hidden">
                               {product.images[0] && (
-                                <Image 
-                                  src={product.images[0]} 
+                                <Image
+                                  src={product.images[0]}
                                   alt={product.name}
                                   width={40}
                                   height={40}
@@ -271,7 +291,9 @@ export default function AdminProductsPage() {
                             <div>
                               <div className="font-medium">{product.name}</div>
                               {product.brand && (
-                                <div className="text-sm text-gray-500">{product.brand.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {product.brand.name}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -279,7 +301,9 @@ export default function AdminProductsPage() {
                         <TableCell>{product.category.name}</TableCell>
                         <TableCell>
                           <div>
-                            <span className="font-medium">₹{product.price.toLocaleString()}</span>
+                            <span className="font-medium">
+                              ₹{product.price.toLocaleString()}
+                            </span>
                             {product.comparePrice && (
                               <span className="text-sm text-gray-500 line-through ml-2">
                                 ₹{product.comparePrice.toLocaleString()}
@@ -288,12 +312,22 @@ export default function AdminProductsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={product.quantity === 0 ? "destructive" : product.quantity <= 10 ? "secondary" : "default"}>
+                          <Badge
+                            variant={
+                              product.quantity === 0
+                                ? "destructive"
+                                : product.quantity <= 10
+                                  ? "secondary"
+                                  : "default"
+                            }
+                          >
                             {product.quantity} units
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={product.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={product.isActive ? "default" : "secondary"}
+                          >
                             {product.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
@@ -312,22 +346,37 @@ export default function AdminProductsPage() {
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/admin/products/${product.id}/edit`}>
+                                <Link
+                                  href={`/admin/products/${product.id}/edit`}
+                                >
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleToggleStatus(product.id, product.isActive)}
+                                onClick={() =>
+                                  handleToggleStatus(
+                                    product.id,
+                                    product.isActive
+                                  )
+                                }
+                                disabled={toggleStatusMutation.isPending}
                               >
-                                {product.isActive ? "Deactivate" : "Activate"}
+                                {toggleStatusMutation.isPending
+                                  ? "Updating..."
+                                  : product.isActive
+                                    ? "Deactivate"
+                                    : "Activate"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
                                 onClick={() => handleDeleteProduct(product.id)}
+                                disabled={deleteProductMutation.isPending}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
+                                {deleteProductMutation.isPending
+                                  ? "Deleting..."
+                                  : "Delete"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -341,7 +390,8 @@ export default function AdminProductsPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6">
                     <div className="text-sm text-gray-600">
-                      Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, total)} of {total} products
+                      Showing {(currentPage - 1) * limit + 1} to{" "}
+                      {Math.min(currentPage * limit, total)} of {total} products
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
@@ -377,15 +427,21 @@ interface StatsCardProps {
   title: string;
   value: string;
   icon: React.ElementType;
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
   change: string;
 }
 
-function StatsCard({ title, value, icon: Icon, trend, change }: StatsCardProps) {
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  change,
+}: StatsCardProps) {
   const trendColors = {
-    up: 'text-green-600',
-    down: 'text-red-600',
-    neutral: 'text-gray-600'
+    up: "text-green-600",
+    down: "text-red-600",
+    neutral: "text-gray-600",
   };
 
   return (

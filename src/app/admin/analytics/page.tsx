@@ -1,24 +1,19 @@
 "use client";
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { 
   TrendingUp,
   DollarSign,
   ShoppingCart,
@@ -29,8 +24,10 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Download
-} from 'lucide-react';
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   LineChart,
   Line,
@@ -46,10 +43,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
-} from 'recharts';
+  ResponsiveContainer,
+} from "recharts";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Types
 interface AnalyticsData {
@@ -94,7 +91,7 @@ interface AnalyticsData {
   }>;
   recentActivity: Array<{
     id: string;
-    type: 'order' | 'user' | 'product';
+    type: "order" | "user" | "product";
     description: string;
     timestamp: string;
     value?: number;
@@ -103,22 +100,29 @@ interface AnalyticsData {
 
 // API function
 const api = {
-  getAnalytics: async (period: string = '30d'): Promise<AnalyticsData> => {
+  getAnalytics: async (period: string = "30d"): Promise<AnalyticsData> => {
     const response = await fetch(`/api/admin/analytics?period=${period}`);
-    if (!response.ok) throw new Error('Failed to fetch analytics');
+    if (!response.ok) throw new Error("Failed to fetch analytics");
     return response.json();
-  }
+  },
 };
 
 // Colors for charts
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+];
 
 export default function AdminAnalyticsPage() {
-  const [period, setPeriod] = useState('30d');
+  const [period, setPeriod] = useState("30d");
 
   // Fetch analytics data
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'analytics', period],
+    queryKey: ["admin", "analytics", period],
     queryFn: () => api.getAnalytics(period),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -152,7 +156,9 @@ export default function AdminAnalyticsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-            <p className="text-gray-600">Business insights and performance metrics</p>
+            <p className="text-gray-600">
+              Business insights and performance metrics
+            </p>
           </div>
           <div className="flex items-center space-x-4">
             <Select value={period} onValueChange={setPeriod}>
@@ -177,28 +183,28 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <MetricCard
             title="Total Revenue"
-            value={`$${analytics.overview.totalRevenue.toLocaleString()}`}
+            value={`₹${analytics.overview.totalRevenue.toLocaleString()}`}
             change={analytics.overview.revenueGrowth}
             icon={DollarSign}
-            trend={analytics.overview.revenueGrowth >= 0 ? 'up' : 'down'}
+            trend={analytics.overview.revenueGrowth >= 0 ? "up" : "down"}
           />
           <MetricCard
             title="Total Orders"
             value={analytics.overview.totalOrders.toLocaleString()}
             change={analytics.overview.ordersGrowth}
             icon={ShoppingCart}
-            trend={analytics.overview.ordersGrowth >= 0 ? 'up' : 'down'}
+            trend={analytics.overview.ordersGrowth >= 0 ? "up" : "down"}
           />
           <MetricCard
             title="Total Customers"
             value={analytics.overview.totalCustomers.toLocaleString()}
             change={analytics.overview.customersGrowth}
             icon={Users}
-            trend={analytics.overview.customersGrowth >= 0 ? 'up' : 'down'}
+            trend={analytics.overview.customersGrowth >= 0 ? "up" : "down"}
           />
           <MetricCard
             title="Avg Order Value"
-            value={`$${analytics.overview.avgOrderValue.toFixed(2)}`}
+            value={`₹${analytics.overview.avgOrderValue.toFixed(2)}`}
             change={5.2}
             icon={TrendingUp}
             trend="up"
@@ -240,7 +246,7 @@ export default function AdminAnalyticsPage() {
                         stroke="#8884d8"
                         fill="#8884d8"
                         fillOpacity={0.3}
-                        name="Revenue ($)"
+                        name="Revenue (₹)"
                       />
                       <Line
                         yAxisId="right"
@@ -275,7 +281,10 @@ export default function AdminAnalyticsPage() {
                         label
                       >
                         {analytics.orderStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -285,39 +294,7 @@ export default function AdminAnalyticsPage() {
               </Card>
 
               {/* Recent Activity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Activity className="h-5 w-5 mr-2" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-64 overflow-y-auto">
-                    {analytics.recentActivity.map((activity) => (
-                      <div key={activity.id} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-2 h-2 rounded-full ${
-                            activity.type === 'order' ? 'bg-green-500' :
-                            activity.type === 'user' ? 'bg-blue-500' : 'bg-yellow-500'
-                          }`} />
-                          <div>
-                            <p className="text-sm font-medium">{activity.description}</p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(activity.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        {activity.value && (
-                          <span className="text-sm font-medium text-green-600">
-                            +${activity.value}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <RecentActivityCard activities={analytics.recentActivity} />
             </div>
           </TabsContent>
 
@@ -341,7 +318,7 @@ export default function AdminAnalyticsPage() {
                         dataKey="revenue"
                         stroke="#8884d8"
                         strokeWidth={2}
-                        name="Revenue ($)"
+                        name="Revenue (₹)"
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -349,32 +326,7 @@ export default function AdminAnalyticsPage() {
               </Card>
 
               {/* Top Products */}
-              <Card className="col-span-1 lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Top Performing Products</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {analytics.topProducts.map((product) => (
-                      <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <Package className="h-6 w-6 text-gray-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-gray-500">{product.sales} sales</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">${product.revenue.toLocaleString()}</p>
-                          <p className="text-sm text-gray-500">revenue</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <TopProductsCard products={analytics.topProducts} />
             </div>
           </TabsContent>
 
@@ -401,7 +353,8 @@ export default function AdminAnalyticsPage() {
                     {analytics.customerMetrics.returningCustomers}
                   </div>
                   <p className="text-sm text-gray-500">
-                    {analytics.customerMetrics.customerRetention}% retention rate
+                    {analytics.customerMetrics.customerRetention}% retention
+                    rate
                   </p>
                 </CardContent>
               </Card>
@@ -412,7 +365,7 @@ export default function AdminAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-600">
-                    ${analytics.customerMetrics.avgLifetimeValue.toFixed(2)}
+                    ₹{analytics.customerMetrics.avgLifetimeValue.toFixed(2)}
                   </div>
                   <p className="text-sm text-gray-500">Per customer</p>
                 </CardContent>
@@ -434,7 +387,7 @@ export default function AdminAnalyticsPage() {
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="sales" fill="#8884d8" name="Sales" />
-                    <Bar dataKey="revenue" fill="#82ca9d" name="Revenue ($)" />
+                    <Bar dataKey="revenue" fill="#82ca9d" name="Revenue (₹)" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -442,29 +395,7 @@ export default function AdminAnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="traffic" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Traffic Sources</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {analytics.trafficSources.map((source) => (
-                    <div key={source.source} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{source.source}</p>
-                        <p className="text-sm text-gray-500">
-                          {source.visitors} visitors • {source.conversions} conversions
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">{source.conversionRate}%</p>
-                        <p className="text-sm text-gray-500">conversion rate</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <TrafficSourcesCard trafficSources={analytics.trafficSources} />
           </TabsContent>
         </Tabs>
       </div>
@@ -478,13 +409,19 @@ interface MetricCardProps {
   value: string;
   change: number;
   icon: React.ElementType;
-  trend: 'up' | 'down';
+  trend: "up" | "down";
 }
 
-function MetricCard({ title, value, change, icon: Icon, trend }: MetricCardProps) {
-  const TrendIcon = trend === 'up' ? ArrowUpRight : ArrowDownRight;
-  const trendColor = trend === 'up' ? 'text-green-600' : 'text-red-600';
-  const trendBg = trend === 'up' ? 'bg-green-100' : 'bg-red-100';
+function MetricCard({
+  title,
+  value,
+  change,
+  icon: Icon,
+  trend,
+}: MetricCardProps) {
+  const TrendIcon = trend === "up" ? ArrowUpRight : ArrowDownRight;
+  const trendColor = trend === "up" ? "text-green-600" : "text-red-600";
+  const trendBg = trend === "up" ? "bg-green-100" : "bg-red-100";
 
   return (
     <Card>
@@ -501,11 +438,294 @@ function MetricCard({ title, value, change, icon: Icon, trend }: MetricCardProps
         <div className="mt-4 flex items-center">
           <div className={`flex items-center ${trendColor}`}>
             <TrendIcon className="h-4 w-4 mr-1" />
-            <span className="text-sm font-medium">
-              {Math.abs(change)}%
-            </span>
+            <span className="text-sm font-medium">{Math.abs(change)}%</span>
           </div>
           <span className="text-sm text-gray-600 ml-2">vs last period</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Recent Activity Card with Pagination
+interface RecentActivityCardProps {
+  activities: Array<{
+    id: string;
+    description: string;
+    type: string;
+    timestamp: string;
+    value?: number;
+  }>;
+}
+
+function RecentActivityCard({ activities }: RecentActivityCardProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const totalItems = activities.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentActivities = activities.slice(startIndex, endIndex);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <Activity className="h-5 w-5 mr-2" />
+            Recent Activity
+          </CardTitle>
+          {totalItems > itemsPerPage && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+                {totalItems}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {currentActivities.map((activity) => (
+            <div
+              key={activity.id}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center space-x-3">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    activity.type === "order"
+                      ? "bg-green-500"
+                      : activity.type === "user"
+                        ? "bg-blue-500"
+                        : "bg-yellow-500"
+                  }`}
+                />
+                <div>
+                  <p className="text-sm font-medium">{activity.description}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(activity.timestamp).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {activity.value && (
+                <span className="text-sm font-medium text-green-600">
+                  +₹{activity.value}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Traffic Sources Card with Pagination
+interface TrafficSourcesCardProps {
+  trafficSources: Array<{
+    source: string;
+    visitors: number;
+    conversions: number;
+    conversionRate: number;
+  }>;
+}
+
+function TrafficSourcesCard({ trafficSources }: TrafficSourcesCardProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const totalItems = trafficSources.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentSources = trafficSources.slice(startIndex, endIndex);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Traffic Sources</CardTitle>
+          {totalItems > itemsPerPage && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+                {totalItems}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {currentSources.map((source) => (
+            <div
+              key={source.source}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div>
+                <p className="font-medium">{source.source}</p>
+                <p className="text-sm text-gray-500">
+                  {source.visitors} visitors • {source.conversions} conversions
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold">{source.conversionRate}%</p>
+                <p className="text-sm text-gray-500">conversion rate</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+// Top Products Card with Pagination
+interface TopProductsCardProps {
+  products: Array<{
+    id: string;
+    name: string;
+    sales: number;
+    revenue: number;
+    image?: string;
+  }>;
+}
+
+function TopProductsCard({ products }: TopProductsCardProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const totalItems = products.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = products.slice(startIndex, endIndex);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  return (
+    <Card className="col-span-1 lg:col-span-2">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Top Performing Products</CardTitle>
+          {totalItems > itemsPerPage && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+                {totalItems}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {currentProducts.map((product) => (
+            <div
+              key={product.id}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Package className="h-6 w-6 text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium">{product.name}</p>
+                  <p className="text-sm text-gray-500">{product.sales} sales</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-medium">
+                  ₹{product.revenue.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500">revenue</p>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

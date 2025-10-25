@@ -884,6 +884,49 @@ model SystemSetting {
   @@map("system_settings")
 }
 
+model CompanySettings {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Company Information
+  companyName     String   @default("Numa Jewelry")
+  companyAddress  String   @default("123 Business Street, Mumbai, Maharashtra 400001")
+  companyCity     String   @default("Mumbai")
+  companyState    String   @default("MAHARASHTRA")
+  companyZipCode  String   @default("400001")
+  companyCountry  String   @default("India")
+  
+  // Contact Information
+  companyPhone    String   @default("+91-9876543210")
+  companyEmail    String   @default("contact@numa.com")
+  companyWebsite  String   @default("www.numa.com")
+  
+  // Tax Information
+  gstin           String   @default("27ABCDE1234F1Z5")
+  pan             String?
+  gstRate         Float    @default(0.18) // 18% GST
+  
+  // Invoice Settings
+  invoicePrefix   String   @default("INV")
+  invoiceTerms    String   @default("Payment is due within 30 days of invoice date")
+  invoiceNotes    String?
+  
+  // Logo
+  companyLogo     String?
+  
+  // Bank Details (for invoice)
+  bankName        String?
+  bankAccount     String?
+  bankIfsc        String?
+  bankBranch      String?
+  
+  // Metadata
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("company_settings")
+}
+
 // ================================
 // CAROUSEL MODELS
 // ================================
