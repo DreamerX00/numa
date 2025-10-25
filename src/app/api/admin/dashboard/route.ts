@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/admin';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth/admin";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const adminCheck = await requireAdmin(req);
@@ -16,40 +16,40 @@ export async function GET(req: NextRequest) {
       recentOrders,
       lowStockProducts,
       userGrowth,
-      salesData
+      salesData,
     ] = await Promise.all([
-      // Total users
-      prisma.user.count({ where: { role: 'CUSTOMER' } }),
-      
+      // Total users (all roles)
+      prisma.user.count(),
+
       // Total products
       prisma.product.count({ where: { isActive: true } }),
-      
+
       // Total orders
       prisma.order.count(),
-      
+
       // Total revenue
       prisma.order.aggregate({
         _sum: { totalAmount: true },
-        where: { status: { in: ['DELIVERED', 'SHIPPED'] } }
+        where: { status: { in: ["DELIVERED", "SHIPPED"] } },
       }),
-      
+
       // Recent orders
       prisma.order.findMany({
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           user: {
-            include: { profile: true }
-          }
-        }
+            include: { profile: true },
+          },
+        },
       }),
-      
+
       // Low stock products
       prisma.product.findMany({
         where: {
           quantity: { lte: 10 },
           trackQuantity: true,
-          isActive: true
+          isActive: true,
         },
         take: 10,
         select: {
@@ -57,34 +57,33 @@ export async function GET(req: NextRequest) {
           name: true,
           quantity: true,
           minQuantity: true,
-          price: true
-        }
+          price: true,
+        },
       }),
-      
-      // User growth (last 30 days)
+
+      // User growth (last 30 days) - all roles
       prisma.user.groupBy({
-        by: ['createdAt'],
+        by: ["createdAt"],
         where: {
           createdAt: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           },
-          role: 'CUSTOMER'
         },
-        _count: true
+        _count: true,
       }),
-      
+
       // Sales data (last 30 days)
       prisma.order.groupBy({
-        by: ['createdAt'],
+        by: ["createdAt"],
         where: {
           createdAt: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           },
-          status: { in: ['DELIVERED', 'SHIPPED'] }
+          status: { in: ["DELIVERED", "SHIPPED"] },
         },
         _sum: { totalAmount: true },
-        _count: true
-      })
+        _count: true,
+      }),
     ]);
 
     // Calculate percentage changes (simplified)
@@ -93,12 +92,11 @@ export async function GET(req: NextRequest) {
       prisma.user.count({
         where: {
           createdAt: { gte: thirtyDaysAgo },
-          role: 'CUSTOMER'
-        }
+        },
       }),
       prisma.order.count({
-        where: { createdAt: { gte: thirtyDaysAgo } }
-      })
+        where: { createdAt: { gte: thirtyDaysAgo } },
+      }),
     ]);
 
     // Format the response
@@ -106,53 +104,52 @@ export async function GET(req: NextRequest) {
       stats: {
         totalUsers: {
           value: totalUsers,
-          change: usersLastMonth > 0 ? '+' + usersLastMonth : 0,
-          trend: 'up'
+          change: usersLastMonth > 0 ? "+" + usersLastMonth : 0,
+          trend: "up",
         },
         totalProducts: {
           value: totalProducts,
           change: 0, // Would need historical data
-          trend: 'neutral'
+          trend: "neutral",
         },
         totalOrders: {
           value: totalOrders,
-          change: ordersLastMonth > 0 ? '+' + ordersLastMonth : 0,
-          trend: 'up'
+          change: ordersLastMonth > 0 ? "+" + ordersLastMonth : 0,
+          trend: "up",
         },
         totalRevenue: {
           value: totalRevenue._sum.totalAmount || 0,
           change: 0, // Would need historical data
-          trend: 'up'
-        }
+          trend: "up",
+        },
       },
-      recentOrders: recentOrders.map(order => ({
+      recentOrders: recentOrders.map((order) => ({
         id: order.id,
         orderNumber: order.orderNumber,
         customer: order.user.profile?.displayName || order.user.email,
         amount: order.totalAmount,
         status: order.status,
-        createdAt: order.createdAt
+        createdAt: order.createdAt,
       })),
       lowStockProducts,
       charts: {
-        userGrowth: userGrowth.map(item => ({
+        userGrowth: userGrowth.map((item) => ({
           date: item.createdAt,
-          count: item._count
+          count: item._count,
         })),
-        salesData: salesData.map(item => ({
+        salesData: salesData.map((item) => ({
           date: item.createdAt,
           revenue: item._sum.totalAmount || 0,
-          orders: item._count
-        }))
-      }
+          orders: item._count,
+        })),
+      },
     };
 
     return NextResponse.json(dashboard);
-
   } catch (error) {
-    console.error('Error fetching admin dashboard:', error);
+    console.error("Error fetching admin dashboard:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

@@ -1,22 +1,26 @@
 "use client";
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { formatPrice } from '@/lib/utils';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Package, 
-  ShoppingCart, 
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/utils";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Package,
+  ShoppingCart,
   DollarSign,
-  AlertTriangle 
-} from 'lucide-react';
-import HeartLoader from '@/components/ui/HeartLoader';
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import HeartLoader from "@/components/ui/HeartLoader";
+import { useState } from "react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface DashboardData {
   stats: {
@@ -43,14 +47,14 @@ interface DashboardData {
 }
 
 const fetchDashboardData = async (): Promise<DashboardData> => {
-  const response = await fetch('/api/admin/dashboard');
-  if (!response.ok) throw new Error('Failed to fetch dashboard data');
+  const response = await fetch("/api/admin/dashboard");
+  if (!response.ok) throw new Error("Failed to fetch dashboard data");
   return response.json();
 };
 
 export default function AdminPage() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'dashboard'],
+    queryKey: ["admin", "dashboard"],
     queryFn: fetchDashboardData,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -118,15 +122,15 @@ function AdminDashboardStats({ data }: { data?: DashboardData }) {
       change: data.stats.totalUsers.change,
       trend: data.stats.totalUsers.trend,
       icon: Users,
-      color: "text-blue-600"
+      color: "text-blue-600",
     },
     {
-      title: "Total Orders", 
+      title: "Total Orders",
       value: data.stats.totalOrders.value.toLocaleString(),
       change: data.stats.totalOrders.change,
       trend: data.stats.totalOrders.trend,
       icon: ShoppingCart,
-      color: "text-green-600"
+      color: "text-green-600",
     },
     {
       title: "Revenue",
@@ -134,7 +138,7 @@ function AdminDashboardStats({ data }: { data?: DashboardData }) {
       change: data.stats.totalRevenue.change,
       trend: data.stats.totalRevenue.trend,
       icon: DollarSign,
-      color: "text-yellow-600"
+      color: "text-yellow-600",
     },
     {
       title: "Products",
@@ -142,8 +146,8 @@ function AdminDashboardStats({ data }: { data?: DashboardData }) {
       change: data.stats.totalProducts.change,
       trend: data.stats.totalProducts.trend,
       icon: Package,
-      color: "text-purple-600"
-    }
+      color: "text-purple-600",
+    },
   ];
 
   return (
@@ -155,14 +159,14 @@ function AdminDashboardStats({ data }: { data?: DashboardData }) {
   );
 }
 
-function StatCard({ 
-  title, 
-  value, 
-  change, 
-  trend, 
-  icon: Icon, 
-  color 
-}: { 
+function StatCard({
+  title,
+  value,
+  change,
+  trend,
+  icon: Icon,
+  color,
+}: {
   title: string;
   value: string;
   change: string;
@@ -170,8 +174,9 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
   color: string;
 }) {
-  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : null;
-  
+  const TrendIcon =
+    trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : null;
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -184,14 +189,21 @@ function StatCard({
         </div>
         <div className="mt-4 flex items-center">
           {TrendIcon && (
-            <TrendIcon className={`h-4 w-4 mr-1 ${
-              trend === 'up' ? 'text-green-600' : 'text-red-600'
-            }`} />
+            <TrendIcon
+              className={`h-4 w-4 mr-1 ${
+                trend === "up" ? "text-green-600" : "text-red-600"
+              }`}
+            />
           )}
-          <span className={`text-sm font-medium ${
-            trend === 'up' ? 'text-green-600' : 
-            trend === 'down' ? 'text-red-600' : 'text-gray-600'
-          }`}>
+          <span
+            className={`text-sm font-medium ${
+              trend === "up"
+                ? "text-green-600"
+                : trend === "down"
+                  ? "text-red-600"
+                  : "text-gray-600"
+            }`}
+          >
             {change}
           </span>
           <span className="text-sm text-gray-600 ml-1">from last month</span>
@@ -201,33 +213,112 @@ function StatCard({
   );
 }
 
-function RecentOrders({ data, isLoading }: { data?: DashboardData['recentOrders']; isLoading: boolean }) {
+function RecentOrders({
+  data,
+  isLoading,
+}: {
+  data?: DashboardData["recentOrders"];
+  isLoading: boolean;
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">No recent orders</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const totalItems = data.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = data.slice(startIndex, endIndex);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Orders</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Recent Orders</CardTitle>
+          {totalItems > itemsPerPage && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+                {totalItems}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="text-center py-6">
             <HeartLoader size="md" />
-            <p className="text-sm text-muted-foreground mt-2">Loading recent orders...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Loading recent orders...
+            </p>
           </div>
-        ) : data && data.length > 0 ? (
+        ) : currentItems.length > 0 ? (
           <div className="space-y-4">
-            {data.map((order) => (
-              <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+            {currentItems.map((order) => (
+              <div
+                key={order.id}
+                className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+              >
                 <div>
                   <p className="font-medium text-gray-900">{order.customer}</p>
                   <p className="text-sm text-gray-500">#{order.orderNumber}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-900">{formatPrice(order.amount)}</p>
-                  <Badge variant={
-                    order.status === 'DELIVERED' ? 'default' :
-                    order.status === 'SHIPPED' ? 'secondary' :
-                    order.status === 'PROCESSING' ? 'outline' : 'destructive'
-                  }>
+                  <p className="font-medium text-gray-900">
+                    {formatPrice(order.amount)}
+                  </p>
+                  <Badge
+                    variant={
+                      order.status === "DELIVERED"
+                        ? "default"
+                        : order.status === "SHIPPED"
+                          ? "secondary"
+                          : order.status === "PROCESSING"
+                            ? "outline"
+                            : "destructive"
+                    }
+                  >
                     {order.status}
                   </Badge>
                 </div>
@@ -242,31 +333,109 @@ function RecentOrders({ data, isLoading }: { data?: DashboardData['recentOrders'
   );
 }
 
-function LowStockAlerts({ data, isLoading }: { data?: DashboardData['lowStockProducts']; isLoading: boolean }) {
+function LowStockAlerts({
+  data,
+  isLoading,
+}: {
+  data?: DashboardData["lowStockProducts"];
+  isLoading: boolean;
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
+            Low Stock Alerts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">No low stock alerts</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const totalItems = data.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = data.slice(startIndex, endIndex);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-          Low Stock Alerts
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
+            Low Stock Alerts
+          </CardTitle>
+          {totalItems > itemsPerPage && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                {startIndex + 1}-{Math.min(endIndex, totalItems)} of{" "}
+                {totalItems}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="text-center py-6">
             <HeartLoader size="md" />
-            <p className="text-sm text-muted-foreground mt-2">Loading stock alerts...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Loading stock alerts...
+            </p>
           </div>
-        ) : data && data.length > 0 ? (
+        ) : currentItems.length > 0 ? (
           <div className="space-y-4">
-            {data.map((product) => (
-              <div key={product.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+            {currentItems.map((product) => (
+              <div
+                key={product.id}
+                className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+              >
                 <div>
                   <p className="font-medium text-gray-900">{product.name}</p>
-                  <p className="text-sm text-gray-500">Min: {product.minQuantity}</p>
+                  <p className="text-sm text-gray-500">
+                    Min: {product.minQuantity}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-red-600">{product.quantity} left</p>
+                  <p className="font-medium text-red-600">
+                    {product.quantity} left
+                  </p>
                   <p className="text-xs text-gray-500">Restock needed</p>
                 </div>
               </div>
