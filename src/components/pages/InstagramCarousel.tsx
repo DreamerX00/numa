@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Container } from "@/components/ui/container";
-import { Heart, MessageCircle, Send } from "lucide-react";
+import { Heart, MessageCircle } from "lucide-react";
 
 interface InstagramPost {
   id: string;
