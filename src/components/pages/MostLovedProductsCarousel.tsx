@@ -16,7 +16,9 @@ interface MostLovedProductsCarouselProps {
   products: Product[];
 }
 
-export function MostLovedProductsCarousel({ products }: MostLovedProductsCarouselProps) {
+export function MostLovedProductsCarousel({
+  products,
+}: MostLovedProductsCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(5);
   const [mounted, setMounted] = useState(false);
@@ -45,7 +47,8 @@ export function MostLovedProductsCarousel({ products }: MostLovedProductsCarouse
   const canGoPrevious = currentIndex > 0;
 
   const goToPrevious = () => setCurrentIndex((prev) => Math.max(0, prev - 1));
-  const goToNext = () => setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
+  const goToNext = () =>
+    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
 
   return (
     <motion.section
@@ -85,20 +88,21 @@ export function MostLovedProductsCarousel({ products }: MostLovedProductsCarouse
                 mass: 1,
               }}
             >
-              {products.length > 0 ? (
-                products.map((product, index) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    itemsPerView={itemsPerView}
-                    index={index}
-                  />
-                ))
-              ) : (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <SkeletonCard key={`skeleton-${index}`} itemsPerView={itemsPerView} />
-                ))
-              )}
+              {products.length > 0
+                ? products.map((product, index) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      itemsPerView={itemsPerView}
+                      index={index}
+                    />
+                  ))
+                : Array.from({ length: 5 }).map((_, index) => (
+                    <SkeletonCard
+                      key={`skeleton-${index}`}
+                      itemsPerView={itemsPerView}
+                    />
+                  ))}
             </motion.div>
           </div>
 
@@ -150,10 +154,13 @@ export function MostLovedProductsCarousel({ products }: MostLovedProductsCarouse
               <motion.button
                 key={pageIndex}
                 onClick={() =>
-                  setCurrentIndex(Math.min(pageIndex * Math.ceil(itemsPerView), maxIndex))
+                  setCurrentIndex(
+                    Math.min(pageIndex * Math.ceil(itemsPerView), maxIndex)
+                  )
                 }
                 className={`transition-all ${
-                  pageIndex === Math.floor(currentIndex / Math.ceil(itemsPerView))
+                  pageIndex ===
+                  Math.floor(currentIndex / Math.ceil(itemsPerView))
                     ? "bg-brand w-8 h-2 rounded-full"
                     : "bg-gray-300 w-2 h-2 rounded-full hover:bg-gray-400"
                 }`}
@@ -183,9 +190,12 @@ function ProductCard({
 
   const primaryImage = product.images?.[0] || DEFAULT_IMAGES.PRODUCT;
   const secondaryImage = product.images?.[1] || primaryImage;
-  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+  const hasDiscount =
+    product.comparePrice && product.comparePrice > product.price;
   const discountPercentage = hasDiscount
-    ? Math.round(((product.comparePrice! - product.price) / product.comparePrice!) * 100)
+    ? Math.round(
+        ((product.comparePrice! - product.price) / product.comparePrice!) * 100
+      )
     : 0;
 
   return (
@@ -199,16 +209,16 @@ function ProductCard({
       transition={{ delay: index * 0.08, duration: 0.5 }}
       viewport={{ once: true }}
     >
-      <Link href={`/product/${product.slug}`}>
-        <motion.div
-          className="flex flex-col h-full"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          whileHover={{ y: -12 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
+      <motion.div
+        className="flex flex-col h-full"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        whileHover={{ y: -12 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
+        <Link href={`/product/${product.slug}`}>
           <motion.div
-            className="relative mb-4 overflow-hidden rounded-2xl aspect-square bg-gray-100"
+            className="relative mb-4 overflow-hidden rounded-2xl aspect-square bg-gray-100 cursor-pointer"
             initial={{ boxShadow: "0 4px 15px rgba(0, 0, 0, 0.08)" }}
             whileHover={{ boxShadow: "0 25px 50px rgba(0, 0, 0, 0.15)" }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -271,7 +281,12 @@ function ProductCard({
                 className="absolute bottom-3 right-3 z-10"
                 initial={{ scale: 0, rotate: 45 }}
                 animate={{ scale: isHovered ? 1.1 : 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20, delay: 0.05 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 20,
+                  delay: 0.05,
+                }}
               >
                 <div className="bg-brand text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                   -{discountPercentage}%
@@ -306,46 +321,48 @@ function ProductCard({
               transition={{ duration: 0.3 }}
             />
           </motion.div>
+        </Link>
 
-          {/* Product Info */}
-          <motion.div
-            className="flex flex-col flex-grow"
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 + 0.1, duration: 0.4 }}
-            viewport={{ once: true }}
-          >
+        {/* Product Info */}
+        <motion.div
+          className="flex flex-col flex-grow"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.08 + 0.1, duration: 0.4 }}
+          viewport={{ once: true }}
+        >
+          <Link href={`/product/${product.slug}`}>
             <motion.h3
-              className="text-sm md:text-base font-semibold text-gray-900 mb-2 line-clamp-2"
+              className="text-sm md:text-base font-semibold text-gray-900 mb-2 line-clamp-2 cursor-pointer"
               animate={{ color: isHovered ? "#E7654D" : "#111827" }}
               transition={{ duration: 0.2 }}
             >
               {product.name}
             </motion.h3>
+          </Link>
 
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="font-bold text-brand text-base">{formatPrice(product.price)}</span>
-              {hasDiscount && (
-                <span className="text-xs text-gray-400 line-through">
-                  {formatPrice(product.comparePrice!)}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="font-bold text-brand text-base">
+              {formatPrice(product.price)}
+            </span>
+            {hasDiscount && (
+              <span className="text-xs text-gray-400 line-through">
+                {formatPrice(product.comparePrice!)}
+              </span>
+            )}
+          </div>
 
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                size="sm"
-                className="w-full text-xs md:text-sm font-semibold rounded-lg shadow-sm"
-                asChild
-              >
-                <Link href={`/product/${product.slug}`}>
-                  Quick View
-                </Link>
-              </Button>
-            </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              size="sm"
+              className="w-full text-xs md:text-sm font-semibold rounded-lg shadow-sm"
+              asChild
+            >
+              <Link href={`/product/${product.slug}`}>Quick View</Link>
+            </Button>
           </motion.div>
         </motion.div>
-      </Link>
+      </motion.div>
     </motion.div>
   );
 }
