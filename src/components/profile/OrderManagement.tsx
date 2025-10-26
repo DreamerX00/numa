@@ -240,6 +240,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(
     null
   );
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -331,6 +332,44 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
     } finally {
       setDownloadingInvoice(null);
     }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingOrder(orderId);
+    const toastId = "cancel-order";
+
+    try {
+      toast.loading("Cancelling order...", { id: toastId });
+
+      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to cancel order");
+      }
+
+      toast.success("Order cancelled successfully", { id: toastId });
+
+      // Refresh the page to show updated order status
+      window.location.reload();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to cancel order",
+        { id: toastId }
+      );
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
+
+  const canCancelOrder = (order: OrderSummary) => {
+    // Can only cancel pending/processing orders that haven't been shipped
+    return order.status === "pending" || order.status === "processing";
   };
 
   if (selectedOrderDetails) {
@@ -608,6 +647,31 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   ? "Downloading..."
                   : "Download Invoice"}
               </Button>
+              {canCancelOrder(selectedOrderDetails) && (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        `Are you sure you want to cancel order ${selectedOrderDetails.orderNumber}? This action cannot be undone.`
+                      )
+                    ) {
+                      handleCancelOrder(selectedOrderDetails.id);
+                    }
+                  }}
+                  disabled={cancellingOrder === selectedOrderDetails.id}
+                >
+                  {cancellingOrder === selectedOrderDetails.id ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {cancellingOrder === selectedOrderDetails.id
+                    ? "Cancelling..."
+                    : "Cancel Order"}
+                </Button>
+              )}
               <Button variant="ghost" className="w-full">
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Contact Support
@@ -785,6 +849,31 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                                 <DropdownMenuItem>
                                   <RotateCcw className="h-4 w-4 mr-2" />
                                   Return Items
+                                </DropdownMenuItem>
+                              )}
+                              {canCancelOrder(order) && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (
+                                      confirm(
+                                        `Are you sure you want to cancel order ${order.orderNumber}? This action cannot be undone.`
+                                      )
+                                    ) {
+                                      handleCancelOrder(order.id);
+                                    }
+                                  }}
+                                  disabled={cancellingOrder === order.id}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  {cancellingOrder === order.id ? (
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <AlertCircle className="h-4 w-4 mr-2" />
+                                  )}
+                                  {cancellingOrder === order.id
+                                    ? "Cancelling..."
+                                    : "Cancel Order"}
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>

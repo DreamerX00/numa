@@ -33,8 +33,8 @@ export function OrderSummary({
   shipping,
   loading = false,
 }: OrderSummaryProps) {
-  // Get company settings for GST rate
-  const { company } = useSettings();
+  // Get company settings for GST rate and shipping rate
+  const { company, shipping: shippingSettings } = useSettings();
 
   // Use shipping data passed from parent instead of calculating separately
   const finalShippingCost = shipping?.cost ?? 0;
@@ -140,7 +140,7 @@ export function OrderSummary({
                     FREE
                   </Badge>
                   <span className="text-sm line-through text-muted-foreground">
-                    {formatPriceFromFloat(50)}
+                    {formatPriceFromFloat(shippingSettings.standardRate || 50)}
                   </span>
                 </div>
               ) : (

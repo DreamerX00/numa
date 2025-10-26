@@ -5,20 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth/client";
 import { useHybridCartStore } from "@/lib/store/hybridCart";
+import { useSettings } from "@/hooks/useSettings";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Check, 
-  ArrowLeft, 
-  User,
-  MapPin,
-  CreditCard
-} from "lucide-react";
+import { Check, ArrowLeft, User, MapPin, CreditCard } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Step Components
 import { AuthStep } from "@/components/checkout/AuthStep";
@@ -34,7 +29,7 @@ interface CheckoutData {
   };
   address?: {
     id?: string;
-    type: 'SHIPPING' | 'BILLING';
+    type: "SHIPPING" | "BILLING";
     firstName: string;
     lastName: string;
     company?: string;
@@ -80,7 +75,7 @@ const STEPS = [
 interface CheckoutStepData {
   address?: {
     id?: string;
-    type: 'SHIPPING' | 'BILLING';
+    type: "SHIPPING" | "BILLING";
     firstName: string;
     lastName: string;
     company?: string;
@@ -101,18 +96,20 @@ function CheckoutPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { items, getTotalPrice, getTotalItems, clearCart } = useHybridCartStore();
-  
+  const { items, getTotalPrice, getTotalItems, clearCart } =
+    useHybridCartStore();
+  const { shipping } = useSettings();
+
   // Check if this is a "Buy Now" flow
-  const isBuyNow = searchParams.get('buyNow') === 'true';
-  
+  const isBuyNow = searchParams.get("buyNow") === "true";
+
   // Filter items for Buy Now mode (only show the most recently added item)
   const checkoutItems = useMemo(() => {
-    return isBuyNow && items.length > 0 
+    return isBuyNow && items.length > 0
       ? [items[items.length - 1]] // Get the last (most recently added) item
       : items;
   }, [isBuyNow, items]);
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({});
   const [loading, setLoading] = useState(false);
@@ -125,22 +122,25 @@ function CheckoutPageContent() {
     loading: boolean;
   }>({
     cost: 0,
-    method: 'STANDARD',
-    estimatedDays: '3-5',
+    method: "STANDARD",
+    estimatedDays: "3-5",
     qualifiesForFree: false,
     loading: false,
   });
 
   // Calculate totals based on filtered items for Buy Now mode
   const totalItems = useMemo(() => {
-    return isBuyNow 
+    return isBuyNow
       ? checkoutItems.reduce((total: number, item) => total + item.quantity, 0)
       : getTotalItems();
   }, [isBuyNow, checkoutItems, getTotalItems]);
-  
+
   const subtotal = useMemo(() => {
     return isBuyNow
-      ? checkoutItems.reduce((total: number, item) => total + (item.price * item.quantity), 0)
+      ? checkoutItems.reduce(
+          (total: number, item) => total + item.price * item.quantity,
+          0
+        )
       : getTotalPrice();
   }, [isBuyNow, checkoutItems, getTotalPrice]);
 
@@ -149,8 +149,8 @@ function CheckoutPageContent() {
     if (checkoutItems.length === 0) {
       setShippingCalculation({
         cost: 0,
-        method: 'STANDARD',
-        estimatedDays: '3-5',
+        method: "STANDARD",
+        estimatedDays: "3-5",
         qualifiesForFree: false,
         loading: false,
       });
@@ -160,21 +160,22 @@ function CheckoutPageContent() {
     // Calculate total shipping cost from individual product shipping rates
     const totalShippingCost = checkoutItems.reduce((total: number, item) => {
       const shippingRate = item.product?.individualShippingRate || 0;
-      return total + (shippingRate * item.quantity);
+      return total + shippingRate * item.quantity;
     }, 0);
 
-    // Check if qualifies for free shipping (subtotal >= 500)
-    const qualifiesForFree = subtotal >= 500;
+    // Use dynamic free shipping threshold from settings
+    const freeShippingThreshold = shipping.freeShippingThreshold || 500;
+    const qualifiesForFree = subtotal >= freeShippingThreshold;
     const finalShippingCost = qualifiesForFree ? 0 : totalShippingCost;
 
     setShippingCalculation({
       cost: finalShippingCost,
-      method: 'STANDARD',
-      estimatedDays: '3-5',
+      method: "STANDARD",
+      estimatedDays: "3-5",
       qualifiesForFree,
       loading: false,
     });
-  }, [checkoutItems, subtotal]);
+  }, [checkoutItems, subtotal, shipping.freeShippingThreshold]);
 
   // Calculate shipping when cart items change
   useEffect(() => {
@@ -184,7 +185,7 @@ function CheckoutPageContent() {
   // Redirect if cart is empty
   useEffect(() => {
     if (totalItems === 0) {
-      router.push('/cart');
+      router.push("/cart");
     }
   }, [totalItems, router]);
 
@@ -192,12 +193,13 @@ function CheckoutPageContent() {
   useEffect(() => {
     if (user && currentStep === 1) {
       setCurrentStep(2);
-      setCheckoutData(prev => ({
+      setCheckoutData((prev) => ({
         ...prev,
         user: {
-          email: user.email || '',
-          displayName: user.displayName || user.email?.split('@')[0] || 'Customer'
-        }
+          email: user.email || "",
+          displayName:
+            user.displayName || user.email?.split("@")[0] || "Customer",
+        },
       }));
     }
   }, [user, currentStep]);
@@ -207,15 +209,15 @@ function CheckoutPageContent() {
     if (!user) {
       // Clear the hybrid cart store
       clearCart();
-      
+
       // Also clear localStorage for guest users
       try {
-        localStorage.removeItem('numa-cart');
+        localStorage.removeItem("numa-cart");
       } catch (error) {
-        console.error('Failed to clear localStorage cart:', error);
+        console.error("Failed to clear localStorage cart:", error);
       }
     }
-    
+
     // Redirect to order success page
     router.push(`/order-success?order_id=${orderId}&payment_id=success`);
   };
@@ -227,15 +229,15 @@ function CheckoutPageContent() {
 
   // Recalculate shipping when address step is completed
   const handleStepComplete = (stepData: CheckoutStepData) => {
-    setCheckoutData(prev => ({ ...prev, ...stepData }));
-    
+    setCheckoutData((prev) => ({ ...prev, ...stepData }));
+
     // If address was just updated, recalculate shipping
     if (stepData.address) {
       calculateShipping();
     }
-    
+
     if (currentStep < STEPS.length) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 
@@ -245,7 +247,7 @@ function CheckoutPageContent() {
       const targetStep = user && currentStep === 2 ? 1 : currentStep - 1;
       setCurrentStep(targetStep);
     } else {
-      router.push('/cart');
+      router.push("/cart");
     }
   };
 
@@ -312,7 +314,7 @@ function CheckoutPageContent() {
               )}
             </div>
             <p className="text-muted-foreground">
-              {totalItems} item{totalItems !== 1 ? 's' : ''} in your order
+              {totalItems} item{totalItems !== 1 ? "s" : ""} in your order
             </p>
           </div>
         </div>
@@ -324,20 +326,23 @@ function CheckoutPageContent() {
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
               const isSkipped = user && step.id === 1; // Skip auth step if logged in
-              
+
               if (isSkipped) return null;
-              
+
               return (
                 <div key={step.id} className="flex items-center">
-                  <div className={`
+                  <div
+                    className={`
                     flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors
-                    ${isCompleted 
-                      ? 'bg-primary border-primary text-primary-foreground' 
-                      : isActive 
-                        ? 'border-primary text-primary' 
-                        : 'border-muted-foreground/30 text-muted-foreground'
+                    ${
+                      isCompleted
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : isActive
+                          ? "border-primary text-primary"
+                          : "border-muted-foreground/30 text-muted-foreground"
                     }
-                  `}>
+                  `}
+                  >
                     {isCompleted ? (
                       <Check className="h-5 w-5" />
                     ) : (
@@ -345,9 +350,15 @@ function CheckoutPageContent() {
                     )}
                   </div>
                   <div className="ml-3 hidden sm:block">
-                    <div className={`text-sm font-medium ${
-                      isActive ? 'text-primary' : isCompleted ? 'text-foreground' : 'text-muted-foreground'
-                    }`}>
+                    <div
+                      className={`text-sm font-medium ${
+                        isActive
+                          ? "text-primary"
+                          : isCompleted
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                      }`}
+                    >
                       {step.title}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -368,7 +379,10 @@ function CheckoutPageContent() {
         {Object.keys(errors).length > 0 && (
           <div className="mb-6">
             {Object.entries(errors).map(([key, error]) => (
-              <div key={key} className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-destructive text-sm">
+              <div
+                key={key}
+                className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-destructive text-sm"
+              >
                 {error}
               </div>
             ))}
@@ -398,7 +412,7 @@ function CheckoutPageContent() {
 
           {/* Order Summary Sidebar */}
           <div className="lg:col-span-1">
-            <OrderSummary 
+            <OrderSummary
               items={checkoutItems}
               subtotal={subtotal}
               shipping={{
@@ -417,15 +431,17 @@ function CheckoutPageContent() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <Container>
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <div className="text-center">
-            <div className="animate-pulse">Loading checkout...</div>
+    <Suspense
+      fallback={
+        <Container>
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <div className="text-center">
+              <div className="animate-pulse">Loading checkout...</div>
+            </div>
           </div>
-        </div>
-      </Container>
-    }>
+        </Container>
+      }
+    >
       <CheckoutPageContent />
     </Suspense>
   );
