@@ -60,17 +60,18 @@ export default function CartPage() {
       return total + shippingRate * item.quantity;
     }, 0);
 
-    // Check if qualifies for free shipping (totalPrice >= 500)
-    const qualifiesForFree = totalPrice >= 500;
+    // Use dynamic free shipping threshold from settings
+    const freeShippingThreshold = shipping.freeShippingThreshold || 500;
+    const qualifiesForFree = totalPrice >= freeShippingThreshold;
     const finalShippingCost = qualifiesForFree ? 0 : totalShippingCost;
 
     setShippingData({
       cost: finalShippingCost,
       qualifiesForFree,
-      amountNeeded: Math.max(0, 500 - totalPrice),
+      amountNeeded: Math.max(0, freeShippingThreshold - totalPrice),
       loading: false,
     });
-  }, [items, totalPrice]);
+  }, [items, totalPrice, shipping.freeShippingThreshold]);
 
   // Load shipping data
   useEffect(() => {

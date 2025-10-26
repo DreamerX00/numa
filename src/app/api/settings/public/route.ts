@@ -26,6 +26,10 @@ export async function GET() {
         phonePeDisplayName: settings.payments.phonePeDisplayName,
         razorpayEnabled: settings.payments.razorpayEnabled,
         razorpayDisplayName: settings.payments.razorpayDisplayName,
+        razorpayKeyId:
+          process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+          process.env.RAZORPAY_KEY_ID ||
+          "", // Use env variable
         stripeEnabled: settings.payments.stripeEnabled,
         stripeDisplayName: settings.payments.stripeDisplayName,
         codEnabled: settings.payments.codEnabled,

@@ -6,11 +6,15 @@ let razorpayInstance: Razorpay | null = null;
 
 export function getRazorpayInstance(): Razorpay {
   if (!razorpayInstance) {
-    const keyId = process.env.RAZORPAY_KEY_ID;
+    // Use RAZORPAY_KEY_ID (without NEXT_PUBLIC prefix) for server-side
+    const keyId =
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
-      throw new Error("Razorpay credentials not configured");
+      throw new Error(
+        "Razorpay credentials not configured. Please set NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env"
+      );
     }
 
     razorpayInstance = new Razorpay({
