@@ -43,20 +43,20 @@ export function useSettings() {
   });
 
   const [payments, setPayments] = useState<PaymentSettings>({
-    phonePeEnabled: true,
+    phonePeEnabled: false, // Will be loaded from API
     phonePeDisplayName: "PhonePe / UPI",
-    razorpayEnabled: false,
+    razorpayEnabled: false, // Will be loaded from API
     razorpayDisplayName: "Cards / UPI / Wallets",
     stripeEnabled: false,
     stripeDisplayName: "Credit/Debit Card",
-    codEnabled: true,
+    codEnabled: false, // Will be loaded from API
     codDisplayName: "Cash on Delivery",
     codInstructions: "Pay when you receive your order",
     minOrderAmount: 100,
   });
 
   const [company, setCompany] = useState<CompanySettings>({
-    gstRate: 0.18,
+    gstRate: 0, // Will be loaded from API
   });
 
   const [loading, setLoading] = useState(true);

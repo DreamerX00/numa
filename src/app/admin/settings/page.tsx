@@ -1614,8 +1614,15 @@ export default function AdminSettingsPage() {
                     />
                   </div>
 
-                  <Button onClick={() => handleSave("payments")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button
+                    onClick={() => handleSave("payments")}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>
@@ -2246,8 +2253,15 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave("notifications")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button
+                    onClick={() => handleSave("notifications")}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>
@@ -2398,8 +2412,15 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave("security")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button
+                    onClick={() => handleSave("security")}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>
@@ -2546,8 +2567,12 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave("seo")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button onClick={() => handleSave("seo")} disabled={loading}>
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>

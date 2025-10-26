@@ -63,8 +63,14 @@ export async function PUT(request: NextRequest) {
     // Update or create settings
     const updatePromises = Object.entries(settings).map(
       async ([key, value]) => {
-        const jsonValue =
-          value === null ? undefined : (value as Prisma.InputJsonValue);
+        // Properly handle JSON values for MongoDB
+        // All values must be valid JSON (primitives, objects, arrays)
+        // Null values are stored as JSON null
+        const jsonValue: Prisma.InputJsonValue =
+          value === null || value === undefined
+            ? (null as unknown as Prisma.InputJsonValue) // JSON null
+            : (value as Prisma.InputJsonValue);
+
         return prisma.systemSetting.upsert({
           where: { key },
           update: {
@@ -74,7 +80,7 @@ export async function PUT(request: NextRequest) {
           },
           create: {
             key,
-            value: jsonValue ?? "",
+            value: jsonValue,
             category,
             updatedAt: new Date(),
           },

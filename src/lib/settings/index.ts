@@ -86,18 +86,18 @@ const defaultSettings: Settings = {
     internationalShipping: false,
     internationalRate: 500,
     internationalProcessingTime: 7,
-    codEnabled: true,
+    codEnabled: false, // Default to false, will be overridden by DB
     codCharges: 50,
     codMaxAmount: 10000,
     freeShippingMethod: "standard",
     defaultProcessingTime: 2,
   },
   payments: {
-    phonePeEnabled: true,
+    phonePeEnabled: false, // Default to false, will be overridden by DB
     phonePeMerchantId: "PGTESTPAYUAT",
     phonePeSaltKey: "",
     phonePeDisplayName: "PhonePe / UPI",
-    razorpayEnabled: false,
+    razorpayEnabled: false, // Default to false, will be overridden by DB
     razorpayKeyId: "",
     razorpayKeySecret: "",
     razorpayDisplayName: "Cards / UPI / Wallets",
@@ -105,7 +105,7 @@ const defaultSettings: Settings = {
     stripePublishableKey: "",
     stripeSecretKey: "",
     stripeDisplayName: "Credit/Debit Card",
-    codEnabled: true,
+    codEnabled: false, // Default to false, will be overridden by DB
     codDisplayName: "Cash on Delivery",
     codInstructions: "Pay when you receive your order",
     minOrderAmount: 100,
@@ -128,7 +128,7 @@ const defaultSettings: Settings = {
     companyEmail: "contact@numa.com",
     companyWebsite: "",
     gstin: "",
-    gstRate: 0.18,
+    gstRate: 0, // Default to 0, will be overridden by DB
   },
 };
 
