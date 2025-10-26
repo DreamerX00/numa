@@ -64,7 +64,9 @@ export function PaymentStep({
   setLoading,
 }: PaymentStepProps) {
   const { user } = useAuth();
-  const { shipping, company, getAvailablePaymentMethods } = useSettings();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { shipping, company, general, getAvailablePaymentMethods } =
+    useSettings();
   const availableMethods = getAvailablePaymentMethods();
   const [error, setError] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
@@ -312,7 +314,7 @@ export function PaymentStep({
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_RKeHBoAZktp7ua',
           amount: paymentResult.order.amount,
           currency: paymentResult.order.currency,
-          name: 'NUMA Store',
+          name: general.siteName,
           description: `Order #${order.id}`,
           order_id: paymentResult.order.id,
           handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {

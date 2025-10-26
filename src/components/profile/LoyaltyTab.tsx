@@ -4,21 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Crown, 
-  Gift, 
-  TrendingUp, 
+import { useSettings } from "@/hooks/useSettings";
+import {
+  Crown,
+  Gift,
+  TrendingUp,
   Calendar,
   Loader2,
   Star,
   Trophy,
   Award,
-  Gem
+  Gem,
 } from "lucide-react";
 
 interface LoyaltyActivity {
   id: string;
-  type: 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'ADJUSTMENT';
+  type: "EARNED" | "REDEEMED" | "EXPIRED" | "ADJUSTMENT";
   points: number;
   reason: string;
   date: string;
@@ -49,67 +50,74 @@ interface LoyaltyTabProps {
   onLoadMore?: () => void;
 }
 
-const tierConfig = {
+// Helper function to generate tier config with dynamic shipping threshold
+const getTierConfig = (freeShippingThreshold: number) => ({
   BRONZE: {
-    name: 'Bronze',
-    color: 'bg-amber-600',
+    name: "Bronze",
+    color: "bg-amber-600",
     icon: Award,
     benefits: [
-      'Earn 1 point per ₹1 spent',
-      'Birthday discount',
-      'Early access to sales'
-    ]
+      "Earn 1 point per ₹1 spent",
+      "Birthday discount",
+      "Early access to sales",
+    ],
   },
   SILVER: {
-    name: 'Silver',
-    color: 'bg-gray-400',
+    name: "Silver",
+    color: "bg-gray-400",
     icon: Star,
     benefits: [
-      'All Bronze benefits',
-      'Earn 1.5 points per ₹1 spent',
-      'Free shipping on orders above ₹999',
-      'Priority customer support'
-    ]
+      "All Bronze benefits",
+      "Earn 1.5 points per ₹1 spent",
+      `Free shipping on orders above ₹${freeShippingThreshold}`,
+      "Priority customer support",
+    ],
   },
   GOLD: {
-    name: 'Gold',
-    color: 'bg-yellow-500',
+    name: "Gold",
+    color: "bg-yellow-500",
     icon: Trophy,
     benefits: [
-      'All Silver benefits',
-      'Earn 2 points per ₹1 spent',
-      'Free shipping on all orders',
-      'Exclusive member events',
-      'Personalized styling sessions'
-    ]
+      "All Silver benefits",
+      "Earn 2 points per ₹1 spent",
+      "Free shipping on all orders",
+      "Exclusive member events",
+      "Personalized styling sessions",
+    ],
   },
   PLATINUM: {
-    name: 'Platinum',
-    color: 'bg-gray-300',
+    name: "Platinum",
+    color: "bg-gray-300",
     icon: Crown,
     benefits: [
-      'All Gold benefits',
-      'Earn 2.5 points per ₹1 spent',
-      'Complimentary gift wrapping',
-      'Personal shopper service',
-      'VIP access to new collections'
-    ]
+      "All Gold benefits",
+      "Earn 2.5 points per ₹1 spent",
+      "Complimentary gift wrapping",
+      "Personal shopper service",
+      "VIP access to new collections",
+    ],
   },
   DIAMOND: {
-    name: 'Diamond',
-    color: 'bg-blue-500',
+    name: "Diamond",
+    color: "bg-blue-500",
     icon: Gem,
     benefits: [
-      'All Platinum benefits',
-      'Earn 3 points per ₹1 spent',
-      'Concierge service',
-      'Exclusive limited edition pieces',
-      'Annual appreciation gift'
-    ]
-  }
-};
+      "All Platinum benefits",
+      "Earn 3 points per ₹1 spent",
+      "Concierge service",
+      "Exclusive limited edition pieces",
+      "Annual appreciation gift",
+    ],
+  },
+});
 
-export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: LoyaltyTabProps) {
+export function LoyaltyTab({
+  loyaltyData,
+  isLoading = false,
+  onLoadMore,
+}: LoyaltyTabProps) {
+  const { shipping } = useSettings();
+  const tierConfig = getTierConfig(shipping.freeShippingThreshold);
   const [activeTab, setActiveTab] = useState("overview");
 
   if (isLoading) {
@@ -117,7 +125,9 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
       <Card>
         <CardContent className="p-8 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading loyalty program data...</p>
+          <p className="text-muted-foreground">
+            Loading loyalty program data...
+          </p>
         </CardContent>
       </Card>
     );
@@ -137,13 +147,28 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
     );
   }
 
-  const currentTierConfig = tierConfig[(loyaltyData.currentTier || loyaltyData.tier)?.toUpperCase() as keyof typeof tierConfig] || tierConfig.BRONZE;
-  const nextTierConfig = loyaltyData.nextTier ? tierConfig[loyaltyData.nextTier.toUpperCase() as keyof typeof tierConfig] : null;
-  const progressPercentage = loyaltyData.nextTier && loyaltyData.tierThresholds
-    ? (((loyaltyData.currentPoints || 0) - (loyaltyData.tierThresholds[loyaltyData.currentTier || loyaltyData.tier || 'BRONZE'] || 0)) / (loyaltyData.pointsToNextTier || 1)) * 100
-    : (loyaltyData.pointsToNextTier || 0) > 0 
-      ? ((loyaltyData.currentPoints || 0) / (loyaltyData.pointsToNextTier || 1)) * 100 
-      : 100;
+  const currentTierConfig =
+    tierConfig[
+      (
+        loyaltyData.currentTier || loyaltyData.tier
+      )?.toUpperCase() as keyof typeof tierConfig
+    ] || tierConfig.BRONZE;
+  const nextTierConfig = loyaltyData.nextTier
+    ? tierConfig[loyaltyData.nextTier.toUpperCase() as keyof typeof tierConfig]
+    : null;
+  const progressPercentage =
+    loyaltyData.nextTier && loyaltyData.tierThresholds
+      ? (((loyaltyData.currentPoints || 0) -
+          (loyaltyData.tierThresholds[
+            loyaltyData.currentTier || loyaltyData.tier || "BRONZE"
+          ] || 0)) /
+          (loyaltyData.pointsToNextTier || 1)) *
+        100
+      : (loyaltyData.pointsToNextTier || 0) > 0
+        ? ((loyaltyData.currentPoints || 0) /
+            (loyaltyData.pointsToNextTier || 1)) *
+          100
+        : 100;
 
   return (
     <div className="space-y-6">
@@ -155,7 +180,11 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tiers">Tiers</TabsTrigger>
@@ -167,11 +196,16 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
           <div className="grid gap-6 md:grid-cols-2">
             {/* Points & Tier Card */}
             <Card className="relative overflow-hidden">
-              <div className={`absolute inset-x-0 top-0 h-1 ${currentTierConfig.color}`} />
+              <div
+                className={`absolute inset-x-0 top-0 h-1 ${currentTierConfig.color}`}
+              />
               <CardHeader className="text-center pb-2">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <currentTierConfig.icon className="h-6 w-6 text-brand" />
-                  <Badge variant="secondary" className={`${currentTierConfig.color} text-white`}>
+                  <Badge
+                    variant="secondary"
+                    className={`${currentTierConfig.color} text-white`}
+                  >
                     {currentTierConfig.name} Member
                   </Badge>
                 </div>
@@ -185,16 +219,21 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span>Progress to {nextTierConfig?.name}</span>
-                      <span>{loyaltyData.pointsToNextTier || 0} points to go</span>
+                      <span>
+                        {loyaltyData.pointsToNextTier || 0} points to go
+                      </span>
                     </div>
                     <Progress value={progressPercentage} className="h-2" />
                     <p className="text-xs text-muted-foreground">
-                      Spend ₹{loyaltyData.pointsToNextTier || 0} more to reach {nextTierConfig?.name} tier
+                      Spend ₹{loyaltyData.pointsToNextTier || 0} more to reach{" "}
+                      {nextTierConfig?.name} tier
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-brand">Highest Tier Achieved!</p>
+                    <p className="text-sm font-medium text-brand">
+                      Highest Tier Achieved!
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       You&apos;re at the top of our loyalty program
                     </p>
@@ -229,31 +268,41 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
             <Card>
               <CardContent className="p-4 text-center">
                 <TrendingUp className="h-6 w-6 mx-auto mb-2 text-brand" />
-                <p className="text-2xl font-bold">{loyaltyData.currentPoints}</p>
-                <p className="text-xs text-muted-foreground">Available Points</p>
+                <p className="text-2xl font-bold">
+                  {loyaltyData.currentPoints}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Available Points
+                </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-4 text-center">
                 <Calendar className="h-6 w-6 mx-auto mb-2 text-brand" />
                 <p className="text-2xl font-bold">
-                  {loyaltyData.activities?.filter(a => a.type === 'EARNED').length || 0}
+                  {loyaltyData.activities?.filter((a) => a.type === "EARNED")
+                    .length || 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Earning Activities</p>
+                <p className="text-xs text-muted-foreground">
+                  Earning Activities
+                </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-4 text-center">
                 <Gift className="h-6 w-6 mx-auto mb-2 text-brand" />
                 <p className="text-2xl font-bold">
-                  {loyaltyData.activities?.filter(a => a.type === 'REDEEMED').length || 0}
+                  {loyaltyData.activities?.filter((a) => a.type === "REDEEMED")
+                    .length || 0}
                 </p>
-                <p className="text-xs text-muted-foreground">Rewards Redeemed</p>
+                <p className="text-xs text-muted-foreground">
+                  Rewards Redeemed
+                </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-4 text-center">
                 <Trophy className="h-6 w-6 mx-auto mb-2 text-brand" />
@@ -275,35 +324,54 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
           <div className="space-y-4">
             {Object.entries(tierConfig).map(([tierKey, config]) => {
               const threshold = loyaltyData.tierThresholds?.[tierKey] || 0;
-              const isCurrentTier = tierKey === (loyaltyData.currentTier || loyaltyData.tier)?.toUpperCase();
+              const isCurrentTier =
+                tierKey ===
+                (loyaltyData.currentTier || loyaltyData.tier)?.toUpperCase();
               const isAchieved = (loyaltyData.currentPoints || 0) >= threshold;
-              
+
               return (
-                <Card key={tierKey} className={`relative ${isCurrentTier ? 'ring-2 ring-brand' : ''}`}>
-                  <div className={`absolute inset-x-0 top-0 h-1 ${config.color}`} />
+                <Card
+                  key={tierKey}
+                  className={`relative ${isCurrentTier ? "ring-2 ring-brand" : ""}`}
+                >
+                  <div
+                    className={`absolute inset-x-0 top-0 h-1 ${config.color}`}
+                  />
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <config.icon className={`h-6 w-6 ${isAchieved ? 'text-brand' : 'text-muted-foreground'}`} />
+                        <config.icon
+                          className={`h-6 w-6 ${isAchieved ? "text-brand" : "text-muted-foreground"}`}
+                        />
                         <div>
                           <h4 className="font-semibold flex items-center gap-2">
                             {config.name} Tier
                             {isCurrentTier && (
-                              <Badge variant="secondary" className="text-xs">Current</Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                Current
+                              </Badge>
                             )}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {threshold === 0 ? 'Starting tier' : `${(threshold || 0).toLocaleString()} points required`}
+                            {threshold === 0
+                              ? "Starting tier"
+                              : `${(threshold || 0).toLocaleString()} points required`}
                           </p>
                         </div>
                       </div>
                       {isAchieved ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-green-800"
+                        >
                           Achieved
                         </Badge>
                       ) : (
                         <Badge variant="outline">
-                          {((threshold || 0) - (loyaltyData.currentPoints || 0)).toLocaleString()} points to go
+                          {(
+                            (threshold || 0) - (loyaltyData.currentPoints || 0)
+                          ).toLocaleString()}{" "}
+                          points to go
                         </Badge>
                       )}
                     </div>
@@ -311,9 +379,18 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
                   <CardContent>
                     <ul className="space-y-1">
                       {config.benefits.map((benefit, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <div className={`h-1.5 w-1.5 rounded-full mt-2 flex-shrink-0 ${isAchieved ? 'bg-brand' : 'bg-muted-foreground'}`} />
-                          <span className={isAchieved ? '' : 'text-muted-foreground'}>
+                        <li
+                          key={index}
+                          className="flex items-start gap-2 text-sm"
+                        >
+                          <div
+                            className={`h-1.5 w-1.5 rounded-full mt-2 flex-shrink-0 ${isAchieved ? "bg-brand" : "bg-muted-foreground"}`}
+                          />
+                          <span
+                            className={
+                              isAchieved ? "" : "text-muted-foreground"
+                            }
+                          >
                             {benefit}
                           </span>
                         </li>
@@ -351,33 +428,45 @@ export function LoyaltyTab({ loyaltyData, isLoading = false, onLoadMore }: Loyal
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                          activity.type === 'EARNED' 
-                            ? 'bg-green-100 text-green-600' 
-                            : activity.type === 'REDEEMED'
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {activity.type === 'EARNED' ? '+' : '-'}
+                        <div
+                          className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                            activity.type === "EARNED"
+                              ? "bg-green-100 text-green-600"
+                              : activity.type === "REDEEMED"
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {activity.type === "EARNED" ? "+" : "-"}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{activity.reason}</p>
+                          <p className="font-medium text-sm">
+                            {activity.reason}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(activity.date).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {new Date(activity.date).toLocaleDateString(
+                              "en-IN",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
                           </p>
                         </div>
                       </div>
-                      <div className={`text-right ${
-                        activity.type === 'EARNED' ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <div
+                        className={`text-right ${
+                          activity.type === "EARNED"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
                         <p className="font-semibold">
-                          {activity.type === 'EARNED' ? '+' : '-'}{activity.points}
+                          {activity.type === "EARNED" ? "+" : "-"}
+                          {activity.points}
                         </p>
                         <p className="text-xs text-muted-foreground">points</p>
                       </div>

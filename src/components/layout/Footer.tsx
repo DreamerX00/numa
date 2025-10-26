@@ -1,7 +1,8 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { Container } from '@/components/ui/container';
-import { Instagram, Mail } from 'lucide-react';
+import Link from "next/link";
+import Image from "next/image";
+import { Container } from "@/components/ui/container";
+import { SiInstagram } from "react-icons/si";
+import { Mail } from "lucide-react";
 
 export function Footer() {
   return (
@@ -21,11 +22,16 @@ export function Footer() {
               <span className="font-serif text-lg tracking-tight">NUMA</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-              Timeless jewelry crafted for your energy. Discover limited signature releases and elevated everyday forms that resonate with who you are.
+              Timeless jewelry crafted for your energy. Discover limited
+              signature releases and elevated everyday forms that resonate with
+              who you are.
             </p>
             <div className="flex space-x-4">
-              <Link href="https://www.instagram.com/numa.iin/" className="text-muted-foreground hover:text-brand transition-colors">
-                <Instagram className="h-5 w-5" />
+              <Link
+                href="https://www.instagram.com/numa.iin/"
+                className="text-muted-foreground hover:text-brand transition-colors"
+              >
+                <SiInstagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </Link>
               {/* <Link href="" className="text-muted-foreground hover:text-brand transition-colors">
@@ -36,7 +42,10 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
               </Link> */}
-              <a  href="mailto:shreyaaa4404@gmail.com" className="text-muted-foreground hover:text-brand transition-colors">
+              <a
+                href="mailto:shreyaaa4404@gmail.com"
+                className="text-muted-foreground hover:text-brand transition-colors"
+              >
                 <Mail className="h-5 w-5" />
                 <span className="sr-only">Email</span>
               </a>
@@ -47,31 +56,110 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Shop</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/collections" className="text-muted-foreground hover:text-foreground transition-colors">Collections</Link></li>
-              <li><Link href="/collection/rings" className="text-muted-foreground hover:text-foreground transition-colors">Rings</Link></li>
-              <li><Link href="/collection/necklaces" className="text-muted-foreground hover:text-foreground transition-colors">Necklaces</Link></li>
-              <li><Link href="/collection/earrings" className="text-muted-foreground hover:text-foreground transition-colors">Earrings</Link></li>
-              <li><Link href="/new-arrivals" className="text-muted-foreground hover:text-foreground transition-colors">Bangles</Link></li>
+              <li>
+                <Link
+                  href="/collections"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Collections
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/collection/rings"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Rings
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/collection/necklaces"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Necklaces
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/collection/earrings"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Earrings
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/new-arrivals"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Bangles
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Brand</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link></li>
-              <li><Link href="/lookbook" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
-              <li><Link href="/sustainability" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
-              <li><Link href="/care" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
+              <li>
+                <Link
+                  href="/about"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/lookbook"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                ></Link>
+              </li>
+              <li>
+                <Link
+                  href="/sustainability"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                ></Link>
+              </li>
+              <li>
+                <Link
+                  href="/care"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                ></Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
-              <li><Link href="/shipping" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
-              <li><Link href="/returns" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
-              <li><Link href="/size-guide" className="text-muted-foreground hover:text-foreground transition-colors"></Link></li>
+              <li>
+                <Link
+                  href="/contact"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/shipping"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                ></Link>
+              </li>
+              <li>
+                <Link
+                  href="/returns"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                ></Link>
+              </li>
+              <li>
+                <Link
+                  href="/size-guide"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                ></Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -81,10 +169,16 @@ export function Footer() {
             © {new Date().getFullYear()} NUMA. All rights reserved.
           </p>
           <div className="flex space-x-6 text-xs">
-            <Link href="/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="/privacy-policy"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               Privacy Policy
             </Link>
-            <Link href="/terms-of-service" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="/terms-of-service"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               Terms of Service
             </Link>
           </div>

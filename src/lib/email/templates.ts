@@ -253,6 +253,10 @@ export async function sendShippingConfirmationEmail(data: {
   trackingNumber?: string;
   estimatedDelivery?: string;
 }) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const trackingHtml = data.trackingNumber
     ? `
     <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
@@ -278,13 +282,13 @@ export async function sendShippingConfirmationEmail(data: {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Order Shipped - NUMA</title>
+      <title>Order Shipped - ${siteName}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #E7654D;">
-        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">NUMA</h1>
+        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">${siteName}</h1>
         <p style="margin: 8px 0 0 0; color: #666; font-size: 16px;">Shipping Update</p>
       </div>
 
@@ -304,9 +308,9 @@ export async function sendShippingConfirmationEmail(data: {
 
       <!-- Footer -->
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Track your order or contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Track your order or contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
       
@@ -337,6 +341,10 @@ export interface OrderStatusUpdateData {
 }
 
 export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -346,7 +354,7 @@ export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="color: #E7654D; margin: 0;">NUMA</h1>
+        <h1 style="color: #E7654D; margin: 0;">${siteName}</h1>
       </div>
       
       <div style="background: #f8f9fa; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
@@ -362,9 +370,9 @@ export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Questions? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Questions? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
     </body>
@@ -380,6 +388,10 @@ export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
 }
 
 export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -389,7 +401,7 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="color: #E7654D; margin: 0;">NUMA</h1>
+        <h1 style="color: #E7654D; margin: 0;">${siteName}</h1>
       </div>
       
       <div style="background: #f0f9ff; padding: 24px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #10B981;">
@@ -411,9 +423,9 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Need help? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Need help? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
     </body>
@@ -429,6 +441,10 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
 }
 
 export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -438,7 +454,7 @@ export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="color: #E7654D; margin: 0;">NUMA</h1>
+        <h1 style="color: #E7654D; margin: 0;">${siteName}</h1>
       </div>
       
       <div style="background: #FEF2F2; padding: 24px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #EF4444;">
@@ -460,9 +476,9 @@ export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Questions about your cancellation? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Questions about your cancellation? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
     </body>

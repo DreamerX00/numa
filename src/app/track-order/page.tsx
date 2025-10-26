@@ -1,14 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Package, Truck, CheckCircle, Clock, MapPin, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useState } from "react";
+import { useSettings } from "@/hooks/useSettings";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Search,
+  Package,
+  Truck,
+  CheckCircle,
+  Clock,
+  MapPin,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface OrderTrackingInfo {
   id: string;
@@ -49,24 +58,28 @@ interface ShippingLog {
 }
 
 export default function TrackOrderPage() {
-  const [orderNumber, setOrderNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [orderInfo, setOrderInfo] = useState<{ order: OrderTrackingInfo; shippingLogs: ShippingLog[] } | null>(null);
+  const { general } = useSettings();
+  const [orderNumber, setOrderNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [orderInfo, setOrderInfo] = useState<{
+    order: OrderTrackingInfo;
+    shippingLogs: ShippingLog[];
+  } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSearch = async () => {
     if (!orderNumber.trim() || !email.trim()) return;
-    
+
     setIsSearching(true);
-    setError('');
+    setError("");
     setOrderInfo(null);
 
     try {
-      const response = await fetch('/api/track-order', {
-        method: 'POST',
+      const response = await fetch("/api/track-order", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           orderNumber: orderNumber.trim(),
@@ -77,33 +90,33 @@ export default function TrackOrderPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to track order');
+        throw new Error(data.error || "Failed to track order");
       }
 
       setOrderInfo(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to track order');
+      setError(err instanceof Error ? err.message : "Failed to track order");
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleReset = () => {
-    setOrderNumber('');
-    setEmail('');
+    setOrderNumber("");
+    setEmail("");
     setOrderInfo(null);
-    setError('');
+    setError("");
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'delivered':
+      case "delivered":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'shipped':
-      case 'in_transit':
+      case "shipped":
+      case "in_transit":
         return <Truck className="h-5 w-5 text-blue-500" />;
-      case 'processing':
-      case 'fulfilled':
+      case "processing":
+      case "fulfilled":
         return <Package className="h-5 w-5 text-yellow-500" />;
       default:
         return <Clock className="h-5 w-5 text-gray-500" />;
@@ -112,16 +125,16 @@ export default function TrackOrderPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'delivered':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'shipped':
-      case 'in_transit':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'processing':
-      case 'fulfilled':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case "delivered":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "shipped":
+      case "in_transit":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      case "processing":
+      case "fulfilled":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
@@ -134,7 +147,8 @@ export default function TrackOrderPage() {
             Track Your Order
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Enter your order number and email address to track your shipment and get real-time updates on your delivery status.
+            Enter your order number and email address to track your shipment and
+            get real-time updates on your delivery status.
           </p>
         </div>
 
@@ -146,7 +160,10 @@ export default function TrackOrderPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label htmlFor="orderNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="orderNumber"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Order Number
                 </label>
                 <Input
@@ -155,13 +172,16 @@ export default function TrackOrderPage() {
                   placeholder="ORDER-123456789 or 123456789"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                   className="w-full"
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Email Address
                 </label>
                 <Input
@@ -170,15 +190,15 @@ export default function TrackOrderPage() {
                   placeholder="your.email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                   className="w-full"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Use the email address associated with your order
                 </p>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={handleSearch}
                 disabled={!orderNumber.trim() || !email.trim() || isSearching}
                 className="w-full"
@@ -222,9 +242,13 @@ export default function TrackOrderPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Order Status</CardTitle>
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(orderInfo.order.fulfillmentStatus)}`}>
+                  <div
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(orderInfo.order.fulfillmentStatus)}`}
+                  >
                     {getStatusIcon(orderInfo.order.fulfillmentStatus)}
-                    <span className="ml-2 capitalize">{orderInfo.order.fulfillmentStatus.replace('_', ' ')}</span>
+                    <span className="ml-2 capitalize">
+                      {orderInfo.order.fulfillmentStatus.replace("_", " ")}
+                    </span>
                   </div>
                 </div>
               </CardHeader>
@@ -238,7 +262,9 @@ export default function TrackOrderPage() {
                     <div>
                       <p className="text-sm text-gray-500">Tracking Number</p>
                       <div className="flex items-center">
-                        <p className="font-medium mr-2">{orderInfo.order.trackingNumber}</p>
+                        <p className="font-medium mr-2">
+                          {orderInfo.order.trackingNumber}
+                        </p>
                         {orderInfo.order.trackingUrl && (
                           <Link
                             href={orderInfo.order.trackingUrl}
@@ -260,9 +286,13 @@ export default function TrackOrderPage() {
                   )}
                   {orderInfo.order.estimatedDelivery && (
                     <div>
-                      <p className="text-sm text-gray-500">Estimated Delivery</p>
+                      <p className="text-sm text-gray-500">
+                        Estimated Delivery
+                      </p>
                       <p className="font-medium">
-                        {new Date(orderInfo.order.estimatedDelivery).toLocaleDateString()}
+                        {new Date(
+                          orderInfo.order.estimatedDelivery
+                        ).toLocaleDateString()}
                       </p>
                     </div>
                   )}
@@ -295,10 +325,14 @@ export default function TrackOrderPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-gray-700">
-                    <p className="font-medium">{orderInfo.order.shippingAddress.fullName}</p>
+                    <p className="font-medium">
+                      {orderInfo.order.shippingAddress.fullName}
+                    </p>
                     <p>{orderInfo.order.shippingAddress.streetAddress}</p>
                     <p>
-                      {orderInfo.order.shippingAddress.city}, {orderInfo.order.shippingAddress.state} {orderInfo.order.shippingAddress.postalCode}
+                      {orderInfo.order.shippingAddress.city},{" "}
+                      {orderInfo.order.shippingAddress.state}{" "}
+                      {orderInfo.order.shippingAddress.postalCode}
                     </p>
                     <p>{orderInfo.order.shippingAddress.country}</p>
                   </div>
@@ -314,7 +348,10 @@ export default function TrackOrderPage() {
               <CardContent>
                 <div className="space-y-3">
                   {orderInfo.order.items.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg">
+                    <div
+                      key={item.id}
+                      className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg"
+                    >
                       {item.image && (
                         <Image
                           src={item.image}
@@ -325,8 +362,12 @@ export default function TrackOrderPage() {
                         />
                       )}
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{item.productName}</p>
-                        <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                        <p className="font-medium text-gray-900">
+                          {item.productName}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Quantity: {item.quantity}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">₹{item.price.toFixed(2)}</p>
@@ -337,7 +378,9 @@ export default function TrackOrderPage() {
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex justify-between items-center">
                     <p className="text-lg font-semibold">Total Amount</p>
-                    <p className="text-lg font-semibold">₹{orderInfo.order.totalAmount.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">
+                      ₹{orderInfo.order.totalAmount.toFixed(2)}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -352,17 +395,21 @@ export default function TrackOrderPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {orderInfo.shippingLogs.map((log) => (
-                      <div key={log.id} className="flex items-start space-x-3 p-3 border-l-4 border-blue-500 bg-blue-50">
+                      <div
+                        key={log.id}
+                        className="flex items-start space-x-3 p-3 border-l-4 border-blue-500 bg-blue-50"
+                      >
                         <div className="flex-shrink-0">
                           {getStatusIcon(log.status)}
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-gray-900 capitalize">
-                            {log.status.replace('_', ' ')}
+                            {log.status.replace("_", " ")}
                           </p>
                           <p className="text-sm text-gray-600">{log.notes}</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {new Date(log.createdAt).toLocaleString()} • Updated by {log.updatedBy}
+                            {new Date(log.createdAt).toLocaleString()} • Updated
+                            by {log.updatedBy}
                           </p>
                         </div>
                       </div>
@@ -382,28 +429,39 @@ export default function TrackOrderPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold mb-2">Can&apos;t find your order?</h3>
+                <h3 className="font-semibold mb-2">
+                  Can&apos;t find your order?
+                </h3>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Check your email for the order confirmation</li>
-                  <li>• Make sure you&apos;re using the correct order number and email</li>
-                  <li>• Order numbers start with &quot;ORDER-&quot; followed by numbers</li>
+                  <li>
+                    • Make sure you&apos;re using the correct order number and
+                    email
+                  </li>
+                  <li>
+                    • Order numbers start with &quot;ORDER-&quot; followed by
+                    numbers
+                  </li>
                   <li>• It may take a few minutes for new orders to appear</li>
                 </ul>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">Contact Support</h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  If you&apos;re still having trouble tracking your order, our support team is here to help.
+                  If you&apos;re still having trouble tracking your order, our
+                  support team is here to help.
                 </p>
                 <div className="space-y-2">
                   <p className="text-sm">
-                    <span className="font-medium">Email:</span> support@numa.com
+                    <span className="font-medium">Email:</span>{" "}
+                    {general.supportEmail}
                   </p>
                   <p className="text-sm">
                     <span className="font-medium">Phone:</span> +91 1234567890
                   </p>
                   <p className="text-sm">
-                    <span className="font-medium">Hours:</span> Mon-Fri 9AM-6PM IST
+                    <span className="font-medium">Hours:</span> Mon-Fri 9AM-6PM
+                    IST
                   </p>
                 </div>
               </div>
