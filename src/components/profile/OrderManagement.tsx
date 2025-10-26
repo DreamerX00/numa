@@ -341,7 +341,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
     try {
       toast.loading("Cancelling order...", { id: toastId });
 
-      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+      const response = await fetch(`/api/user/orders/${orderId}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

@@ -307,90 +307,160 @@ export function PaymentStep({
         );
       }
 
-      // Load Razorpay SDK dynamically
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.async = true;
-      document.body.appendChild(script);
+      // Check if Razorpay script is already loaded
+      const loadRazorpayScript = () => {
+        return new Promise<void>((resolve, reject) => {
+          // Check if already loaded
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((window as any).Razorpay) {
+            resolve();
+            return;
+          }
 
-      script.onload = () => {
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
-          amount: paymentResult.order.amount,
-          currency: paymentResult.order.currency,
-          name: general.siteName,
-          description: `Order #${order.orderNumber}`,
-          order_id: paymentResult.order.id,
-          handler: async (response: {
-            razorpay_order_id: string;
-            razorpay_payment_id: string;
-            razorpay_signature: string;
-          }) => {
-            try {
-              // Verify payment
-              const verifyResponse = await fetch(
-                "/api/payments/razorpay/verify",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    orderId: order.id,
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature,
-                  }),
-                }
-              );
+          // Check if script tag already exists
+          const existingScript = document.querySelector(
+            'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+          );
 
-              const verifyResult = await verifyResponse.json();
+          if (existingScript) {
+            existingScript.addEventListener("load", () => resolve());
+            existingScript.addEventListener("error", () =>
+              reject(new Error("Failed to load Razorpay SDK"))
+            );
+            return;
+          }
 
-              if (verifyResult.success) {
-                window.location.href = `/order-success?orderId=${order.id}&status=success`;
-              } else {
-                throw new Error("Payment verification failed");
+          // Create new script tag
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () =>
+            reject(new Error("Failed to load Razorpay SDK"));
+          document.body.appendChild(script);
+        });
+      };
+
+      // Load Razorpay SDK
+      await loadRazorpayScript();
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
+        amount: paymentResult.order.amount,
+        currency: paymentResult.order.currency,
+        name: general.siteName,
+        description: `Order #${order.orderNumber}`,
+        order_id: paymentResult.order.id,
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          try {
+            setLoading(true);
+            // Verify payment
+            const verifyResponse = await fetch(
+              "/api/payments/razorpay/verify",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  orderId: order.id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
               }
-            } catch (error) {
-              console.error("Payment verification error:", error);
-              window.location.href = `/payment-failed?orderId=${order.id}&error=verification_failed`;
+            );
+
+            const verifyResult = await verifyResponse.json();
+
+            if (verifyResult.success) {
+              // Cart will be cleared by the verify API endpoint
+              window.location.href = `/order-success?orderId=${order.id}&status=success`;
+            } else {
+              throw new Error(
+                verifyResult.error || "Payment verification failed"
+              );
             }
+          } catch (error) {
+            console.error("Payment verification error:", error);
+            setLoading(false);
+            setError(
+              error instanceof Error
+                ? error.message
+                : "Payment verification failed"
+            );
+            // Don't redirect immediately, show error to user
+            setTimeout(() => {
+              window.location.href = `/payment-failed?orderId=${order.id}&error=verification_failed`;
+            }, 3000);
+          }
+        },
+        prefill: {
+          name:
+            user?.displayName ||
+            (checkoutData.address?.firstName && checkoutData.address?.lastName
+              ? `${checkoutData.address.firstName} ${checkoutData.address.lastName}`
+              : ""),
+          email: user?.email || checkoutData.address?.alternateEmail || "",
+          contact: checkoutData.address?.phone || "",
+        },
+        notes: {
+          order_number: order.orderNumber,
+          customer_name:
+            user?.displayName ||
+            `${checkoutData.address?.firstName} ${checkoutData.address?.lastName}`,
+        },
+        theme: {
+          color: "#E7654D", // Numa brand color
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setError("Payment cancelled by user");
           },
-          prefill: {
-            name:
-              user?.displayName ||
-              (checkoutData.address?.firstName && checkoutData.address?.lastName
-                ? `${checkoutData.address.firstName} ${checkoutData.address.lastName}`
-                : ""),
-            email: user?.email || checkoutData.address?.alternateEmail || "",
-            contact: checkoutData.address?.phone || "",
-          },
-          notes: {
-            order_number: order.orderNumber,
-            customer_name:
-              user?.displayName ||
-              `${checkoutData.address?.firstName} ${checkoutData.address?.lastName}`,
-          },
-          theme: {
-            color: "#E7654D", // Numa brand color
-          },
-          modal: {
-            ondismiss: () => {
-              setLoading(false);
-              setError("Payment cancelled by user");
-            },
-          },
-        };
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const razorpay = new (window as any).Razorpay(options);
-        razorpay.open();
+          // Confirmation before closing
+          confirm_close: true,
+        },
+        // Security: Make order amount readonly
+        readonly: {
+          email: !!user?.email,
+          contact: !!checkoutData.address?.phone,
+          name: !!(user?.displayName || checkoutData.address?.firstName),
+        },
+        // Retry configuration
+        retry: {
+          enabled: true,
+          max_count: 3,
+        },
+        // Timeout configuration (15 minutes)
+        timeout: 900,
       };
 
-      script.onerror = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const razorpay = new (window as any).Razorpay(options);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      razorpay.on("payment.failed", function (response: any) {
+        console.error("Razorpay payment failed:", response.error);
         setLoading(false);
-        setError(
-          "Failed to load Razorpay SDK. Please check your internet connection."
-        );
-      };
+        setError(response.error.description || "Payment failed");
+
+        // Log the failure to your backend
+        fetch("/api/payments/razorpay/failure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: order.id,
+            error: response.error,
+            metadata: response.error.metadata,
+          }),
+        }).catch((err) => console.error("Failed to log payment failure:", err));
+      });
+
+      razorpay.open();
+      setLoading(false);
     } catch (error) {
       console.error("Razorpay payment initiation failed:", error);
       const errorMsg =
