@@ -412,6 +412,11 @@ model Order {
   paymentIntentId              String?
   paymentMethod                String?
   
+  // Payment - Razorpay integration
+  razorpayOrderId              String?
+  razorpayPaymentId            String?
+  razorpaySignature            String?
+  
   // Shipping
   shippingMethod  String?
   trackingNumber  String?

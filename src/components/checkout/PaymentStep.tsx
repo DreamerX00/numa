@@ -21,6 +21,7 @@ import type { CartItem } from "@/lib/types/product";
 
 interface Order {
   id: string;
+  orderNumber: string;
   phonePeMerchantTransactionId: string;
 }
 
@@ -64,7 +65,6 @@ export function PaymentStep({
   setLoading,
 }: PaymentStepProps) {
   const { user } = useAuth();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { shipping, company, general, getAvailablePaymentMethods } =
     useSettings();
   const availableMethods = getAvailablePaymentMethods();
@@ -218,10 +218,7 @@ export function PaymentStep({
       if (selectedPaymentMethod === "phonepe") {
         await initiatePhonePePayment(orderResult.order);
       } else if (selectedPaymentMethod === "razorpay") {
-        // Razorpay is currently disabled
-        throw new Error(
-          "Razorpay payment is currently unavailable. Please use PhonePe or Cash on Delivery."
-        );
+        await initiateRazorpayPayment(orderResult.order);
       } else if (selectedPaymentMethod === "cod") {
         // For COD, just redirect to success page
         window.location.href = `/order-success?orderId=${orderResult.order.id}&status=cod_placed`;
@@ -279,84 +276,108 @@ export function PaymentStep({
     }
   };
 
-  // Razorpay payment function - Currently disabled
-  // Uncomment and enable when Razorpay integration is ready
-  /*
+  // Razorpay payment function with proper Indian standards
   const initiateRazorpayPayment = async (order: Order) => {
     try {
       setLoading(true);
-      
-      // Create Razorpay order
-      const paymentResponse = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+
+      // Create Razorpay order with GST breakdown
+      const paymentResponse = await fetch("/api/payments/razorpay/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Math.round(totalAmount * 100), // Convert to paise
-          currency: 'INR',
-          orderId: order.id
+          orderId: order.id,
+          amount: subtotal, // Send subtotal, API will add GST
+          customerEmail:
+            user?.email || checkoutData.address?.alternateEmail || "",
+          customerPhone: checkoutData.address?.phone || "",
+          customerName:
+            user?.displayName ||
+            (checkoutData.address?.firstName && checkoutData.address?.lastName
+              ? `${checkoutData.address.firstName} ${checkoutData.address.lastName}`
+              : "Customer"),
         }),
       });
 
       const paymentResult = await paymentResponse.json();
 
       if (!paymentResult.success) {
-        throw new Error(paymentResult.error || 'Failed to create Razorpay order');
+        throw new Error(
+          paymentResult.error || "Failed to create Razorpay order"
+        );
       }
 
       // Load Razorpay SDK dynamically
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
       document.body.appendChild(script);
 
       script.onload = () => {
         const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_RKeHBoAZktp7ua',
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
           amount: paymentResult.order.amount,
           currency: paymentResult.order.currency,
           name: general.siteName,
-          description: `Order #${order.id}`,
+          description: `Order #${order.orderNumber}`,
           order_id: paymentResult.order.id,
-          handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          handler: async (response: {
+            razorpay_order_id: string;
+            razorpay_payment_id: string;
+            razorpay_signature: string;
+          }) => {
             try {
               // Verify payment
-              const verifyResponse = await fetch('/api/payments/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  orderId: order.id,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature
-                }),
-              });
+              const verifyResponse = await fetch(
+                "/api/payments/razorpay/verify",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    orderId: order.id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                  }),
+                }
+              );
 
               const verifyResult = await verifyResponse.json();
 
               if (verifyResult.success) {
                 window.location.href = `/order-success?orderId=${order.id}&status=success`;
               } else {
-                throw new Error('Payment verification failed');
+                throw new Error("Payment verification failed");
               }
             } catch (error) {
-              console.error('Payment verification error:', error);
+              console.error("Payment verification error:", error);
               window.location.href = `/payment-failed?orderId=${order.id}&error=verification_failed`;
             }
           },
           prefill: {
-            name: `${checkoutData.address?.firstName} ${checkoutData.address?.lastName}`,
-            email: user?.email || checkoutData.address?.alternateEmail || '',
-            contact: checkoutData.address?.phone || ''
+            name:
+              user?.displayName ||
+              (checkoutData.address?.firstName && checkoutData.address?.lastName
+                ? `${checkoutData.address.firstName} ${checkoutData.address.lastName}`
+                : ""),
+            email: user?.email || checkoutData.address?.alternateEmail || "",
+            contact: checkoutData.address?.phone || "",
+          },
+          notes: {
+            order_number: order.orderNumber,
+            customer_name:
+              user?.displayName ||
+              `${checkoutData.address?.firstName} ${checkoutData.address?.lastName}`,
           },
           theme: {
-            color: '#E7654D'
+            color: "#E7654D", // Numa brand color
           },
           modal: {
             ondismiss: () => {
               setLoading(false);
-              setError('Payment cancelled');
-            }
-          }
+              setError("Payment cancelled by user");
+            },
+          },
         };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -366,17 +387,19 @@ export function PaymentStep({
 
       script.onerror = () => {
         setLoading(false);
-        setError('Failed to load Razorpay SDK');
+        setError(
+          "Failed to load Razorpay SDK. Please check your internet connection."
+        );
       };
     } catch (error) {
-      console.error('Razorpay payment initiation failed:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Payment initiation failed';
+      console.error("Razorpay payment initiation failed:", error);
+      const errorMsg =
+        error instanceof Error ? error.message : "Payment initiation failed";
       setError(errorMsg);
       onError(errorMsg);
       setLoading(false);
     }
   };
-  */
 
   return (
     <div className="space-y-6">
@@ -492,18 +515,6 @@ export function PaymentStep({
                 </p>
               </div>
             )}
-
-            {/* Razorpay info banner */}
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-blue-800">
-                  <strong>Razorpay Payment:</strong> Currently under
-                  maintenance. Please use PhonePe for instant payment or choose
-                  Cash on Delivery.
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* Order Summary */}
