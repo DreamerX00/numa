@@ -24,14 +24,33 @@ export interface CompanySettingsData {
   invoiceTerms: string;
   invoiceNotes?: string | null;
 
-  // Logo
+  // Logo & Branding
   companyLogo?: string | null;
+  invoiceLogo?: string | null;
+  invoiceLogoPosition?: string;
 
   // Bank Details
   bankName?: string | null;
   bankAccount?: string | null;
   bankIfsc?: string | null;
   bankBranch?: string | null;
+  bankAccountHolder?: string | null;
+  bankUpiId?: string | null;
+  paymentQrCode?: string | null;
+
+  // Signature & Authorization
+  signatoryName?: string | null;
+  signatoryDesignation?: string | null;
+  digitalSignature?: string | null;
+  companySeal?: string | null;
+
+  // Additional Terms
+  deliveryTerms?: string | null;
+  returnPolicy?: string | null;
+  warrantyInfo?: string | null;
+
+  // Invoice Configuration
+  invoiceDefaultDueDays?: number;
 }
 
 /**
@@ -89,6 +108,20 @@ export async function getCompanySettings(): Promise<CompanySettingsData> {
       bankAccount: settings.bankAccount,
       bankIfsc: settings.bankIfsc,
       bankBranch: settings.bankBranch,
+      // New Phase 1 fields
+      invoiceLogo: settings.invoiceLogo,
+      invoiceLogoPosition: settings.invoiceLogoPosition,
+      bankAccountHolder: settings.bankAccountHolder,
+      bankUpiId: settings.bankUpiId,
+      paymentQrCode: settings.paymentQrCode,
+      signatoryName: settings.signatoryName,
+      signatoryDesignation: settings.signatoryDesignation,
+      digitalSignature: settings.digitalSignature,
+      companySeal: settings.companySeal,
+      deliveryTerms: settings.deliveryTerms,
+      returnPolicy: settings.returnPolicy,
+      warrantyInfo: settings.warrantyInfo,
+      invoiceDefaultDueDays: settings.invoiceDefaultDueDays,
     };
   } catch (error) {
     console.error("Error fetching company settings:", error);

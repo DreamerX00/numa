@@ -910,7 +910,7 @@ model CompanySettings {
   invoiceTerms    String   @default("Payment is due within 30 days of invoice date")
   invoiceNotes    String?
   
-  // Logo
+  // Logo & Branding
   companyLogo     String?
   
   // Bank Details (for invoice)
@@ -918,6 +918,29 @@ model CompanySettings {
   bankAccount     String?
   bankIfsc        String?
   bankBranch      String?
+  
+  // Invoice Branding (Phase 1)
+  invoiceLogo            String?  // URL to uploaded invoice logo
+  invoiceLogoPosition    String   @default("left") // left/center/right
+  
+  // Signature & Authorization (Phase 1)
+  signatoryName          String?
+  signatoryDesignation   String?
+  digitalSignature       String?  // URL to signature image
+  companySeal            String?  // URL to seal/stamp image
+  
+  // Payment Information (Phase 1)
+  bankAccountHolder      String?  // Account holder name
+  bankUpiId              String?  // UPI ID for payments
+  paymentQrCode          String?  // URL to payment QR code image
+  
+  // Additional Terms (Phase 1)
+  deliveryTerms          String?
+  returnPolicy           String?
+  warrantyInfo           String?
+  
+  // Invoice Configuration (Phase 1)
+  invoiceDefaultDueDays  Int      @default(30)
   
   // Metadata
   isActive        Boolean  @default(true)

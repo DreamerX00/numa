@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/ui/container";
-import { SiInstagram } from "react-icons/si";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- SiX and SiFacebook are for commented social links
+import { SiInstagram, SiX, SiFacebook } from "react-icons/si";
 import { Mail } from "lucide-react";
 
 export function Footer() {
@@ -35,11 +36,11 @@ export function Footer() {
                 <span className="sr-only">Instagram</span>
               </Link>
               {/* <Link href="" className="text-muted-foreground hover:text-brand transition-colors">
-                <Twitter className="h-5 w-5" />
-                <span className="sr-only">Twitter</span>
+                <SiX className="h-5 w-5" />
+                <span className="sr-only">X (Twitter)</span>
               </Link> */}
               {/* <Link href="#" className="text-muted-foreground hover:text-brand transition-colors">
-                <Facebook className="h-5 w-5" />
+                <SiFacebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
               </Link> */}
               <a
