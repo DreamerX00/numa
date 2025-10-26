@@ -9,18 +9,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth/client";
-import { 
-  MapPin,
-  Phone,
-  Mail,
-  Plus,
-  Edit,
-  Trash2
-} from "lucide-react";
+import { MapPin, Phone, Mail, Plus, Edit, Trash2 } from "lucide-react";
 
 interface AddressData {
   id?: string;
-  type: 'SHIPPING' | 'BILLING';
+  type: "SHIPPING" | "BILLING";
   firstName: string;
   lastName: string;
   company?: string;
@@ -47,6 +40,7 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [formData, setFormData] = useState<AddressData>({
     firstName: "",
     lastName: "",
@@ -65,15 +59,21 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const loadSavedAddresses = useCallback(async () => {
+    // Prevent multiple simultaneous loads
+    if (isLoadingAddresses) return;
+
     try {
+      setIsLoadingAddresses(true);
       setLocalLoading(true);
-      const response = await fetch('/api/user/addresses');
+      const response = await fetch("/api/user/addresses");
       if (response.ok) {
         const data = await response.json();
         setSavedAddresses(data.addresses || []);
-        
+
         // Select default address if available
-        const defaultAddress = data.addresses?.find((addr: AddressData) => addr.isDefault);
+        const defaultAddress = data.addresses?.find(
+          (addr: AddressData) => addr.isDefault
+        );
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.id!);
         } else if (data.addresses?.length > 0) {
@@ -83,13 +83,14 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
         }
       }
     } catch (error) {
-      console.error('Failed to load addresses:', error);
-      onError('Failed to load saved addresses');
+      console.error("Failed to load addresses:", error);
+      onError("Failed to load saved addresses");
       setIsAddingNew(true);
     } finally {
       setLocalLoading(false);
+      setIsLoadingAddresses(false);
     }
-  }, [onError]);
+  }, [onError, isLoadingAddresses]);
 
   // Load saved addresses for logged-in users
   useEffect(() => {
@@ -118,12 +119,18 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
     }
 
     // Validate alternate phone if provided
-    if (formData.alternatePhone && !/^[6-9]\d{9}$/.test(formData.alternatePhone)) {
+    if (
+      formData.alternatePhone &&
+      !/^[6-9]\d{9}$/.test(formData.alternatePhone)
+    ) {
       newErrors.alternatePhone = "Please enter a valid 10-digit mobile number";
     }
 
     // Validate alternate email if provided
-    if (formData.alternateEmail && !/\S+@\S+\.\S+/.test(formData.alternateEmail)) {
+    if (
+      formData.alternateEmail &&
+      !/\S+@\S+\.\S+/.test(formData.alternateEmail)
+    ) {
       newErrors.alternateEmail = "Please enter a valid email address";
     }
 
@@ -138,21 +145,22 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isAddingNew) {
       if (!validateForm()) return;
-      
+
       // Save address for logged-in users
       if (user) {
         try {
           setLocalLoading(true);
           // Check if a similar address already exists to prevent duplicates
-          const duplicateAddress = savedAddresses.find(addr => 
-            addr.address1 === formData.address1 &&
-            addr.city === formData.city &&
-            addr.postalCode === formData.postalCode &&
-            addr.firstName === formData.firstName &&
-            addr.lastName === formData.lastName
+          const duplicateAddress = savedAddresses.find(
+            (addr) =>
+              addr.address1 === formData.address1 &&
+              addr.city === formData.city &&
+              addr.postalCode === formData.postalCode &&
+              addr.firstName === formData.firstName &&
+              addr.lastName === formData.lastName
           );
 
           if (duplicateAddress) {
@@ -167,18 +175,18 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
             return;
           }
 
-          const response = await fetch('/api/user/addresses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const response = await fetch("/api/user/addresses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formData),
           });
-          
+
           if (response.ok) {
             const savedAddress = await response.json();
-            
-            // Update local state with the new address
-            setSavedAddresses(prev => [...prev, savedAddress.address]);
-            
+
+            // Reload addresses from API to avoid duplicates
+            await loadSavedAddresses();
+
             // Ensure the saved address has required fields for PaymentStep
             const addressWithDefaults: AddressData = {
               ...savedAddress.address,
@@ -196,7 +204,7 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
             onComplete({ address: formDataWithDefaults });
           }
         } catch (error) {
-          console.error('Failed to save address:', error);
+          console.error("Failed to save address:", error);
           // Ensure formData has required fields for PaymentStep
           const formDataWithDefaults: AddressData = {
             ...formData,
@@ -218,7 +226,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
       }
     } else {
       // Use selected saved address
-      const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId);
+      const selectedAddress = savedAddresses.find(
+        (addr) => addr.id === selectedAddressId
+      );
       if (selectedAddress) {
         // Ensure the address has required fields for PaymentStep
         const addressWithDefaults: AddressData = {
@@ -232,9 +242,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
   };
 
   const handleInputChange = (field: keyof AddressData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -244,23 +254,25 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
   };
 
   const deleteAddress = async (addressId: string) => {
-    if (!confirm('Are you sure you want to delete this address?')) {
+    if (!confirm("Are you sure you want to delete this address?")) {
       return;
     }
 
     try {
       setLocalLoading(true);
       const response = await fetch(`/api/user/addresses/${addressId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
         // Remove from local state
-        setSavedAddresses(prev => prev.filter(addr => addr.id !== addressId));
-        
+        setSavedAddresses((prev) =>
+          prev.filter((addr) => addr.id !== addressId)
+        );
+
         // If this was the selected address, clear selection
         if (selectedAddressId === addressId) {
-          setSelectedAddressId('');
+          setSelectedAddressId("");
           // If no addresses left, show add new form
           if (savedAddresses.length === 1) {
             setIsAddingNew(true);
@@ -268,11 +280,11 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
         }
       } else {
         const errorData = await response.json();
-        onError(errorData.error || 'Failed to delete address');
+        onError(errorData.error || "Failed to delete address");
       }
     } catch (error) {
-      console.error('Failed to delete address:', error);
-      onError('Failed to delete address');
+      console.error("Failed to delete address:", error);
+      onError("Failed to delete address");
     } finally {
       setLocalLoading(false);
     }
@@ -302,19 +314,31 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                   Add New
                 </Button>
               </div>
-              
-              <RadioGroup value={selectedAddressId} onValueChange={setSelectedAddressId}>
+
+              <RadioGroup
+                value={selectedAddressId}
+                onValueChange={setSelectedAddressId}
+              >
                 {savedAddresses.map((address) => (
                   <div key={address.id} className="space-y-2">
                     <div className="flex items-start space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value={address.id!} id={address.id!} className="mt-1" />
+                      <RadioGroupItem
+                        value={address.id!}
+                        id={address.id!}
+                        className="mt-1"
+                      />
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor={address.id!} className="font-medium cursor-pointer">
+                          <Label
+                            htmlFor={address.id!}
+                            className="font-medium cursor-pointer"
+                          >
                             {address.firstName} {address.lastName}
                           </Label>
                           {address.isDefault && (
-                            <Badge variant="secondary" className="text-xs">Default</Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              Default
+                            </Badge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -360,7 +384,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">
-                  {user && savedAddresses.length > 0 ? "Add new address" : "Delivery address"}
+                  {user && savedAddresses.length > 0
+                    ? "Add new address"
+                    : "Delivery address"}
                 </h4>
                 {user && savedAddresses.length > 0 && (
                   <Button
@@ -380,11 +406,15 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                   <Input
                     id="firstName"
                     value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
                     placeholder="Enter first name"
                   />
                   {errors.firstName && (
-                    <p className="text-sm text-destructive">{errors.firstName}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.firstName}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -392,11 +422,15 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                   <Input
                     id="lastName"
                     value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
                     placeholder="Enter last name"
                   />
                   {errors.lastName && (
-                    <p className="text-sm text-destructive">{errors.lastName}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.lastName}
+                    </p>
                   )}
                 </div>
               </div>
@@ -416,7 +450,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                 <Input
                   id="address1"
                   value={formData.address1}
-                  onChange={(e) => handleInputChange("address1", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("address1", e.target.value)
+                  }
                   placeholder="House number, building name, street"
                 />
                 {errors.address1 && (
@@ -429,7 +465,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                 <Input
                   id="address2"
                   value={formData.address2}
-                  onChange={(e) => handleInputChange("address2", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("address2", e.target.value)
+                  }
                   placeholder="Apartment, suite, floor, landmark"
                 />
               </div>
@@ -467,12 +505,16 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                   <Input
                     id="postalCode"
                     value={formData.postalCode}
-                    onChange={(e) => handleInputChange("postalCode", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("postalCode", e.target.value)
+                    }
                     placeholder="000000"
                     maxLength={6}
                   />
                   {errors.postalCode && (
-                    <p className="text-sm text-destructive">{errors.postalCode}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.postalCode}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -490,7 +532,7 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
 
               <div className="space-y-4">
                 <h4 className="font-medium">Contact Information</h4>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phone">Primary Phone Number *</Label>
                   <div className="relative">
@@ -498,7 +540,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                     <Input
                       id="phone"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
                       placeholder="9876543210"
                       className="pl-10"
                       maxLength={10}
@@ -513,41 +557,54 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="alternatePhone">Alternate Phone Number (Optional)</Label>
+                  <Label htmlFor="alternatePhone">
+                    Alternate Phone Number (Optional)
+                  </Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="alternatePhone"
                       value={formData.alternatePhone}
-                      onChange={(e) => handleInputChange("alternatePhone", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("alternatePhone", e.target.value)
+                      }
                       placeholder="9876543210"
                       className="pl-10"
                       maxLength={10}
                     />
                   </div>
                   {errors.alternatePhone && (
-                    <p className="text-sm text-destructive">{errors.alternatePhone}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.alternatePhone}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="alternateEmail">Alternate Email (Optional)</Label>
+                  <Label htmlFor="alternateEmail">
+                    Alternate Email (Optional)
+                  </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="alternateEmail"
                       type="email"
                       value={formData.alternateEmail}
-                      onChange={(e) => handleInputChange("alternateEmail", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("alternateEmail", e.target.value)
+                      }
                       placeholder="alternate@email.com"
                       className="pl-10"
                     />
                   </div>
                   {errors.alternateEmail && (
-                    <p className="text-sm text-destructive">{errors.alternateEmail}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.alternateEmail}
+                    </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Useful for delivery notifications if primary email is unavailable
+                    Useful for delivery notifications if primary email is
+                    unavailable
                   </p>
                 </div>
               </div>
@@ -556,7 +613,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
 
           {/* Delivery Instructions */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-medium text-blue-900 mb-2">Delivery Information</h4>
+            <h4 className="font-medium text-blue-900 mb-2">
+              Delivery Information
+            </h4>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• We deliver Monday to Saturday, 9 AM to 8 PM</li>
               <li>• Someone should be available to receive the package</li>
@@ -567,9 +626,9 @@ export function AddressStep({ onComplete, onError }: AddressStepProps) {
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button 
+            <Button
               onClick={handleSubmit}
-              className="w-full" 
+              className="w-full"
               disabled={localLoading}
             >
               {localLoading ? "Saving..." : "Continue to Payment"}
