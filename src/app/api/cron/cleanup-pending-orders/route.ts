@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
  * - Add this to vercel.json:
  *   "crons": [{
  *     "path": "/api/cron/cleanup-pending-orders",
- *     "schedule": "0 * * * *"  // Run every hour
+ *     "schedule": "0 0 * * *"  // Run daily at midnight (UTC)
  *   }]
  *
  * - Or use a service like cron-job.org to hit this endpoint
+ *
+ * Note: Vercel Hobby plan only supports daily cron jobs
+ * For hourly cleanups, upgrade to Pro or use external cron service
  *
  * Security: Verify request comes from authorized source
  */
