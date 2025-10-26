@@ -151,6 +151,20 @@ export default function AdminSettingsPage() {
     bankAccount: null as string | null,
     bankIfsc: null as string | null,
     bankBranch: null as string | null,
+    // Phase 1 Invoice Settings
+    invoiceLogo: null as string | null,
+    invoiceLogoPosition: "left",
+    signatoryName: null as string | null,
+    signatoryDesignation: null as string | null,
+    digitalSignature: null as string | null,
+    companySeal: null as string | null,
+    bankAccountHolder: null as string | null,
+    bankUpiId: null as string | null,
+    paymentQrCode: null as string | null,
+    deliveryTerms: null as string | null,
+    returnPolicy: null as string | null,
+    warrantyInfo: null as string | null,
+    invoiceDefaultDueDays: 30,
   });
 
   // Load settings from API
@@ -322,7 +336,7 @@ export default function AdminSettingsPage() {
             onValueChange={setActiveSection}
             className="space-y-4"
           >
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger
                 value="general"
                 className="flex items-center space-x-2"
@@ -336,6 +350,13 @@ export default function AdminSettingsPage() {
               >
                 <Building2 className="h-4 w-4" />
                 <span>Company</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="invoice"
+                className="flex items-center space-x-2"
+              >
+                <Receipt className="h-4 w-4" />
+                <span>Invoice</span>
               </TabsTrigger>
               <TabsTrigger
                 value="payments"
@@ -935,6 +956,352 @@ export default function AdminSettingsPage() {
                       <Save className="h-4 w-4 mr-2" />
                     )}
                     Save Company Settings
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Invoice Settings */}
+            <TabsContent value="invoice">
+              <div className="space-y-6">
+                {/* Branding & Logo */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Receipt className="h-5 w-5 text-purple-600" />
+                      <CardTitle>Invoice Branding</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="invoiceLogo">Invoice Logo URL</Label>
+                        <Input
+                          id="invoiceLogo"
+                          value={companySettings.invoiceLogo || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              invoiceLogo: e.target.value || null,
+                            }))
+                          }
+                          placeholder="https://example.com/invoice-logo.png"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Recommended size: 200x60px (PNG with transparent
+                          background)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invoiceLogoPosition">
+                          Logo Position
+                        </Label>
+                        <Select
+                          value={companySettings.invoiceLogoPosition || "left"}
+                          onValueChange={(value) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              invoiceLogoPosition: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="left">Left</SelectItem>
+                            <SelectItem value="center">Center</SelectItem>
+                            <SelectItem value="right">Right</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Bank & Payment Details */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Landmark className="h-5 w-5 text-blue-600" />
+                      <CardTitle>Payment Information</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bankAccountHolder">
+                          Account Holder Name
+                        </Label>
+                        <Input
+                          id="bankAccountHolder"
+                          value={companySettings.bankAccountHolder || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              bankAccountHolder: e.target.value || null,
+                            }))
+                          }
+                          placeholder="Numa Jewelry Pvt Ltd"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bankUpiId">UPI ID</Label>
+                        <Input
+                          id="bankUpiId"
+                          value={companySettings.bankUpiId || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              bankUpiId: e.target.value || null,
+                            }))
+                          }
+                          placeholder="business@upi"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentQrCode">Payment QR Code URL</Label>
+                      <Input
+                        id="paymentQrCode"
+                        value={companySettings.paymentQrCode || ""}
+                        onChange={(e) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            paymentQrCode: e.target.value || null,
+                          }))
+                        }
+                        placeholder="https://example.com/payment-qr.png"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Upload your UPI QR code image for customers to scan and
+                        pay
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Signature & Authorization */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="h-5 w-5 text-green-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      <CardTitle>Signature & Authorization</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signatoryName">
+                          Authorized Signatory Name
+                        </Label>
+                        <Input
+                          id="signatoryName"
+                          value={companySettings.signatoryName || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              signatoryName: e.target.value || null,
+                            }))
+                          }
+                          placeholder="John Doe"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signatoryDesignation">
+                          Designation
+                        </Label>
+                        <Input
+                          id="signatoryDesignation"
+                          value={companySettings.signatoryDesignation || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              signatoryDesignation: e.target.value || null,
+                            }))
+                          }
+                          placeholder="Managing Director"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="digitalSignature">
+                          Digital Signature URL
+                        </Label>
+                        <Input
+                          id="digitalSignature"
+                          value={companySettings.digitalSignature || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              digitalSignature: e.target.value || null,
+                            }))
+                          }
+                          placeholder="https://example.com/signature.png"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Transparent PNG recommended (150x80px)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="companySeal">
+                          Company Seal/Stamp URL
+                        </Label>
+                        <Input
+                          id="companySeal"
+                          value={companySettings.companySeal || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              companySeal: e.target.value || null,
+                            }))
+                          }
+                          placeholder="https://example.com/seal.png"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Circular stamp (100x100px PNG)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Terms & Conditions */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="h-5 w-5 text-orange-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <CardTitle>Additional Terms</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryTerms">Delivery Terms</Label>
+                      <Textarea
+                        id="deliveryTerms"
+                        value={companySettings.deliveryTerms || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            deliveryTerms: e.target.value || null,
+                          }))
+                        }
+                        placeholder="Standard delivery within 7-10 business days"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="returnPolicy">
+                        Return Policy (Summary)
+                      </Label>
+                      <Textarea
+                        id="returnPolicy"
+                        value={companySettings.returnPolicy || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            returnPolicy: e.target.value || null,
+                          }))
+                        }
+                        placeholder="7-day return policy with prior authorization"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="warrantyInfo">Warranty Information</Label>
+                      <Textarea
+                        id="warrantyInfo"
+                        value={companySettings.warrantyInfo || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            warrantyInfo: e.target.value || null,
+                          }))
+                        }
+                        placeholder="6 months warranty on manufacturing defects"
+                        rows={2}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Invoice Configuration */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-5 w-5 text-indigo-600" />
+                      <CardTitle>Invoice Configuration</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invoiceDefaultDueDays">
+                        Default Due Days
+                      </Label>
+                      <Input
+                        id="invoiceDefaultDueDays"
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={companySettings.invoiceDefaultDueDays || 30}
+                        onChange={(e) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            invoiceDefaultDueDays:
+                              parseInt(e.target.value) || 30,
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-gray-500">
+                        Number of days until invoice payment is due (default:
+                        30)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => handleSave("company")}
+                    disabled={loading}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save Invoice Settings
                   </Button>
                 </div>
               </div>
