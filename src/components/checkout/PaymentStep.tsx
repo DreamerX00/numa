@@ -65,18 +65,94 @@ export function PaymentStep({
   setLoading,
 }: PaymentStepProps) {
   const { user } = useAuth();
-  const { shipping, company, general, getAvailablePaymentMethods } =
+  const { shipping, company, general, payments, getAvailablePaymentMethods } =
     useSettings();
   const availableMethods = getAvailablePaymentMethods();
   const [error, setError] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "phonepe" | "razorpay" | "cod"
   >((availableMethods[0]?.id as "phonepe" | "razorpay" | "cod") || "phonepe");
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+
+  // Debug: Log payment settings
+  React.useEffect(() => {
+    console.log("[PaymentStep] Payment settings:", {
+      razorpayEnabled: payments.razorpayEnabled,
+      razorpayKeyId: payments.razorpayKeyId
+        ? `${payments.razorpayKeyId.substring(0, 10)}...`
+        : "NOT SET",
+      razorpayDisplayName: payments.razorpayDisplayName,
+    });
+  }, [payments]);
 
   // Calculate amounts using passed shipping cost, dynamic COD charges, and dynamic GST rate
   const codFee = selectedPaymentMethod === "cod" ? shipping.codCharges : 0;
   const taxAmount = (subtotal + shippingCost + codFee) * (company.gstRate || 0);
   const totalAmount = subtotal + shippingCost + codFee + taxAmount;
+
+  // Load Razorpay script when component mounts if Razorpay is enabled
+  React.useEffect(() => {
+    if (!payments.razorpayEnabled) {
+      console.log("[Razorpay] Payment method not enabled");
+      return;
+    }
+
+    console.log("[Razorpay] Attempting to load SDK...");
+
+    const loadRazorpayScript = () => {
+      // Check if already loaded
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).Razorpay) {
+        console.log("[Razorpay] SDK already loaded");
+        setRazorpayLoaded(true);
+        return;
+      }
+
+      // Check if script tag already exists
+      const existingScript = document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+      );
+
+      if (existingScript) {
+        console.log("[Razorpay] Script tag exists, waiting for load...");
+        // Script exists, wait for it to load
+        const handleLoad = () => {
+          console.log("[Razorpay] SDK loaded from existing script");
+          setRazorpayLoaded(true);
+        };
+        existingScript.addEventListener("load", handleLoad);
+
+        // Check if it's already loaded
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).Razorpay) {
+          handleLoad();
+        }
+        return;
+      }
+
+      console.log("[Razorpay] Creating new script tag...");
+      // Create new script tag
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.onload = () => {
+        console.log("[Razorpay] SDK loaded successfully");
+        setRazorpayLoaded(true);
+      };
+      script.onerror = (e) => {
+        console.error("[Razorpay] Failed to load SDK", e);
+        console.error("[Razorpay] Script src:", script.src);
+        console.error("[Razorpay] Network error or script blocked");
+        setError(
+          "Failed to load payment gateway. Please check your internet connection and refresh the page."
+        );
+      };
+      document.body.appendChild(script);
+      console.log("[Razorpay] Script tag appended to body");
+    };
+
+    loadRazorpayScript();
+  }, [payments.razorpayEnabled]);
 
   // Check if order is ready for payment
   const isOrderReady =
@@ -281,6 +357,21 @@ export function PaymentStep({
     try {
       setLoading(true);
 
+      // Check if Razorpay is loaded
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!(window as any).Razorpay) {
+        throw new Error(
+          "Payment gateway not loaded. Please refresh the page and try again."
+        );
+      }
+
+      // Check if Razorpay key is available
+      if (!payments.razorpayKeyId) {
+        throw new Error(
+          "Payment gateway not configured. Please contact support."
+        );
+      }
+
       // Create Razorpay order with GST breakdown
       const paymentResponse = await fetch("/api/payments/razorpay/create", {
         method: "POST",
@@ -307,45 +398,16 @@ export function PaymentStep({
         );
       }
 
-      // Check if Razorpay script is already loaded
-      const loadRazorpayScript = () => {
-        return new Promise<void>((resolve, reject) => {
-          // Check if already loaded
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if ((window as any).Razorpay) {
-            resolve();
-            return;
-          }
-
-          // Check if script tag already exists
-          const existingScript = document.querySelector(
-            'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-          );
-
-          if (existingScript) {
-            existingScript.addEventListener("load", () => resolve());
-            existingScript.addEventListener("error", () =>
-              reject(new Error("Failed to load Razorpay SDK"))
-            );
-            return;
-          }
-
-          // Create new script tag
-          const script = document.createElement("script");
-          script.src = "https://checkout.razorpay.com/v1/checkout.js";
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () =>
-            reject(new Error("Failed to load Razorpay SDK"));
-          document.body.appendChild(script);
-        });
-      };
-
-      // Load Razorpay SDK
-      await loadRazorpayScript();
+      console.log("[Razorpay] Payment response:", paymentResult);
+      console.log("[Razorpay] Using key:", payments.razorpayKeyId);
+      console.log("[Razorpay] Order details:", {
+        orderId: paymentResult.order.id,
+        amount: paymentResult.order.amount,
+        currency: paymentResult.order.currency,
+      });
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
+        key: payments.razorpayKeyId, // Use key from settings
         amount: paymentResult.order.amount,
         currency: paymentResult.order.currency,
         name: general.siteName,
@@ -441,9 +503,12 @@ export function PaymentStep({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const razorpay = new (window as any).Razorpay(options);
 
+      console.log("[Razorpay] Razorpay instance created, opening checkout...");
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       razorpay.on("payment.failed", function (response: any) {
-        console.error("Razorpay payment failed:", response.error);
+        console.error("[Razorpay] Payment failed event:", response);
+        console.error("[Razorpay] Error details:", response.error);
         setLoading(false);
         setError(response.error.description || "Payment failed");
 
@@ -585,6 +650,18 @@ export function PaymentStep({
                 </p>
               </div>
             )}
+
+            {/* Razorpay loading indicator */}
+            {selectedPaymentMethod === "razorpay" && !razorpayLoaded && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <HeartLoader size="sm" />
+                  <p className="text-sm text-blue-800">
+                    Loading payment gateway...
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Order Summary */}
@@ -712,7 +789,11 @@ export function PaymentStep({
             <Button
               onClick={createOrder}
               className="w-full"
-              disabled={loading || !isOrderReady}
+              disabled={
+                loading ||
+                !isOrderReady ||
+                (selectedPaymentMethod === "razorpay" && !razorpayLoaded)
+              }
             >
               {loading ? (
                 <>
@@ -723,6 +804,11 @@ export function PaymentStep({
                 <>
                   <Lock className="h-4 w-4 mr-2" />
                   Complete Address Details
+                </>
+              ) : selectedPaymentMethod === "razorpay" && !razorpayLoaded ? (
+                <>
+                  <HeartLoader size="sm" className="mr-2" />
+                  Loading Payment Gateway...
                 </>
               ) : selectedPaymentMethod === "cod" ? (
                 <>

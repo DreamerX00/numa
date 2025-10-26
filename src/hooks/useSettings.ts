@@ -18,6 +18,7 @@ interface PaymentSettings {
   phonePeDisplayName: string;
   razorpayEnabled: boolean;
   razorpayDisplayName: string;
+  razorpayKeyId: string;
   stripeEnabled: boolean;
   stripeDisplayName: string;
   codEnabled: boolean;
@@ -47,6 +48,7 @@ export function useSettings() {
     phonePeDisplayName: "PhonePe / UPI",
     razorpayEnabled: false, // Will be loaded from API
     razorpayDisplayName: "Cards / UPI / Wallets",
+    razorpayKeyId: "", // Will be loaded from API
     stripeEnabled: false,
     stripeDisplayName: "Credit/Debit Card",
     codEnabled: false, // Will be loaded from API
