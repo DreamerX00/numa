@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/session';
-import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
-import { rateLimit, rateLimitConfigs } from '@/lib/rate-limit';
-import { 
-  generateMerchantTransactionId 
-} from '@/lib/services/phonepe';
+import { NextRequest, NextResponse } from "next/server";
+import { getUserFromRequest } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+import { getSettings } from "@/lib/settings";
+import { z } from "zod";
+import { rateLimit, rateLimitConfigs } from "@/lib/rate-limit";
+import { generateMerchantTransactionId } from "@/lib/services/phonepe";
 
 // Force dynamic rendering for Next.js 15 compatibility
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Rate limiter for order creation
 const orderRateLimit = rateLimit(rateLimitConfigs.payment);
@@ -18,7 +17,7 @@ const orderItemSchema = z.object({
   productId: z.string().min(1),
   variantId: z.string().optional().nullable(),
   quantity: z.number().min(1).max(100),
-  priceAtAdd: z.number().min(0)
+  priceAtAdd: z.number().min(0),
 });
 
 // Shipping address schema
@@ -31,10 +30,13 @@ const shippingAddressSchema = z.object({
   city: z.string().min(1),
   state: z.string().min(1),
   postalCode: z.string().regex(/^\d{6}$/, "Invalid postal code"),
-  country: z.string().default('IN'),
+  country: z.string().default("IN"),
   phone: z.string().regex(/^[6-9]\d{9}$/, "Invalid phone number"),
   alternateEmail: z.string().email().optional(),
-  alternatePhone: z.string().regex(/^[6-9]\d{9}$/, "Invalid alternate phone").optional()
+  alternatePhone: z
+    .string()
+    .regex(/^[6-9]\d{9}$/, "Invalid alternate phone")
+    .optional(),
 });
 
 // Create order schema
@@ -42,58 +44,67 @@ const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1).max(50),
   shippingAddress: shippingAddressSchema,
   shippingMethod: z.string().min(1),
-  currency: z.string().default('INR')
+  currency: z.string().default("INR"),
 });
 
 // Generate order number
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const random = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0");
   return `ORD-${timestamp}-${random}`;
 }
 
 export async function POST(req: NextRequest) {
   return orderRateLimit(req, async () => {
     try {
-      console.log('Creating order...');
-      
+      console.log("Creating order...");
+
       // Validate request body
       const body = await req.json();
-      console.log('Received order data:', JSON.stringify(body, null, 2));
-      
+      console.log("Received order data:", JSON.stringify(body, null, 2));
+
       const validationResult = createOrderSchema.safeParse(body);
-      
+
       if (!validationResult.success) {
-        console.error('Validation failed:');
-        console.error('Raw validation error:', validationResult.error);
-        console.error('Validation error format:', validationResult.error.format());
-        console.error('Validation error issues:', validationResult.error.issues);
-        
+        console.error("Validation failed:");
+        console.error("Raw validation error:", validationResult.error);
+        console.error(
+          "Validation error format:",
+          validationResult.error.format()
+        );
+        console.error(
+          "Validation error issues:",
+          validationResult.error.issues
+        );
+
         return NextResponse.json(
-          { 
+          {
             success: false,
-            error: 'Invalid request data',
+            error: "Invalid request data",
             details: validationResult.error.issues,
-            formattedError: validationResult.error.format()
+            formattedError: validationResult.error.format(),
           },
           { status: 400 }
         );
       }
 
-      const { items, shippingAddress, shippingMethod, currency } = validationResult.data;
+      const { items, shippingAddress, shippingMethod, currency } =
+        validationResult.data;
 
       // Get user (optional for guest checkout)
       const user = await getUserFromRequest(req);
       let dbUser = null;
-      
+
       if (user) {
         dbUser = await prisma.user.findUnique({
-          where: { id: user.id }
+          where: { id: user.id },
         });
-        
+
         if (!dbUser) {
           return NextResponse.json(
-            { success: false, error: 'User not found' },
+            { success: false, error: "User not found" },
             { status: 404 }
           );
         }
@@ -104,53 +115,63 @@ export async function POST(req: NextRequest) {
         const product = await prisma.product.findUnique({
           where: { id: item.productId },
           include: {
-            variants: item.variantId ? {
-              where: { id: item.variantId }
-            } : false
-          }
+            variants: item.variantId
+              ? {
+                  where: { id: item.variantId },
+                }
+              : false,
+          },
         });
 
         if (!product) {
           throw new Error(`Product ${item.productId} not found`);
         }
 
-        if (!product.isActive || product.status !== 'ACTIVE') {
+        if (!product.isActive || product.status !== "ACTIVE") {
           throw new Error(`Product ${product.name} is not available`);
         }
 
         // Check inventory
         let availableQuantity = product.quantity;
         let variant = null;
-        
+
         if (item.variantId && product.variants && product.variants.length > 0) {
           variant = product.variants[0];
           availableQuantity = variant.quantity;
         }
 
         if (product.trackQuantity && availableQuantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.name}. Available: ${availableQuantity}, Requested: ${item.quantity}`);
+          throw new Error(
+            `Insufficient stock for ${product.name}. Available: ${availableQuantity}, Requested: ${item.quantity}`
+          );
         }
 
         return {
           product,
           variant,
           requestedQuantity: item.quantity,
-          priceAtAdd: item.priceAtAdd
+          priceAtAdd: item.priceAtAdd,
         };
       });
 
       const productDetails = await Promise.all(productPromises);
 
+      // Get settings for dynamic shipping and tax
+      const settings = await getSettings();
+
       // Calculate totals
       const subtotal = productDetails.reduce((sum, detail) => {
-        return sum + (detail.priceAtAdd * detail.requestedQuantity);
+        return sum + detail.priceAtAdd * detail.requestedQuantity;
       }, 0);
 
-      // Calculate shipping (simplified - you can enhance this with your shipping service)
-      const shippingAmount = subtotal >= 500 ? 0 : 50; // Free shipping over ₹500
-      
-      // Calculate tax (18% GST)
-      const taxAmount = (subtotal + shippingAmount) * 0.18;
+      // Calculate shipping using dynamic threshold
+      const shippingAmount =
+        subtotal >= settings.shipping.freeShippingThreshold
+          ? 0
+          : settings.shipping.standardRate;
+
+      // Calculate tax using dynamic GST rate
+      const taxAmount = (subtotal + shippingAmount) * settings.company.gstRate;
       const totalAmount = subtotal + shippingAmount + taxAmount;
 
       // Generate order number
@@ -163,7 +184,7 @@ export async function POST(req: NextRequest) {
         addressRecord = await prisma.address.create({
           data: {
             userId: dbUser.id,
-            type: 'SHIPPING',
+            type: "SHIPPING",
             isDefault: false,
             firstName: shippingAddress.firstName,
             lastName: shippingAddress.lastName,
@@ -174,22 +195,22 @@ export async function POST(req: NextRequest) {
             state: shippingAddress.state,
             postalCode: shippingAddress.postalCode,
             country: shippingAddress.country,
-            phone: shippingAddress.phone
-          }
+            phone: shippingAddress.phone,
+          },
         });
       }
 
       // Generate PhonePe transaction ID (max 38 characters for PhonePe)
-      const phonePeMerchantTransactionId = generateMerchantTransactionId('N');
-      
+      const phonePeMerchantTransactionId = generateMerchantTransactionId("N");
+
       // Create order in database first
       const order = await prisma.order.create({
         data: {
           orderNumber,
           userId: dbUser!.id, // Assert that dbUser exists since we checked earlier
-          status: 'PENDING',
-          paymentStatus: 'PENDING',
-          fulfillmentStatus: 'UNFULFILLED',
+          status: "PENDING",
+          paymentStatus: "PENDING",
+          fulfillmentStatus: "UNFULFILLED",
           subtotal,
           taxAmount,
           shippingAmount,
@@ -213,22 +234,24 @@ export async function POST(req: NextRequest) {
                 name: detail.product.name,
                 description: detail.product.description,
                 images: detail.product.images,
-                variant: detail.variant ? {
-                  id: detail.variant.id,
-                  name: detail.variant.name,
-                  attributes: detail.variant.attributes,
-                  image: detail.variant.image
-                } : null
-              }
-            }))
-          }
+                variant: detail.variant
+                  ? {
+                      id: detail.variant.id,
+                      name: detail.variant.name,
+                      attributes: detail.variant.attributes,
+                      image: detail.variant.image,
+                    }
+                  : null,
+              },
+            })),
+          },
         },
         include: {
-          items: true
-        }
+          items: true,
+        },
       });
 
-      console.log('Order created successfully:', order.id);
+      console.log("Order created successfully:", order.id);
 
       return NextResponse.json({
         success: true,
@@ -244,20 +267,20 @@ export async function POST(req: NextRequest) {
             name: detail.product.name,
             sku: detail.variant?.sku || detail.product.sku,
             price: detail.priceAtAdd,
-            quantity: detail.requestedQuantity
-          }))
-        }
+            quantity: detail.requestedQuantity,
+          })),
+        },
       });
-
     } catch (error) {
-      console.error('Order creation error:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
-      
+      console.error("Order creation error:", error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create order";
+
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: errorMessage
+          error: errorMessage,
         },
         { status: 500 }
       );

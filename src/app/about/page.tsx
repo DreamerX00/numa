@@ -1,21 +1,19 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Container } from '@/components/ui/container';
-import { 
-  Sparkles, 
-  Heart, 
-  Leaf, 
-  Gem, 
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { Container } from "@/components/ui/container";
+import {
+  Sparkles,
+  Heart,
+  Leaf,
+  Gem,
   Award,
-  Instagram,
   Mail,
-  Linkedin,
-  Github,
   Globe,
-  Quote
-} from 'lucide-react';
+  Quote,
+} from "lucide-react";
+import { SiInstagram, SiLinkedin, SiGithub } from "react-icons/si";
 
 export default function AboutPage() {
   return (
@@ -36,14 +34,17 @@ export default function AboutPage() {
         </div>
 
         {/* Pattern Overlay */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
 
         <Container className="relative h-full flex items-center">
           <div className="max-w-5xl mx-auto text-center">
             {/* Animated Icon */}
-            <motion.div 
+            <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ duration: 0.8, type: "spring" }}
@@ -54,7 +55,7 @@ export default function AboutPage() {
             </motion.div>
 
             {/* Animated Title */}
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -64,38 +65,43 @@ export default function AboutPage() {
             </motion.h1>
 
             {/* Animated Subtitle */}
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-xl md:text-2xl lg:text-3xl text-white/95 font-light max-w-4xl mx-auto leading-relaxed mb-12 drop-shadow-lg"
             >
-              Timeless jewelry crafted with passion, <br className="hidden md:inline" />
+              Timeless jewelry crafted with passion,{" "}
+              <br className="hidden md:inline" />
               designed for your unique energy
             </motion.p>
 
             {/* Animated Decorative Elements */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.6 }}
               className="flex items-center justify-center gap-6 mb-8"
             >
               <div className="h-px w-24 bg-white/60" />
-              <Sparkles className="w-8 h-8 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
+              <Sparkles
+                className="w-8 h-8 text-amber-300 animate-spin"
+                style={{ animationDuration: "4s" }}
+              />
               <div className="h-px w-24 bg-white/60" />
             </motion.div>
 
             {/* Animated Mission Statement */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
               className="max-w-3xl mx-auto"
             >
               <p className="text-lg md:text-xl text-white/90 font-light italic leading-relaxed">
-                &ldquo;We believe jewelry is more than adornment—it&rsquo;s an extension of your soul, 
-                a celebration of your journey, and a reflection of the energy you bring to the world.&rdquo;
+                &ldquo;We believe jewelry is more than adornment—it&rsquo;s an
+                extension of your soul, a celebration of your journey, and a
+                reflection of the energy you bring to the world.&rdquo;
               </p>
             </motion.div>
           </div>
@@ -110,7 +116,7 @@ export default function AboutPage() {
         <Container>
           <div className="max-w-6xl mx-auto">
             {/* Section Header */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -129,7 +135,7 @@ export default function AboutPage() {
             </motion.div>
 
             {/* Founder 1 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -138,7 +144,7 @@ export default function AboutPage() {
             >
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Photo - Reduced Height */}
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.3 }}
                   className="relative group"
@@ -154,18 +160,18 @@ export default function AboutPage() {
                     />
                   </div>
                   {/* Decorative Elements */}
-                  <motion.div 
-                    animate={{ 
+                  <motion.div
+                    animate={{
                       scale: [1, 1.2, 1],
-                      opacity: [0.3, 0.5, 0.3]
+                      opacity: [0.3, 0.5, 0.3],
                     }}
                     transition={{ duration: 4, repeat: Infinity }}
                     className="absolute -top-6 -right-6 w-32 h-32 bg-amber-400/30 rounded-full blur-2xl"
                   />
-                  <motion.div 
-                    animate={{ 
+                  <motion.div
+                    animate={{
                       scale: [1, 1.3, 1],
-                      opacity: [0.3, 0.5, 0.3]
+                      opacity: [0.3, 0.5, 0.3],
                     }}
                     transition={{ duration: 5, repeat: Infinity, delay: 1 }}
                     className="absolute -bottom-6 -left-6 w-40 h-40 bg-purple-400/30 rounded-full blur-2xl"
@@ -173,7 +179,7 @@ export default function AboutPage() {
                 </motion.div>
 
                 {/* Content */}
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, x: 50 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -190,45 +196,49 @@ export default function AboutPage() {
                   </div>
 
                   {/* Quote */}
-                  <motion.div 
+                  <motion.div
                     whileHover={{ scale: 1.02 }}
                     className="relative bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border-2 border-purple-100"
                   >
                     <Quote className="absolute top-4 left-4 w-12 h-12 text-purple-300/50" />
                     <p className="text-lg text-gray-700 leading-relaxed italic relative z-10 pl-8">
-                      &ldquo;Every piece we create tells a story. I founded NUMA with the belief that jewelry 
-                      should be more than just beautiful—it should resonate with your soul, empower your 
-                      confidence, and become a part of your life&rsquo;s journey. Our designs celebrate the 
-                      unique energy each person brings to the world.&rdquo;
+                      &ldquo;Every piece we create tells a story. I founded NUMA
+                      with the belief that jewelry should be more than just
+                      beautiful—it should resonate with your soul, empower your
+                      confidence, and become a part of your life&rsquo;s
+                      journey. Our designs celebrate the unique energy each
+                      person brings to the world.&rdquo;
                     </p>
                   </motion.div>
 
                   {/* Bio */}
                   <div className="space-y-4 text-gray-600">
                     <p>
-                      With over a decade of experience in jewelry design and a passion for timeless 
-                      craftsmanship, Shreya brings her vision of elegant, meaningful jewelry to life 
-                      through NUMA.
+                      With over a decade of experience in jewelry design and a
+                      passion for timeless craftsmanship, Shreya brings her
+                      vision of elegant, meaningful jewelry to life through
+                      NUMA.
                     </p>
                     <p>
-                      Her design philosophy blends traditional artistry with contemporary aesthetics, 
-                      creating pieces that are both classic and modern.
+                      Her design philosophy blends traditional artistry with
+                      contemporary aesthetics, creating pieces that are both
+                      classic and modern.
                     </p>
                   </div>
 
                   {/* Social Links */}
                   <div className="flex gap-4 pt-4">
-                    <motion.a 
+                    <motion.a
                       whileHover={{ scale: 1.15, rotate: 5 }}
                       whileTap={{ scale: 0.95 }}
-                      href="https://www.instagram.com/numa.iin/" 
+                      href="https://www.instagram.com/numa.iin/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-shadow"
                     >
-                      <Instagram className="w-6 h-6" />
+                      <SiInstagram className="w-6 h-6" />
                     </motion.a>
-                    <motion.a 
+                    <motion.a
                       whileHover={{ scale: 1.15, rotate: -5 }}
                       whileTap={{ scale: 0.95 }}
                       href="mailto:shreyaaa4404@gmail.com"
@@ -250,7 +260,7 @@ export default function AboutPage() {
             >
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 {/* Content - Order reversed on desktop */}
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, x: -50 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -267,44 +277,48 @@ export default function AboutPage() {
                   </div>
 
                   {/* Quote */}
-                  <motion.div 
+                  <motion.div
                     whileHover={{ scale: 1.02 }}
                     className="relative bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border-2 border-purple-100"
                   >
                     <Quote className="absolute top-4 left-4 w-12 h-12 text-purple-300/50" />
                     <p className="text-lg text-gray-700 leading-relaxed italic relative z-10 pl-8">
-                      &ldquo;Behind every beautiful piece is a commitment to excellence, sustainability, and 
-                      ethical craftsmanship. At NUMA, we ensure that every step—from sourcing materials 
-                      to the final polish—reflects our values of quality, responsibility, and care for 
-                      both people and planet.&rdquo;
+                      &ldquo;Behind every beautiful piece is a commitment to
+                      excellence, sustainability, and ethical craftsmanship. At
+                      NUMA, we ensure that every step—from sourcing materials to
+                      the final polish—reflects our values of quality,
+                      responsibility, and care for both people and
+                      planet.&rdquo;
                     </p>
                   </motion.div>
 
                   {/* Bio */}
                   <div className="space-y-4 text-gray-600">
                     <p>
-                      Arjun brings expertise in sustainable supply chain management and ethical business 
-                      practices, ensuring NUMA operates with integrity at every level.
+                      Arjun brings expertise in sustainable supply chain
+                      management and ethical business practices, ensuring NUMA
+                      operates with integrity at every level.
                     </p>
                     <p>
-                      His dedication to transparency and responsible sourcing has made NUMA a brand that 
-                      customers can trust and feel proud to wear.
+                      His dedication to transparency and responsible sourcing
+                      has made NUMA a brand that customers can trust and feel
+                      proud to wear.
                     </p>
                   </div>
 
                   {/* Social Links */}
                   <div className="flex gap-4 pt-4">
-                    <motion.a 
+                    <motion.a
                       whileHover={{ scale: 1.15, rotate: 5 }}
                       whileTap={{ scale: 0.95 }}
-                      href="https://www.instagram.com/numa.iin/" 
+                      href="https://www.instagram.com/numa.iin/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-shadow"
                     >
-                      <Instagram className="w-6 h-6" />
+                      <SiInstagram className="w-6 h-6" />
                     </motion.a>
-                    <motion.a 
+                    <motion.a
                       whileHover={{ scale: 1.15, rotate: -5 }}
                       whileTap={{ scale: 0.95 }}
                       href="mailto:shreyaaa4404@gmail.com"
@@ -316,7 +330,7 @@ export default function AboutPage() {
                 </motion.div>
 
                 {/* Photo - Order reversed on desktop - Reduced Height */}
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.3 }}
                   className="relative group md:order-2"
@@ -332,18 +346,18 @@ export default function AboutPage() {
                     />
                   </div>
                   {/* Decorative Elements */}
-                  <motion.div 
-                    animate={{ 
+                  <motion.div
+                    animate={{
                       scale: [1, 1.2, 1],
-                      opacity: [0.3, 0.5, 0.3]
+                      opacity: [0.3, 0.5, 0.3],
                     }}
                     transition={{ duration: 4, repeat: Infinity }}
                     className="absolute -top-6 -left-6 w-32 h-32 bg-amber-400/30 rounded-full blur-2xl"
                   />
-                  <motion.div 
-                    animate={{ 
+                  <motion.div
+                    animate={{
                       scale: [1, 1.3, 1],
-                      opacity: [0.3, 0.5, 0.3]
+                      opacity: [0.3, 0.5, 0.3],
                     }}
                     transition={{ duration: 5, repeat: Infinity, delay: 1 }}
                     className="absolute -bottom-6 -right-6 w-40 h-40 bg-purple-400/30 rounded-full blur-2xl"
@@ -358,12 +372,15 @@ export default function AboutPage() {
       {/* Brand Values Section */}
       <section className="py-32 bg-gradient-to-br from-purple-100 via-pink-100 to-rose-100 relative overflow-hidden">
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-30" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23a855f7' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`
-        }} />
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23a855f7' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+          }}
+        />
 
         <Container className="relative">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -383,20 +400,20 @@ export default function AboutPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
             {/* Value 1 - Craftsmanship */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
               className="group"
             >
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -10 }}
                 className="relative bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 h-full border-2 border-purple-100 hover:border-purple-300"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                     className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-lg"
@@ -407,28 +424,29 @@ export default function AboutPage() {
                     Craftsmanship
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    Every piece is meticulously handcrafted by skilled artisans, ensuring exceptional 
-                    quality and attention to detail in every design.
+                    Every piece is meticulously handcrafted by skilled artisans,
+                    ensuring exceptional quality and attention to detail in
+                    every design.
                   </p>
                 </div>
               </motion.div>
             </motion.div>
 
             {/* Value 2 - Authenticity */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="group"
             >
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -10 }}
                 className="relative bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 h-full border-2 border-purple-100 hover:border-purple-300"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                     className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-lg"
@@ -439,28 +457,29 @@ export default function AboutPage() {
                     Authenticity
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    We create jewelry that reflects genuine emotions and personal stories, 
-                    designed to resonate with your unique energy and style.
+                    We create jewelry that reflects genuine emotions and
+                    personal stories, designed to resonate with your unique
+                    energy and style.
                   </p>
                 </div>
               </motion.div>
             </motion.div>
 
             {/* Value 3 - Sustainability */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.3 }}
               className="group"
             >
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -10 }}
                 className="relative bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 h-full border-2 border-purple-100 hover:border-purple-300"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                     className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-lg"
@@ -471,28 +490,29 @@ export default function AboutPage() {
                     Sustainability
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    Committed to ethical sourcing and eco-friendly practices, we ensure our 
-                    jewelry is beautiful for you and kind to our planet.
+                    Committed to ethical sourcing and eco-friendly practices, we
+                    ensure our jewelry is beautiful for you and kind to our
+                    planet.
                   </p>
                 </div>
               </motion.div>
             </motion.div>
 
             {/* Value 4 - Excellence */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.4 }}
               className="group"
             >
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -10 }}
                 className="relative bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 h-full border-2 border-purple-100 hover:border-purple-300"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                     className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-lg"
@@ -503,8 +523,8 @@ export default function AboutPage() {
                     Excellence
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    From design to delivery, we pursue perfection in every aspect, creating 
-                    timeless pieces that exceed expectations.
+                    From design to delivery, we pursue perfection in every
+                    aspect, creating timeless pieces that exceed expectations.
                   </p>
                 </div>
               </motion.div>
@@ -516,9 +536,12 @@ export default function AboutPage() {
       {/* Developers Credit Section */}
       <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 relative overflow-hidden">
         {/* Subtle Pattern */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }} />
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
 
         <Container className="relative">
           <div className="text-center mb-16">
@@ -543,13 +566,13 @@ export default function AboutPage() {
               <div className="relative mb-6">
                 {/* Glow Effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-xl opacity-30 group-hover:opacity-60 transition-all duration-300 scale-110" />
-                
+
                 {/* Avatar */}
                 <div className="relative w-32 h-32 mx-auto">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1">
                     <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                       <Image
-                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop"
+                        src="https://media.licdn.com/dms/image/v2/D5603AQESvarmSkAJlg/profile-displayphoto-shrink_400_400/B56ZVSx_uRHoAk-/0/1740850594111?e=1762992000&v=beta&t=H0Nhr6x5zMV9iz13PMsl1ZQMEaEA37mkNzbslgIA3rQ"
                         alt="Developer 1"
                         width={128}
                         height={128}
@@ -560,34 +583,32 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-2">
-                Akash Patel
-              </h3>
+              <h3 className="text-xl font-bold text-white mb-2">Akash Singh</h3>
               <p className="text-sm text-purple-400 mb-6">
                 Full Stack Developer
               </p>
 
               {/* Social Links */}
               <div className="flex justify-center gap-3">
-                <a 
+                <a
                   href="https://github.com/DreamerX00"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 hover:bg-purple-600 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 shadow-lg hover:scale-110"
                   aria-label="GitHub"
                 >
-                  <Github className="w-5 h-5" />
+                  <SiGithub className="w-5 h-5" />
                 </a>
-                <a 
-                  href="https://linkedin.com"
+                <a
+                  href="https://www.linkedin.com/in/akashs08/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 hover:bg-purple-600 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 shadow-lg hover:scale-110"
                   aria-label="LinkedIn"
                 >
-                  <Linkedin className="w-5 h-5" />
+                  <SiLinkedin className="w-5 h-5" />
                 </a>
-                <a 
+                <a
                   href="#"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -604,13 +625,13 @@ export default function AboutPage() {
               <div className="relative mb-6">
                 {/* Glow Effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-xl opacity-30 group-hover:opacity-60 transition-all duration-300 scale-110" />
-                
+
                 {/* Avatar */}
                 <div className="relative w-32 h-32 mx-auto">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1">
                     <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                       <Image
-                        src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop"
+                        src="https://media.licdn.com/dms/image/v2/D5603AQGtV1mE6n2M3Q/profile-displayphoto-scale_400_400/B56ZeVy7vfHoAk-/0/1750564848545?e=1762992000&v=beta&t=PNuurAQQRTeboOw8bGYa7qrJZSFYIlIiBSzw3qqu0Ac"
                         alt="Developer 2"
                         width={128}
                         height={128}
@@ -622,33 +643,31 @@ export default function AboutPage() {
               </div>
 
               <h3 className="text-xl font-bold text-white mb-2">
-                Rohan Gupta
+                Tanisha Sahu
               </h3>
-              <p className="text-sm text-purple-400 mb-6">
-                UI/UX Developer
-              </p>
+              <p className="text-sm text-purple-400 mb-6">UI/UX Developer</p>
 
               {/* Social Links */}
               <div className="flex justify-center gap-3">
-                <a 
-                  href="https://github.com"
+                <a
+                  href="https://github.com/Ta9isha"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 hover:bg-purple-600 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 shadow-lg hover:scale-110"
                   aria-label="GitHub"
                 >
-                  <Github className="w-5 h-5" />
+                  <SiGithub className="w-5 h-5" />
                 </a>
-                <a 
-                  href="https://linkedin.com"
+                <a
+                  href="https://www.linkedin.com/in/tanishasahu28/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 hover:bg-purple-600 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 shadow-lg hover:scale-110"
                   aria-label="LinkedIn"
                 >
-                  <Linkedin className="w-5 h-5" />
+                  <SiLinkedin className="w-5 h-5" />
                 </a>
-                <a 
+                <a
                   href="#"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -664,8 +683,11 @@ export default function AboutPage() {
           {/* Footer Note */}
           <div className="text-center mt-16">
             <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} NUMA. All rights reserved. | 
-              <span className="text-gray-600"> Designed & Developed with passion</span>
+              © {new Date().getFullYear()} NUMA. All rights reserved. |
+              <span className="text-gray-600">
+                {" "}
+                Designed & Developed with passion
+              </span>
             </p>
           </div>
         </Container>

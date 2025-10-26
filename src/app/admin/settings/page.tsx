@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -106,12 +107,26 @@ export default function AdminSettingsPage() {
   });
 
   const [paymentSettings, setPaymentSettings] = useState({
+    // PhonePe
     phonePeEnabled: true,
     phonePeMerchantId: "PGTESTPAYUAT",
     phonePeSaltKey: "•••••••••••••••",
+    phonePeDisplayName: "PhonePe / UPI",
+    // Razorpay
+    razorpayEnabled: false,
+    razorpayKeyId: "",
+    razorpayKeySecret: "",
+    razorpayDisplayName: "Cards / UPI / Wallets",
+    // Stripe
     stripeEnabled: false,
     stripePublishableKey: "",
     stripeSecretKey: "",
+    stripeDisplayName: "Credit/Debit Card",
+    // Cash on Delivery
+    codEnabled: true,
+    codDisplayName: "Cash on Delivery",
+    codInstructions: "Pay when you receive your order",
+    // General
     minOrderAmount: 100,
   });
 
@@ -941,7 +956,7 @@ export default function AdminSettingsPage() {
                       <div>
                         <h3 className="text-lg font-medium">PhonePe</h3>
                         <p className="text-sm text-gray-600">
-                          Configure PhonePe payment gateway
+                          UPI payments via PhonePe gateway
                         </p>
                       </div>
                       <Switch
@@ -955,37 +970,129 @@ export default function AdminSettingsPage() {
                       />
                     </div>
                     {paymentSettings.phonePeEnabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
+                      <div className="space-y-4 ml-6">
                         <div className="space-y-2">
-                          <Label>Merchant ID</Label>
+                          <Label>Display Name</Label>
                           <Input
-                            value={paymentSettings.phonePeMerchantId}
+                            value={paymentSettings.phonePeDisplayName}
                             onChange={(e) =>
                               setPaymentSettings((prev) => ({
                                 ...prev,
-                                phonePeMerchantId: e.target.value,
+                                phonePeDisplayName: e.target.value,
                               }))
                             }
-                            placeholder="PGTESTPAYUAT"
+                            placeholder="PhonePe / UPI"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Salt Key</Label>
-                          <Input
-                            type="password"
-                            value={paymentSettings.phonePeSaltKey}
-                            onChange={(e) =>
-                              setPaymentSettings((prev) => ({
-                                ...prev,
-                                phonePeSaltKey: e.target.value,
-                              }))
-                            }
-                            placeholder="•••••••••••••••"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Merchant ID</Label>
+                            <Input
+                              value={paymentSettings.phonePeMerchantId}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  phonePeMerchantId: e.target.value,
+                                }))
+                              }
+                              placeholder="PGTESTPAYUAT"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Salt Key</Label>
+                            <Input
+                              type="password"
+                              value={paymentSettings.phonePeSaltKey}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  phonePeSaltKey: e.target.value,
+                                }))
+                              }
+                              placeholder="•••••••••••••••"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Leave as dots (•••) to keep existing value
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
+
+                  <Separator />
+
+                  {/* Razorpay Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Razorpay</h3>
+                        <p className="text-sm text-gray-600">
+                          Cards, UPI, Wallets, and more via Razorpay
+                        </p>
+                      </div>
+                      <Switch
+                        checked={paymentSettings.razorpayEnabled}
+                        onCheckedChange={(checked: boolean) =>
+                          setPaymentSettings((prev) => ({
+                            ...prev,
+                            razorpayEnabled: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    {paymentSettings.razorpayEnabled && (
+                      <div className="space-y-4 ml-6">
+                        <div className="space-y-2">
+                          <Label>Display Name</Label>
+                          <Input
+                            value={paymentSettings.razorpayDisplayName}
+                            onChange={(e) =>
+                              setPaymentSettings((prev) => ({
+                                ...prev,
+                                razorpayDisplayName: e.target.value,
+                              }))
+                            }
+                            placeholder="Cards / UPI / Wallets"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Key ID</Label>
+                            <Input
+                              value={paymentSettings.razorpayKeyId}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  razorpayKeyId: e.target.value,
+                                }))
+                              }
+                              placeholder="rzp_test_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Key Secret</Label>
+                            <Input
+                              type="password"
+                              value={paymentSettings.razorpayKeySecret}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  razorpayKeySecret: e.target.value,
+                                }))
+                              }
+                              placeholder="•••••••••••••••"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Leave as dots (•••) to keep existing value
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
 
                   {/* Stripe Settings */}
                   <div className="space-y-4">
@@ -993,7 +1100,7 @@ export default function AdminSettingsPage() {
                       <div>
                         <h3 className="text-lg font-medium">Stripe</h3>
                         <p className="text-sm text-gray-600">
-                          Configure Stripe payment gateway
+                          International cards via Stripe (for global customers)
                         </p>
                       </div>
                       <Switch
@@ -1007,40 +1114,126 @@ export default function AdminSettingsPage() {
                       />
                     </div>
                     {paymentSettings.stripeEnabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
+                      <div className="space-y-4 ml-6">
                         <div className="space-y-2">
-                          <Label>Publishable Key</Label>
+                          <Label>Display Name</Label>
                           <Input
-                            value={paymentSettings.stripePublishableKey}
+                            value={paymentSettings.stripeDisplayName}
                             onChange={(e) =>
                               setPaymentSettings((prev) => ({
                                 ...prev,
-                                stripePublishableKey: e.target.value,
+                                stripeDisplayName: e.target.value,
                               }))
                             }
-                            placeholder="pk_test_..."
+                            placeholder="Credit/Debit Card"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Secret Key</Label>
-                          <Input
-                            type="password"
-                            value={paymentSettings.stripeSecretKey}
-                            onChange={(e) =>
-                              setPaymentSettings((prev) => ({
-                                ...prev,
-                                stripeSecretKey: e.target.value,
-                              }))
-                            }
-                            placeholder="sk_test_..."
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Publishable Key</Label>
+                            <Input
+                              value={paymentSettings.stripePublishableKey}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  stripePublishableKey: e.target.value,
+                                }))
+                              }
+                              placeholder="pk_test_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Secret Key</Label>
+                            <Input
+                              type="password"
+                              value={paymentSettings.stripeSecretKey}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  stripeSecretKey: e.target.value,
+                                }))
+                              }
+                              placeholder="•••••••••••••••"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Leave as dots (•••) to keep existing value
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
 
+                  <Separator />
+
+                  {/* Cash on Delivery Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Cash on Delivery (COD)
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Pay at the time of delivery
+                        </p>
+                      </div>
+                      <Switch
+                        checked={paymentSettings.codEnabled}
+                        onCheckedChange={(checked: boolean) =>
+                          setPaymentSettings((prev) => ({
+                            ...prev,
+                            codEnabled: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    {paymentSettings.codEnabled && (
+                      <div className="space-y-4 ml-6">
+                        <div className="space-y-2">
+                          <Label>Display Name</Label>
+                          <Input
+                            value={paymentSettings.codDisplayName}
+                            onChange={(e) =>
+                              setPaymentSettings((prev) => ({
+                                ...prev,
+                                codDisplayName: e.target.value,
+                              }))
+                            }
+                            placeholder="Cash on Delivery"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Instructions</Label>
+                          <Textarea
+                            value={paymentSettings.codInstructions}
+                            onChange={(e) =>
+                              setPaymentSettings((prev) => ({
+                                ...prev,
+                                codInstructions: e.target.value,
+                              }))
+                            }
+                            placeholder="Pay when you receive your order"
+                            rows={2}
+                          />
+                          <p className="text-xs text-gray-500">
+                            This message will be shown to customers
+                          </p>
+                        </div>
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <p className="text-sm text-amber-800">
+                            <strong>Note:</strong> COD charges (₹
+                            {shippingSettings.codCharges}) can be configured in
+                            the Shipping tab.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   <div className="space-y-2">
-                    <Label>Minimum Order Amount</Label>
+                    <Label>Minimum Order Amount (₹)</Label>
                     <Input
                       type="number"
                       value={paymentSettings.minOrderAmount}

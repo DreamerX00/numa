@@ -1,9 +1,10 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
+import { getSettings } from "@/lib/settings";
 
 // Email configuration
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "587"),
   secure: false,
   auth: {
     user: process.env.SMTP_USER,
@@ -18,15 +19,22 @@ async function sendDirectEmail(options: {
   text?: string;
 }) {
   try {
+    const settings = await getSettings();
+    const siteName = settings.general.siteName || "NUMA Store";
+    const fromEmail = process.env.FROM_EMAIL || settings.general.supportEmail;
+
     const info = await transporter.sendMail({
-      from: `"${process.env.FROM_NAME || 'NUMA Store'}" <${process.env.FROM_EMAIL}>`,
+      from: `"${siteName}" <${fromEmail}>`,
       ...options,
     });
-    console.log('Email sent:', info.messageId);
+    console.log("Email sent:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Email send failed:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    console.error("Email send failed:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
@@ -67,11 +75,17 @@ export interface PaymentFailedData {
 
 // Order confirmation email template
 export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
-  const itemsHtml = data.orderItems.map(item => `
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
+  const itemsHtml = data.orderItems
+    .map(
+      (item) => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #eee;">
         <div style="display: flex; align-items: center;">
-          ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 12px; border-radius: 4px;">` : ''}
+          ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 12px; border-radius: 4px;">` : ""}
           <div>
             <p style="margin: 0; font-weight: 600; color: #333;">${item.name}</p>
             <p style="margin: 0; color: #666; font-size: 14px;">Qty: ${item.quantity}</p>
@@ -82,9 +96,12 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
         ₹${(item.price * item.quantity).toFixed(2)}
       </td>
     </tr>
-  `).join('');
+  `
+    )
+    .join("");
 
-  const shippingHtml = data.shippingAddress ? `
+  const shippingHtml = data.shippingAddress
+    ? `
     <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
       <h3 style="margin: 0 0 12px 0; color: #333; font-size: 16px;">Shipping Address</h3>
       <p style="margin: 0; color: #666; line-height: 1.5;">
@@ -94,7 +111,8 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
         ${data.shippingAddress.country}
       </p>
     </div>
-  ` : '';
+  `
+    : "";
 
   const html = `
     <!DOCTYPE html>
@@ -102,13 +120,13 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Order Confirmation - NUMA</title>
+      <title>Order Confirmation - ${siteName}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #E7654D;">
-        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">NUMA</h1>
+        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">${siteName}</h1>
         <p style="margin: 8px 0 0 0; color: #666; font-size: 16px;">Order Confirmation</p>
       </div>
 
@@ -140,9 +158,9 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
 
       <!-- Footer -->
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Questions about your order? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Questions about your order? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
       
@@ -154,25 +172,29 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     to: data.to,
     subject: `Order Confirmation - ${data.orderNumber}`,
     html,
-    text: `Thank you for your order! Order #${data.orderNumber} - Total: ₹${data.totalAmount.toFixed(2)}`
+    text: `Thank you for your order! Order #${data.orderNumber} - Total: ₹${data.totalAmount.toFixed(2)}`,
   });
 }
 
 // Payment failed email template
 export async function sendPaymentFailedEmail(data: PaymentFailedData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Payment Failed - NUMA</title>
+      <title>Payment Failed - ${siteName}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #E7654D;">
-        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">NUMA</h1>
+        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">${siteName}</h1>
         <p style="margin: 8px 0 0 0; color: #666; font-size: 16px;">Payment Update</p>
       </div>
 
@@ -205,9 +227,9 @@ export async function sendPaymentFailedEmail(data: PaymentFailedData) {
 
       <!-- Footer -->
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Need help? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Need help? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
       
@@ -219,7 +241,7 @@ export async function sendPaymentFailedEmail(data: PaymentFailedData) {
     to: data.to,
     subject: `Payment Failed - Order ${data.orderNumber}`,
     html,
-    text: `Payment failed for order #${data.orderNumber}. Please try again or contact support.`
+    text: `Payment failed for order #${data.orderNumber}. Please try again or contact support.`,
   });
 }
 
@@ -231,20 +253,28 @@ export async function sendShippingConfirmationEmail(data: {
   trackingNumber?: string;
   estimatedDelivery?: string;
 }) {
-  const trackingHtml = data.trackingNumber ? `
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
+  const trackingHtml = data.trackingNumber
+    ? `
     <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
       <p style="margin: 0 0 8px 0; color: #2e7d32; font-weight: 600;">Tracking Number</p>
       <p style="margin: 0; font-family: monospace; font-size: 18px; color: #1b5e20; font-weight: 700;">
         ${data.trackingNumber}
       </p>
     </div>
-  ` : '';
+  `
+    : "";
 
-  const deliveryHtml = data.estimatedDelivery ? `
+  const deliveryHtml = data.estimatedDelivery
+    ? `
     <p style="color: #666; margin-bottom: 16px;">
       <strong>Estimated Delivery:</strong> ${data.estimatedDelivery}
     </p>
-  ` : '';
+  `
+    : "";
 
   const html = `
     <!DOCTYPE html>
@@ -252,13 +282,13 @@ export async function sendShippingConfirmationEmail(data: {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Order Shipped - NUMA</title>
+      <title>Order Shipped - ${siteName}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #E7654D;">
-        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">NUMA</h1>
+        <h1 style="margin: 0; color: #E7654D; font-size: 28px; font-weight: 700;">${siteName}</h1>
         <p style="margin: 8px 0 0 0; color: #666; font-size: 16px;">Shipping Update</p>
       </div>
 
@@ -278,9 +308,9 @@ export async function sendShippingConfirmationEmail(data: {
 
       <!-- Footer -->
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Track your order or contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Track your order or contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
       
@@ -292,7 +322,7 @@ export async function sendShippingConfirmationEmail(data: {
     to: data.to,
     subject: `Order Shipped - ${data.orderNumber}`,
     html,
-    text: `Your order #${data.orderNumber} has been shipped! ${data.trackingNumber ? `Tracking: ${data.trackingNumber}` : ''}`
+    text: `Your order #${data.orderNumber} has been shipped! ${data.trackingNumber ? `Tracking: ${data.trackingNumber}` : ""}`,
   });
 }
 
@@ -311,6 +341,10 @@ export interface OrderStatusUpdateData {
 }
 
 export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -320,7 +354,7 @@ export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="color: #E7654D; margin: 0;">NUMA</h1>
+        <h1 style="color: #E7654D; margin: 0;">${siteName}</h1>
       </div>
       
       <div style="background: #f8f9fa; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
@@ -332,13 +366,13 @@ export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
         <h3 style="margin: 0 0 16px 0; color: #333;">Order Details</h3>
         <p style="margin: 0 0 8px 0;"><strong>Order Number:</strong> ${data.orderNumber}</p>
         <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #8B5CF6;">Processing</span></p>
-        ${data.notes ? `<p style="margin: 8px 0 0 0; color: #666;"><em>${data.notes}</em></p>` : ''}
+        ${data.notes ? `<p style="margin: 8px 0 0 0; color: #666;"><em>${data.notes}</em></p>` : ""}
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Questions? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Questions? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
     </body>
@@ -349,11 +383,15 @@ export async function sendOrderProcessingEmail(data: OrderStatusUpdateData) {
     to: data.to,
     subject: `Order Processing - ${data.orderNumber}`,
     html,
-    text: `Your order #${data.orderNumber} is now being processed. We'll send you tracking information once it ships.`
+    text: `Your order #${data.orderNumber} is now being processed. We'll send you tracking information once it ships.`,
   });
 }
 
 export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -363,7 +401,7 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="color: #E7654D; margin: 0;">NUMA</h1>
+        <h1 style="color: #E7654D; margin: 0;">${siteName}</h1>
       </div>
       
       <div style="background: #f0f9ff; padding: 24px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #10B981;">
@@ -375,7 +413,7 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
         <h3 style="margin: 0 0 16px 0; color: #333;">Order Details</h3>
         <p style="margin: 0 0 8px 0;"><strong>Order Number:</strong> ${data.orderNumber}</p>
         <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #10B981;">Delivered</span></p>
-        ${data.trackingNumber ? `<p style="margin: 0 0 8px 0;"><strong>Tracking Number:</strong> ${data.trackingNumber}</p>` : ''}
+        ${data.trackingNumber ? `<p style="margin: 0 0 8px 0;"><strong>Tracking Number:</strong> ${data.trackingNumber}</p>` : ""}
       </div>
       
       <div style="background: #FFF7ED; border: 1px solid #FDBA74; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
@@ -385,9 +423,9 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Need help? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Need help? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
     </body>
@@ -398,11 +436,15 @@ export async function sendOrderDeliveredEmail(data: OrderStatusUpdateData) {
     to: data.to,
     subject: `Order Delivered - ${data.orderNumber}`,
     html,
-    text: `Great news! Your order #${data.orderNumber} has been delivered. Thanks for choosing NUMA!`
+    text: `Great news! Your order #${data.orderNumber} has been delivered. Thanks for choosing NUMA!`,
   });
 }
 
 export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
+  const settings = await getSettings();
+  const siteName = settings.general.siteName || "NUMA";
+  const supportEmail = settings.general.supportEmail || "support@numa.com";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -412,7 +454,7 @@ export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="color: #E7654D; margin: 0;">NUMA</h1>
+        <h1 style="color: #E7654D; margin: 0;">${siteName}</h1>
       </div>
       
       <div style="background: #FEF2F2; padding: 24px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #EF4444;">
@@ -424,8 +466,8 @@ export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
         <h3 style="margin: 0 0 16px 0; color: #333;">Order Details</h3>
         <p style="margin: 0 0 8px 0;"><strong>Order Number:</strong> ${data.orderNumber}</p>
         <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #EF4444;">Cancelled</span></p>
-        ${data.totalAmount ? `<p style="margin: 0 0 8px 0;"><strong>Refund Amount:</strong> ₹${data.totalAmount.toFixed(2)}</p>` : ''}
-        ${data.notes ? `<p style="margin: 8px 0 0 0; color: #666;"><em>${data.notes}</em></p>` : ''}
+        ${data.totalAmount ? `<p style="margin: 0 0 8px 0;"><strong>Refund Amount:</strong> ₹${data.totalAmount.toFixed(2)}</p>` : ""}
+        ${data.notes ? `<p style="margin: 8px 0 0 0; color: #666;"><em>${data.notes}</em></p>` : ""}
       </div>
       
       <div style="background: #F0F9FF; border: 1px solid #3B82F6; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
@@ -434,9 +476,9 @@ export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
       </div>
       
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 14px;">
-        <p>Questions about your cancellation? Contact us at <a href="mailto:support@numa.com" style="color: #E7654D;">support@numa.com</a></p>
+        <p>Questions about your cancellation? Contact us at <a href="mailto:${supportEmail}" style="color: #E7654D;">${supportEmail}</a></p>
         <p style="margin-top: 16px;">
-          © 2025 NUMA. All rights reserved.
+          © 2025 ${siteName}. All rights reserved.
         </p>
       </div>
     </body>
@@ -447,6 +489,6 @@ export async function sendOrderCancelledEmail(data: OrderStatusUpdateData) {
     to: data.to,
     subject: `Order Cancelled - ${data.orderNumber}`,
     html,
-    text: `Your order #${data.orderNumber} has been cancelled. If payment was processed, you'll receive a refund within 5-7 business days.`
+    text: `Your order #${data.orderNumber} has been cancelled. If payment was processed, you'll receive a refund within 5-7 business days.`,
   });
 }

@@ -6,14 +6,15 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/client";
+import { useSettings } from "@/hooks/useSettings";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
-import { 
+import {
   CreditCard,
   Check,
   AlertCircle,
   Lock,
   Banknote,
-  Wallet
+  Wallet,
 } from "lucide-react";
 import HeartLoader from "@/components/ui/HeartLoader";
 import type { CartItem } from "@/lib/types/product";
@@ -52,35 +53,42 @@ interface PaymentStepProps {
   setLoading: (loading: boolean) => void;
 }
 
-export function PaymentStep({ 
-  checkoutData, 
-  cartItems, 
-  subtotal, 
+export function PaymentStep({
+  checkoutData,
+  cartItems,
+  subtotal,
   shippingCost,
   shippingMethod,
   onError,
-  loading, 
-  setLoading 
+  loading,
+  setLoading,
 }: PaymentStepProps) {
   const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { shipping, company, general, getAvailablePaymentMethods } =
+    useSettings();
+  const availableMethods = getAvailablePaymentMethods();
   const [error, setError] = useState<string>("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'phonepe' | 'razorpay' | 'cod'>('phonepe');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "phonepe" | "razorpay" | "cod"
+  >((availableMethods[0]?.id as "phonepe" | "razorpay" | "cod") || "phonepe");
 
-  // Calculate amounts using passed shipping cost
-  const codFee = selectedPaymentMethod === 'cod' ? 50 : 0; // ₹50 COD handling fee
-  const taxAmount = (subtotal + shippingCost + codFee) * 0.18;
+  // Calculate amounts using passed shipping cost, dynamic COD charges, and dynamic GST rate
+  const codFee = selectedPaymentMethod === "cod" ? shipping.codCharges : 0;
+  const taxAmount = (subtotal + shippingCost + codFee) * (company.gstRate || 0);
   const totalAmount = subtotal + shippingCost + codFee + taxAmount;
 
   // Check if order is ready for payment
-  const isOrderReady = cartItems.length > 0 && 
-                      checkoutData.address &&
-                      checkoutData.address.firstName &&
-                      checkoutData.address.lastName &&
-                      checkoutData.address.address1 &&
-                      checkoutData.address.city &&
-                      checkoutData.address.state &&
-                      checkoutData.address.postalCode &&
-                      checkoutData.address.phone;
+  const isOrderReady =
+    cartItems.length > 0 &&
+    checkoutData.address &&
+    checkoutData.address.firstName &&
+    checkoutData.address.lastName &&
+    checkoutData.address.address1 &&
+    checkoutData.address.city &&
+    checkoutData.address.state &&
+    checkoutData.address.postalCode &&
+    checkoutData.address.phone;
 
   // No need to load external scripts for PhonePe - it uses redirect flow
 
@@ -91,39 +99,53 @@ export function PaymentStep({
     try {
       // Validate required data
       if (!checkoutData.address) {
-        throw new Error('Shipping address is required');
+        throw new Error("Shipping address is required");
       }
 
       if (cartItems.length === 0) {
-        throw new Error('No items in cart');
+        throw new Error("No items in cart");
       }
 
       // Validate required address fields
       const { address } = checkoutData;
-      if (!address.firstName || !address.lastName || !address.address1 || 
-          !address.city || !address.state || !address.postalCode || !address.phone) {
-        throw new Error('Please complete all required address fields');
+      if (
+        !address.firstName ||
+        !address.lastName ||
+        !address.address1 ||
+        !address.city ||
+        !address.state ||
+        !address.postalCode ||
+        !address.phone
+      ) {
+        throw new Error("Please complete all required address fields");
       }
 
       // Additional validation for Indian formats
       if (!/^\d{6}$/.test(address.postalCode)) {
-        throw new Error('Postal code must be exactly 6 digits');
+        throw new Error("Postal code must be exactly 6 digits");
       }
 
       if (!/^[6-9]\d{9}$/.test(address.phone)) {
-        throw new Error('Phone number must be 10 digits starting with 6, 7, 8, or 9');
+        throw new Error(
+          "Phone number must be 10 digits starting with 6, 7, 8, or 9"
+        );
       }
 
-      if (address.alternatePhone && !/^[6-9]\d{9}$/.test(address.alternatePhone)) {
-        throw new Error('Alternate phone number must be 10 digits starting with 6, 7, 8, or 9');
+      if (
+        address.alternatePhone &&
+        !/^[6-9]\d{9}$/.test(address.alternatePhone)
+      ) {
+        throw new Error(
+          "Alternate phone number must be 10 digits starting with 6, 7, 8, or 9"
+        );
       }
 
       const orderData = {
-        items: cartItems.map(item => ({
+        items: cartItems.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
-          priceAtAdd: item.price
+          priceAtAdd: item.price,
         })),
         shippingAddress: {
           firstName: checkoutData.address.firstName,
@@ -137,62 +159,77 @@ export function PaymentStep({
           country: checkoutData.address.country,
           phone: checkoutData.address.phone,
           alternateEmail: checkoutData.address.alternateEmail,
-          alternatePhone: checkoutData.address.alternatePhone
+          alternatePhone: checkoutData.address.alternatePhone,
         },
-        shippingMethod: 'STANDARD',
-        currency: 'INR',
-        paymentMethod: selectedPaymentMethod
+        shippingMethod: "STANDARD",
+        currency: "INR",
+        paymentMethod: selectedPaymentMethod,
       };
-      
+
       // Create order on server
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Order creation failed with status:', response.status);
-        console.error('Error response:', errorData);
-        console.error('Error response structure:', JSON.stringify(errorData, null, 2));
-        
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown error" }));
+        console.error("Order creation failed with status:", response.status);
+        console.error("Error response:", errorData);
+        console.error(
+          "Error response structure:",
+          JSON.stringify(errorData, null, 2)
+        );
+
         // Log detailed validation errors if available
         if (errorData.details && Array.isArray(errorData.details)) {
-          console.error('Validation details:', errorData.details);
-          const validationErrors = errorData.details.map((detail: { path: (string | number)[]; message: string }) => 
-            `${detail.path.join('.')}: ${detail.message}`
-          ).join(', ');
+          console.error("Validation details:", errorData.details);
+          const validationErrors = errorData.details
+            .map(
+              (detail: { path: (string | number)[]; message: string }) =>
+                `${detail.path.join(".")}: ${detail.message}`
+            )
+            .join(", ");
           throw new Error(`Validation failed: ${validationErrors}`);
         }
-        
+
         if (errorData.formattedError) {
-          console.error('Formatted validation error:', errorData.formattedError);
+          console.error(
+            "Formatted validation error:",
+            errorData.formattedError
+          );
         }
-        
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create order`);
+
+        throw new Error(
+          errorData.error || `HTTP ${response.status}: Failed to create order`
+        );
       }
 
       const orderResult = await response.json();
-      
+
       if (!orderResult.success) {
-        throw new Error(orderResult.error || 'Failed to create order');
+        throw new Error(orderResult.error || "Failed to create order");
       }
 
       // Handle payment based on selected method
-      if (selectedPaymentMethod === 'phonepe') {
+      if (selectedPaymentMethod === "phonepe") {
         await initiatePhonePePayment(orderResult.order);
-      } else if (selectedPaymentMethod === 'razorpay') {
+      } else if (selectedPaymentMethod === "razorpay") {
         // Razorpay is currently disabled
-        throw new Error('Razorpay payment is currently unavailable. Please use PhonePe or Cash on Delivery.');
-      } else if (selectedPaymentMethod === 'cod') {
+        throw new Error(
+          "Razorpay payment is currently unavailable. Please use PhonePe or Cash on Delivery."
+        );
+      } else if (selectedPaymentMethod === "cod") {
         // For COD, just redirect to success page
         window.location.href = `/order-success?orderId=${orderResult.order.id}&status=cod_placed`;
       }
-
     } catch (error) {
-      console.error('Order creation failed:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to create order';
+      console.error("Order creation failed:", error);
+      const errorMsg =
+        error instanceof Error ? error.message : "Failed to create order";
       setError(errorMsg);
       onError(errorMsg);
     } finally {
@@ -203,21 +240,22 @@ export function PaymentStep({
   const initiatePhonePePayment = async (order: Order) => {
     try {
       setLoading(true);
-      
+
       // Initiate PhonePe payment
-      const paymentResponse = await fetch('/api/phonepe/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const paymentResponse = await fetch("/api/phonepe/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId: order.id,
           merchantTransactionId: order.phonePeMerchantTransactionId,
           amount: Math.round(totalAmount * 100), // Convert to paise
-          mobileNumber: checkoutData.address?.phone || '',
-          customerName: user?.displayName || 
+          mobileNumber: checkoutData.address?.phone || "",
+          customerName:
+            user?.displayName ||
             (checkoutData.address?.firstName && checkoutData.address?.lastName
               ? `${checkoutData.address.firstName} ${checkoutData.address.lastName}`
-              : 'Customer'),
-          email: user?.email || checkoutData.address?.alternateEmail || ''
+              : "Customer"),
+          email: user?.email || checkoutData.address?.alternateEmail || "",
         }),
       });
 
@@ -227,11 +265,14 @@ export function PaymentStep({
         // Redirect to PhonePe payment page
         window.location.href = paymentResult.paymentUrl;
       } else {
-        throw new Error(paymentResult.error || 'Failed to initiate PhonePe payment');
+        throw new Error(
+          paymentResult.error || "Failed to initiate PhonePe payment"
+        );
       }
     } catch (error) {
-      console.error('PhonePe payment initiation failed:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Payment initiation failed';
+      console.error("PhonePe payment initiation failed:", error);
+      const errorMsg =
+        error instanceof Error ? error.message : "Payment initiation failed";
       setError(errorMsg);
       onError(errorMsg);
       setLoading(false);
@@ -273,7 +314,7 @@ export function PaymentStep({
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_RKeHBoAZktp7ua',
           amount: paymentResult.order.amount,
           currency: paymentResult.order.currency,
-          name: 'NUMA Store',
+          name: general.siteName,
           description: `Order #${order.id}`,
           order_id: paymentResult.order.id,
           handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
@@ -350,101 +391,104 @@ export function PaymentStep({
           {/* Payment Method */}
           <div className="space-y-4">
             <h4 className="font-medium">Select Payment Method</h4>
-            
-            <RadioGroup 
-              value={selectedPaymentMethod} 
-              onValueChange={(value) => setSelectedPaymentMethod(value as 'phonepe' | 'razorpay' | 'cod')}
+
+            <RadioGroup
+              value={selectedPaymentMethod}
+              onValueChange={(value) =>
+                setSelectedPaymentMethod(
+                  value as "phonepe" | "razorpay" | "cod"
+                )
+              }
               className="space-y-3"
             >
-              {/* PhonePe */}
-              <div className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                selectedPaymentMethod === 'phonepe' 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-200 hover:border-blue-300'
-              }`}>
-                <RadioGroupItem value="phonepe" id="phonepe" className="mt-0" />
-                <Label htmlFor="phonepe" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Wallet className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">PhonePe</span>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
-                          Popular
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        UPI, Cards, NetBanking, Wallets
-                      </p>
-                    </div>
-                    {selectedPaymentMethod === 'phonepe' && (
-                      <Check className="h-5 w-5 text-blue-600" />
-                    )}
-                  </div>
-                </Label>
-              </div>
+              {availableMethods.map((method) => {
+                const isPhonePe = method.id === "phonepe";
+                const isRazorpay = method.id === "razorpay";
+                const isCOD = method.id === "cod";
+                const isSelected = selectedPaymentMethod === method.id;
 
-              {/* Razorpay */}
-              <div className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg opacity-60 cursor-not-allowed transition-all border-gray-200 bg-gray-50`}>
-                <RadioGroupItem value="razorpay" id="razorpay" className="mt-0" disabled />
-                <Label htmlFor="razorpay" className="flex-1 cursor-not-allowed">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-600">Razorpay</span>
-                        <Badge variant="secondary" className="bg-gray-200 text-gray-600 text-xs">
-                          Coming Soon
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Currently unavailable - Use PhonePe or COD
-                      </p>
-                    </div>
-                  </div>
-                </Label>
-              </div>
+                // Icon configuration
+                const IconComponent = isPhonePe
+                  ? Wallet
+                  : isRazorpay
+                    ? CreditCard
+                    : Banknote;
+                const iconBgColor = isPhonePe
+                  ? "bg-purple-100"
+                  : isRazorpay
+                    ? "bg-blue-100"
+                    : "bg-green-100";
+                const iconColor = isPhonePe
+                  ? "text-purple-600"
+                  : isRazorpay
+                    ? "text-blue-600"
+                    : "text-green-600";
 
-              {/* Cash on Delivery */}
-              <div className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                selectedPaymentMethod === 'cod' 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-200 hover:border-blue-300'
-              }`}>
-                <RadioGroupItem value="cod" id="cod" className="mt-0" />
-                <Label htmlFor="cod" className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Banknote className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Cash on Delivery</span>
-                        <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
-                          +₹50 Fee
-                        </Badge>
+                return (
+                  <div
+                    key={method.id}
+                    className={`relative flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-300"
+                    }`}
+                  >
+                    <RadioGroupItem
+                      value={method.id}
+                      id={method.id}
+                      className="mt-0"
+                    />
+                    <Label
+                      htmlFor={method.id}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 ${iconBgColor} rounded-lg flex items-center justify-center`}
+                        >
+                          <IconComponent className={`h-5 w-5 ${iconColor}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{method.name}</span>
+                            {isPhonePe && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-blue-100 text-blue-800 text-xs"
+                              >
+                                Popular
+                              </Badge>
+                            )}
+                            {isCOD && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-amber-100 text-amber-800 text-xs"
+                              >
+                                +₹{shipping.codCharges} Fee
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {method.description}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <Check className="h-5 w-5 text-blue-600" />
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Pay when you receive your order
-                      </p>
-                    </div>
-                    {selectedPaymentMethod === 'cod' && (
-                      <Check className="h-5 w-5 text-blue-600" />
-                    )}
+                    </Label>
                   </div>
-                </Label>
-              </div>
+                );
+              })}
             </RadioGroup>
 
             {/* Payment method specific info */}
-            {selectedPaymentMethod === 'cod' && (
+            {selectedPaymentMethod === "cod" && (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-sm text-amber-800">
-                  <strong>Note:</strong> A convenience fee of ₹50 applies for Cash on Delivery orders. Please keep exact change ready.
+                  <strong>Note:</strong> A convenience fee of ₹
+                  {shipping.codCharges} applies for Cash on Delivery orders.
+                  Please keep exact change ready.
                 </p>
               </div>
             )}
@@ -454,7 +498,9 @@ export function PaymentStep({
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-blue-800">
-                  <strong>Razorpay Payment:</strong> Currently under maintenance. Please use PhonePe for instant payment or choose Cash on Delivery.
+                  <strong>Razorpay Payment:</strong> Currently under
+                  maintenance. Please use PhonePe for instant payment or choose
+                  Cash on Delivery.
                 </p>
               </div>
             </div>
@@ -463,13 +509,13 @@ export function PaymentStep({
           {/* Order Summary */}
           <div className="space-y-4">
             <h4 className="font-medium">Order Summary</h4>
-            
+
             <div className="space-y-3 p-4 bg-muted rounded-lg">
               <div className="flex justify-between text-sm">
                 <span>Subtotal ({cartItems.length} items)</span>
                 <span>{formatPriceFromFloat(subtotal)}</span>
               </div>
-              
+
               <div className="flex justify-between text-sm">
                 <span>Shipping ({shippingMethod})</span>
                 <span>
@@ -487,17 +533,19 @@ export function PaymentStep({
                   <span>{formatPriceFromFloat(codFee)}</span>
                 </div>
               )}
-              
+
               <div className="flex justify-between text-sm">
-                <span>Tax (GST 18%)</span>
+                <span>Tax (GST {(company.gstRate * 100).toFixed(1)}%)</span>
                 <span>{formatPriceFromFloat(taxAmount)}</span>
               </div>
-              
+
               <Separator />
-              
+
               <div className="flex justify-between font-semibold">
                 <span>Total</span>
-                <span className="text-lg">{formatPriceFromFloat(totalAmount)}</span>
+                <span className="text-lg">
+                  {formatPriceFromFloat(totalAmount)}
+                </span>
               </div>
             </div>
           </div>
@@ -507,14 +555,21 @@ export function PaymentStep({
             <h4 className="font-medium">Delivery Address</h4>
             <div className="p-4 bg-muted rounded-lg text-sm">
               <p className="font-medium">
-                {checkoutData.address?.firstName || ''} {checkoutData.address?.lastName || ''}
+                {checkoutData.address?.firstName || ""}{" "}
+                {checkoutData.address?.lastName || ""}
               </p>
-              <p>{checkoutData.address?.address1 || ''}</p>
-              {checkoutData.address?.address2 && <p>{checkoutData.address.address2}</p>}
+              <p>{checkoutData.address?.address1 || ""}</p>
+              {checkoutData.address?.address2 && (
+                <p>{checkoutData.address.address2}</p>
+              )}
               <p>
-                {checkoutData.address?.city || ''}, {checkoutData.address?.state || ''} {checkoutData.address?.postalCode || ''}
+                {checkoutData.address?.city || ""},{" "}
+                {checkoutData.address?.state || ""}{" "}
+                {checkoutData.address?.postalCode || ""}
               </p>
-              <p className="mt-2 font-medium">Phone: {checkoutData.address?.phone || ''}</p>
+              <p className="mt-2 font-medium">
+                Phone: {checkoutData.address?.phone || ""}
+              </p>
             </div>
           </div>
 
@@ -525,7 +580,9 @@ export function PaymentStep({
               <div>
                 <h5 className="font-medium text-green-900">Secure Payment</h5>
                 <p className="text-sm text-green-700 mt-1">
-                  Your payment information is encrypted and secure. We use industry-standard SSL encryption and never store your payment details.
+                  Your payment information is encrypted and secure. We use
+                  industry-standard SSL encryption and never store your payment
+                  details.
                 </p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-green-600">
                   <div className="flex items-center gap-1">
@@ -551,9 +608,9 @@ export function PaymentStep({
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <p className="text-sm text-amber-800">
-                  {cartItems.length === 0 
-                    ? 'No items in cart' 
-                    : 'Please complete your shipping address in the previous step'}
+                  {cartItems.length === 0
+                    ? "No items in cart"
+                    : "Please complete your shipping address in the previous step"}
                 </p>
               </div>
             </div>
@@ -571,9 +628,9 @@ export function PaymentStep({
 
           {/* Action Buttons */}
           <div className="flex pt-4">
-            <Button 
+            <Button
               onClick={createOrder}
-              className="w-full" 
+              className="w-full"
               disabled={loading || !isOrderReady}
             >
               {loading ? (
@@ -586,7 +643,7 @@ export function PaymentStep({
                   <Lock className="h-4 w-4 mr-2" />
                   Complete Address Details
                 </>
-              ) : selectedPaymentMethod === 'cod' ? (
+              ) : selectedPaymentMethod === "cod" ? (
                 <>
                   <Banknote className="h-4 w-4 mr-2" />
                   Place Order (Pay on Delivery)
@@ -599,8 +656,6 @@ export function PaymentStep({
               )}
             </Button>
           </div>
-
-
         </CardContent>
       </Card>
     </div>

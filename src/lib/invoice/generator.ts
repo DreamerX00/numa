@@ -62,25 +62,29 @@ interface StoredInvoice {
   updatedAt: Date;
 }
 
-export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<string> {
+export async function generateInvoiceHTML(
+  invoice: StoredInvoice
+): Promise<string> {
   // Extract data from stored invoice
   const companyDetails = (invoice.companyInfo || {}) as unknown as CompanyInfo;
   const invoiceItems = (invoice.invoiceItems || []) as unknown as InvoiceItem[];
-  const billingAddress = (invoice.billingAddress || {}) as unknown as InvoiceAddress;
-  const shippingAddress = invoice.shippingAddress as unknown as InvoiceAddress | null;
+  const billingAddress = (invoice.billingAddress ||
+    {}) as unknown as InvoiceAddress;
+  const shippingAddress =
+    invoice.shippingAddress as unknown as InvoiceAddress | null;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: invoice.currency || 'INR'
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: invoice.currency || "INR",
     }).format(amount);
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Intl.DateTimeFormat("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(date);
   };
 
@@ -263,7 +267,7 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
                     <p><strong>Invoice No:</strong> ${invoice.invoiceNumber}</p>
                     <p><strong>Date:</strong> ${formatDate(invoice.invoiceDate)}</p>
                     <p><strong>Order ID:</strong> ${invoice.orderId}</p>
-                    ${invoice.dueDate ? `<p><strong>Due Date:</strong> ${formatDate(invoice.dueDate)}</p>` : ''}
+                    ${invoice.dueDate ? `<p><strong>Due Date:</strong> ${formatDate(invoice.dueDate)}</p>` : ""}
                 </div>
             </div>
 
@@ -273,26 +277,34 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
                     <h3>Bill To:</h3>
                     <p><strong>${invoice.customerName}</strong></p>
                     <p>${invoice.customerEmail}</p>
-                    ${invoice.customerPhone ? `<p>Phone: ${invoice.customerPhone}</p>` : ''}
-                    ${billingAddress ? `
+                    ${invoice.customerPhone ? `<p>Phone: ${invoice.customerPhone}</p>` : ""}
+                    ${
+                      billingAddress
+                        ? `
                         <p>${billingAddress.address1}</p>
-                        ${billingAddress.address2 ? `<p>${billingAddress.address2}</p>` : ''}
+                        ${billingAddress.address2 ? `<p>${billingAddress.address2}</p>` : ""}
                         <p>${billingAddress.city}, ${billingAddress.state} ${billingAddress.zipCode}</p>
                         <p>${billingAddress.country}</p>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                 </div>
                 
-                ${shippingAddress ? `
+                ${
+                  shippingAddress
+                    ? `
                 <div class="ship-to">
                     <h3>Ship To:</h3>
-                    <p><strong>${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}</strong></p>
+                    <p><strong>${shippingAddress.firstName || ""} ${shippingAddress.lastName || ""}</strong></p>
                     <p>${shippingAddress.address1}</p>
-                    ${shippingAddress.address2 ? `<p>${shippingAddress.address2}</p>` : ''}
+                    ${shippingAddress.address2 ? `<p>${shippingAddress.address2}</p>` : ""}
                     <p>${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}</p>
                     <p>${shippingAddress.country}</p>
-                    ${shippingAddress.phone ? `<p>Phone: ${shippingAddress.phone}</p>` : ''}
+                    ${shippingAddress.phone ? `<p>Phone: ${shippingAddress.phone}</p>` : ""}
                 </div>
-                ` : ''}
+                `
+                    : ""
+                }
             </div>
 
             <!-- Items Table -->
@@ -308,19 +320,23 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
                     </tr>
                 </thead>
                 <tbody>
-                    ${invoiceItems.map((item, index) => `
+                    ${invoiceItems
+                      .map(
+                        (item, index) => `
                         <tr>
                             <td>${index + 1}</td>
                             <td>
                                 <strong>${item.productName}</strong>
-                                ${item.name !== item.productName ? `<br><small>${item.name}</small>` : ''}
+                                ${item.name !== item.productName ? `<br><small>${item.name}</small>` : ""}
                             </td>
-                            <td>${item.sku || '-'}</td>
+                            <td>${item.sku || "-"}</td>
                             <td class="text-right">${item.quantity}</td>
                             <td class="text-right">${formatCurrency(item.price)}</td>
                             <td class="text-right">${formatCurrency(item.total)}</td>
                         </tr>
-                    `).join('')}
+                    `
+                      )
+                      .join("")}
                 </tbody>
             </table>
 
@@ -331,34 +347,50 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
                         <td>Subtotal:</td>
                         <td class="text-right">${formatCurrency(invoice.subtotal)}</td>
                     </tr>
-                    ${invoice.shippingAmount > 0 ? `
+                    ${
+                      invoice.shippingAmount > 0
+                        ? `
                     <tr>
                         <td>Shipping:</td>
                         <td class="text-right">${formatCurrency(invoice.shippingAmount)}</td>
                     </tr>
-                    ` : ''}
-                    ${invoice.discountAmount > 0 ? `
+                    `
+                        : ""
+                    }
+                    ${
+                      invoice.discountAmount > 0
+                        ? `
                     <tr>
                         <td>Discount:</td>
                         <td class="text-right">-${formatCurrency(invoice.discountAmount)}</td>
                     </tr>
-                    ` : ''}
-                    ${invoice.cgst > 0 ? `
+                    `
+                        : ""
+                    }
+                    ${
+                      invoice.cgst > 0
+                        ? `
                     <tr>
-                        <td>CGST (${(invoice.gstRate * 100 / 2).toFixed(1)}%):</td>
+                        <td>CGST (${((invoice.gstRate * 100) / 2).toFixed(1)}%):</td>
                         <td class="text-right">${formatCurrency(invoice.cgst)}</td>
                     </tr>
                     <tr>
-                        <td>SGST (${(invoice.gstRate * 100 / 2).toFixed(1)}%):</td>
+                        <td>SGST (${((invoice.gstRate * 100) / 2).toFixed(1)}%):</td>
                         <td class="text-right">${formatCurrency(invoice.sgst)}</td>
                     </tr>
-                    ` : ''}
-                    ${invoice.igst > 0 ? `
+                    `
+                        : ""
+                    }
+                    ${
+                      invoice.igst > 0
+                        ? `
                     <tr>
                         <td>IGST (${(invoice.gstRate * 100).toFixed(1)}%):</td>
                         <td class="text-right">${formatCurrency(invoice.igst)}</td>
                     </tr>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                     <tr class="total-row">
                         <td><strong>Total Amount:</strong></td>
                         <td class="text-right"><strong>${formatCurrency(invoice.totalAmount)}</strong></td>
@@ -367,7 +399,9 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
             </div>
 
             <!-- GST Summary -->
-            ${invoice.taxAmount > 0 ? `
+            ${
+              invoice.taxAmount > 0
+                ? `
             <div class="gst-section">
                 <h4>GST Summary</h4>
                 <p>GST Registration No: ${companyDetails.gstin}</p>
@@ -375,7 +409,9 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
                 <p>Total GST Amount: ${formatCurrency(invoice.taxAmount)}</p>
                 <p>HSN/SAC: 71131990 (Jewelry Articles)</p>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <!-- Payment Terms -->
             <div class="payment-terms">
@@ -392,7 +428,7 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
             <div class="footer">
                 <p><strong>Thank you for your business!</strong></p>
                 <p>This is a computer-generated invoice and does not require a physical signature.</p>
-                <p>Generated on: ${formatDate(new Date())} ${invoice.generatedBy ? `by ${invoice.generatedBy}` : ''}</p>
+                <p>Generated on: ${formatDate(new Date())} ${invoice.generatedBy ? `by ${invoice.generatedBy}` : ""}</p>
             </div>
         </div>
     </body>
@@ -402,32 +438,47 @@ export async function generateInvoiceHTML(invoice: StoredInvoice): Promise<strin
   return html;
 }
 
-export async function generateInvoicePDF(invoice: StoredInvoice): Promise<Buffer> {
-  // For now, we'll return the HTML content as a placeholder
-  // In a real implementation, you would use a library like puppeteer or jsPDF
+export async function generateInvoicePDF(
+  invoice: StoredInvoice
+): Promise<Buffer> {
   const htmlContent = await generateInvoiceHTML(invoice);
-  
-  // This is a placeholder - you would integrate with a PDF generation library
-  // Example with puppeteer:
-  /*
-  const puppeteer = require('puppeteer');
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.setContent(htmlContent);
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: {
-      top: '20px',
-      right: '20px',
-      bottom: '20px',
-      left: '20px'
-    }
+
+  // Use puppeteer to generate PDF from HTML
+  const puppeteer = (await import("puppeteer")).default;
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+    ],
   });
-  await browser.close();
-  return pdfBuffer;
-  */
-  
-  // For now, return HTML as buffer
-  return Buffer.from(htmlContent, 'utf8');
+
+  try {
+    const page = await browser.newPage();
+
+    // Set content with proper encoding
+    await page.setContent(htmlContent, {
+      waitUntil: "networkidle0",
+    });
+
+    // Generate PDF with proper formatting
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px",
+      },
+      preferCSSPageSize: false,
+    });
+
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }

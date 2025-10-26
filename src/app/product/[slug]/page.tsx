@@ -1,16 +1,17 @@
-import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
-import { Container } from '@/components/ui/container';
-import { Badge } from '@/components/ui/badge';
-import { ProductClientActions } from '@/components/product/ProductClientActions';
-import ProductReviews from '@/components/reviews/ProductReviews';
-import { DEFAULT_IMAGES } from '@/lib/cloudinary';
-import { Star, Truck, Shield, RefreshCw } from 'lucide-react';
-import { formatPrice } from '@/lib/services/catalog';
-import type { Product as ProductType } from '@/lib/types/product';
+import { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { getSettings } from "@/lib/settings";
+import { Container } from "@/components/ui/container";
+import { Badge } from "@/components/ui/badge";
+import { ProductClientActions } from "@/components/product/ProductClientActions";
+import ProductReviews from "@/components/reviews/ProductReviews";
+import { DEFAULT_IMAGES } from "@/lib/cloudinary";
+import { Star, Truck, Shield, RefreshCw } from "lucide-react";
+import { formatPrice } from "@/lib/services/catalog";
+import type { Product as ProductType } from "@/lib/types/product";
 
 // Enable static generation with ISR
 export const revalidate = 3600; // Revalidate every hour
@@ -26,7 +27,7 @@ export async function generateStaticParams() {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       select: {
         slug: true,
@@ -38,7 +39,7 @@ export async function generateStaticParams() {
       slug: product.slug,
     }));
   } catch (error) {
-    console.error('Error generating static params:', error);
+    console.error("Error generating static params:", error);
     return [];
   }
 }
@@ -46,7 +47,7 @@ export async function generateStaticParams() {
 // Generate metadata for SEO
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  
+
   try {
     const product = await prisma.product.findFirst({
       where: {
@@ -78,7 +79,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!product) {
       return {
-        title: 'Product Not Found',
+        title: "Product Not Found",
       };
     }
 
@@ -95,7 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         title,
         description,
-        type: 'website',
+        type: "website",
         images: [
           {
             url: imageUrl,
@@ -106,7 +107,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ],
       },
       twitter: {
-        card: 'summary_large_image',
+        card: "summary_large_image",
         title,
         description,
         images: [imageUrl],
@@ -116,9 +117,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     };
   } catch (error) {
-    console.error('Error generating metadata:', error);
+    console.error("Error generating metadata:", error);
     return {
-      title: 'Product | Numa',
+      title: "Product | Numa",
     };
   }
 }
@@ -126,6 +127,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // Main product page component (Server Component)
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
+
+  // Fetch settings for dynamic values
+  const settings = await getSettings();
 
   // Fetch product data on server
   const product = await prisma.product.findFirst({
@@ -153,7 +157,7 @@ export default async function ProductPage({ params }: Props) {
           isActive: true,
         },
         orderBy: {
-          createdAt: 'asc',
+          createdAt: "asc",
         },
       },
     },
@@ -164,9 +168,12 @@ export default async function ProductPage({ params }: Props) {
   }
 
   // Calculate pricing
-  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+  const hasDiscount =
+    product.comparePrice && product.comparePrice > product.price;
   const discountPercentage = hasDiscount
-    ? Math.round(((product.comparePrice! - product.price) / product.comparePrice!) * 100)
+    ? Math.round(
+        ((product.comparePrice! - product.price) / product.comparePrice!) * 100
+      )
     : 0;
 
   // Check stock status
@@ -175,33 +182,35 @@ export default async function ProductPage({ params }: Props) {
 
   // Generate JSON-LD structured data for SEO
   const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
+    "@context": "https://schema.org",
+    "@type": "Product",
     name: product.name,
-    description: product.description || product.shortDescription || '',
+    description: product.description || product.shortDescription || "",
     image: product.images,
     sku: product.sku || product.id,
     brand: product.brand
       ? {
-          '@type': 'Brand',
+          "@type": "Brand",
           name: product.brand.name,
         }
       : undefined,
     offers: {
-      '@type': 'Offer',
-      url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://numaiin.vercel.app'}/product/${slug}`,
-      priceCurrency: 'INR',
+      "@type": "Offer",
+      url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://numaiin.vercel.app"}/product/${slug}`,
+      priceCurrency: "INR",
       price: product.price,
-      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
       availability: inStock
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/OutOfStock',
-      itemCondition: 'https://schema.org/NewCondition',
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
     },
     aggregateRating:
       product.reviewCount && product.reviewCount > 0
         ? {
-            '@type': 'AggregateRating',
+            "@type": "AggregateRating",
             ratingValue: product.averageRating || 0,
             reviewCount: product.reviewCount,
             bestRating: 5,
@@ -304,37 +313,46 @@ export default async function ProductPage({ params }: Props) {
                         key={i}
                         className={`h-5 w-5 ${
                           i < Math.floor(product.averageRating || 0)
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
                         }`}
                       />
                     ))}
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {product.averageRating?.toFixed(1)} ({product.reviewCount} reviews)
+                    {product.averageRating?.toFixed(1)} ({product.reviewCount}{" "}
+                    reviews)
                   </span>
                 </div>
               ) : (
-                <div className="mb-4 text-sm text-muted-foreground">No reviews yet</div>
+                <div className="mb-4 text-sm text-muted-foreground">
+                  No reviews yet
+                </div>
               )}
 
               {/* Brand */}
               {product.brand && (
                 <p className="text-sm text-muted-foreground mb-4">
-                  Brand:{' '}
-                  <span className="text-foreground font-medium">{product.brand.name}</span>
+                  Brand:{" "}
+                  <span className="text-foreground font-medium">
+                    {product.brand.name}
+                  </span>
                 </p>
               )}
 
               {/* Price */}
               <div className="flex items-baseline gap-3 mb-4">
-                <span className="text-3xl font-bold">{formatPrice(product.price)}</span>
+                <span className="text-3xl font-bold">
+                  {formatPrice(product.price)}
+                </span>
                 {hasDiscount && (
                   <>
                     <span className="text-xl text-muted-foreground line-through">
                       {formatPrice(product.comparePrice!)}
                     </span>
-                    <Badge variant="destructive">{discountPercentage}% OFF</Badge>
+                    <Badge variant="destructive">
+                      {discountPercentage}% OFF
+                    </Badge>
                   </>
                 )}
               </div>
@@ -361,21 +379,26 @@ export default async function ProductPage({ params }: Props) {
 
               {/* Short Description */}
               {product.shortDescription && (
-                <p className="text-muted-foreground mb-6">{product.shortDescription}</p>
+                <p className="text-muted-foreground mb-6">
+                  {product.shortDescription}
+                </p>
               )}
             </div>
 
             {/* Client-side Actions (Add to Cart, Wishlist, Share) */}
-            <ProductClientActions 
-              product={product as unknown as ProductType} 
-              inStock={inStock} 
+            <ProductClientActions
+              product={product as unknown as ProductType}
+              inStock={inStock}
             />
 
             {/* Features */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center gap-3 text-sm">
                 <Truck className="h-5 w-5 text-muted-foreground" />
-                <span>Free delivery on orders over ₹500</span>
+                <span>
+                  Free delivery on orders over ₹
+                  {settings.shipping.freeShippingThreshold}
+                </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <RefreshCw className="h-5 w-5 text-muted-foreground" />

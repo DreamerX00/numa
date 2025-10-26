@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useSettings } from "@/hooks/useSettings";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { XCircle, ShoppingCart, Home, RefreshCw } from "lucide-react";
 
 function PaymentFailedPageContent() {
   const searchParams = useSearchParams();
+  const { general } = useSettings();
   const error = searchParams.get("error");
   const [mounted, setMounted] = useState(false);
 
@@ -55,7 +57,7 @@ function PaymentFailedPageContent() {
 
   return (
     <Container className="py-12 md:py-16">
-      <motion.div 
+      <motion.div
         className="max-w-md mx-auto text-center space-y-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -70,7 +72,9 @@ function PaymentFailedPageContent() {
             <XCircle className="h-16 w-16 mx-auto text-red-500" />
           </motion.div>
           <div>
-            <h1 className="text-2xl font-serif tracking-tight">Payment Failed</h1>
+            <h1 className="text-2xl font-serif tracking-tight">
+              Payment Failed
+            </h1>
             <p className="text-muted-foreground mt-2">
               {getErrorMessage(error)}
             </p>
@@ -79,7 +83,9 @@ function PaymentFailedPageContent() {
 
         <Card className="border-red-100">
           <CardContent className="p-6 space-y-2">
-            <h2 className="font-medium text-sm tracking-tight text-red-700">What happened?</h2>
+            <h2 className="font-medium text-sm tracking-tight text-red-700">
+              What happened?
+            </h2>
             <div className="text-xs text-muted-foreground space-y-2">
               <p>• Payment processing was interrupted</p>
               <p>• Network connectivity issues</p>
@@ -113,11 +119,16 @@ function PaymentFailedPageContent() {
         <div className="text-xs text-muted-foreground space-y-2">
           <p>If the issue persists, please contact our support team:</p>
           <div className="bg-muted p-2 rounded text-xs">
-            <p><strong>Email:</strong> support@numa.com</p>
-            <p><strong>Phone:</strong> +91 12345 67890</p>
+            <p>
+              <strong>Email:</strong> {general.supportEmail}
+            </p>
+            <p>
+              <strong>Phone:</strong> +91 12345 67890
+            </p>
           </div>
           <p className="text-xs text-green-600 mt-2">
-            💡 <strong>Tip:</strong> Check your internet connection and card details before retrying.
+            💡 <strong>Tip:</strong> Check your internet connection and card
+            details before retrying.
           </p>
         </div>
       </motion.div>
@@ -127,11 +138,13 @@ function PaymentFailedPageContent() {
 
 export default function PaymentFailedPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+        </div>
+      }
+    >
       <PaymentFailedPageContent />
     </Suspense>
   );
