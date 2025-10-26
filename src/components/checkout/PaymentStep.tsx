@@ -378,7 +378,7 @@ export function PaymentStep({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId: order.id,
-          amount: subtotal, // Send subtotal, API will add GST
+          amount: totalAmount, // Send TOTAL amount (subtotal + shipping + GST)
           customerEmail:
             user?.email || checkoutData.address?.alternateEmail || "",
           customerPhone: checkoutData.address?.phone || "",

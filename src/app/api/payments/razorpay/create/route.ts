@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createRazorpayOrder, rupeesToPaise } from "@/lib/services/razorpay";
-import { getCompanySettings } from "@/lib/services/companySettings";
 
 // Validation schema for order creation
 const createOrderSchema = z.object({
@@ -32,24 +31,16 @@ export async function POST(request: NextRequest) {
     const { orderId, amount, customerEmail, customerPhone, customerName } =
       validationResult.data;
 
-    // Get company settings for GST calculation
-    const companySettings = await getCompanySettings();
-    const gstRate = companySettings.gstRate || 0.18; // Default to 18% if not set
-
-    // Calculate GST
-    const subtotal = amount;
-    const gstAmount = subtotal * gstRate;
-    const totalAmount = subtotal + gstAmount;
+    // Amount received is already the FINAL total (subtotal + shipping + GST + COD charges)
+    // No need to add GST again here
+    const totalAmount = amount;
 
     // Convert to paise (Razorpay requires amount in paise)
     const amountInPaise = rupeesToPaise(totalAmount);
 
-    // Create order notes with GST breakdown
+    // Create order notes
     const orderNotes = {
       order_id: orderId,
-      subtotal: subtotal.toFixed(2),
-      gst_rate: (gstRate * 100).toFixed(2) + "%",
-      gst_amount: gstAmount.toFixed(2),
       total_amount: totalAmount.toFixed(2),
       ...(customerEmail && { customer_email: customerEmail }),
       ...(customerPhone && { customer_phone: customerPhone }),
@@ -77,12 +68,6 @@ export async function POST(request: NextRequest) {
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         receipt: razorpayOrder.receipt,
-      },
-      breakdown: {
-        subtotal: subtotal,
-        gstRate: gstRate,
-        gstAmount: gstAmount,
-        totalAmount: totalAmount,
       },
     });
   } catch (error) {
