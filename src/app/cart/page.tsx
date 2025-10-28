@@ -7,27 +7,29 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useHybridCartStore } from "@/lib/store/hybridCart";
 import { useCartService } from "@/hooks/useCartService";
+import { useSettings } from "@/hooks/useSettings";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Minus, 
-  Plus, 
-  Trash2, 
-  ShoppingBag, 
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBag,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import HeartLoader from "@/components/ui/HeartLoader";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function CartPage() {
   const router = useRouter();
+  const { shipping } = useSettings();
   const { items, getTotalPrice, getTotalItems } = useHybridCartStore();
   const { updateQuantity, removeItem, isLoading, operation } = useCartService();
   const [shippingData, setShippingData] = useState({
@@ -55,20 +57,21 @@ export default function CartPage() {
     // Calculate total shipping cost from individual product shipping rates
     const totalShippingCost = items.reduce((total, item) => {
       const shippingRate = item.product?.individualShippingRate || 0;
-      return total + (shippingRate * item.quantity);
+      return total + shippingRate * item.quantity;
     }, 0);
 
-    // Check if qualifies for free shipping (totalPrice >= 500)
-    const qualifiesForFree = totalPrice >= 500;
+    // Use dynamic free shipping threshold from settings
+    const freeShippingThreshold = shipping.freeShippingThreshold || 500;
+    const qualifiesForFree = totalPrice >= freeShippingThreshold;
     const finalShippingCost = qualifiesForFree ? 0 : totalShippingCost;
 
     setShippingData({
       cost: finalShippingCost,
       qualifiesForFree,
-      amountNeeded: Math.max(0, 500 - totalPrice),
+      amountNeeded: Math.max(0, freeShippingThreshold - totalPrice),
       loading: false,
     });
-  }, [items, totalPrice]);
+  }, [items, totalPrice, shipping.freeShippingThreshold]);
 
   // Load shipping data
   useEffect(() => {
@@ -77,13 +80,13 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     // Redirect to the new 3-step checkout flow
-    router.push('/checkout');
+    router.push("/checkout");
   };
 
   if (items.length === 0) {
     return (
       <Container className="py-12 md:py-16">
-        <motion.div 
+        <motion.div
           className="text-center space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,16 +95,16 @@ export default function CartPage() {
           <div className="space-y-4">
             <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground" />
             <div>
-              <h1 className="text-2xl font-serif tracking-tight">Your cart is empty</h1>
+              <h1 className="text-2xl font-serif tracking-tight">
+                Your cart is empty
+              </h1>
               <p className="text-muted-foreground mt-2">
                 Looks like you haven&apos;t added any items to your cart yet.
               </p>
             </div>
           </div>
           <Button asChild>
-            <Link href="/collections">
-              Continue Shopping
-            </Link>
+            <Link href="/collections">Continue Shopping</Link>
           </Button>
         </motion.div>
       </Container>
@@ -112,12 +115,12 @@ export default function CartPage() {
     <Container className="py-6 md:py-8">
       {/* Loading overlay for cart operations */}
       {isLoading && (
-        <LoadingOverlay 
+        <LoadingOverlay
           isVisible={isLoading}
           message={`${operation.charAt(0).toUpperCase() + operation.slice(1)} cart...`}
         />
       )}
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -131,9 +134,11 @@ export default function CartPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-serif tracking-tight">Shopping Cart</h1>
+            <h1 className="text-2xl font-serif tracking-tight">
+              Shopping Cart
+            </h1>
             <p className="text-sm text-muted-foreground">
-              {totalItems} item{totalItems !== 1 ? 's' : ''} in your cart
+              {totalItems} item{totalItems !== 1 ? "s" : ""} in your cart
             </p>
           </div>
         </div>
@@ -157,7 +162,11 @@ export default function CartPage() {
                       <div className="flex-shrink-0">
                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
                           <Image
-                            src={item.variant?.images?.[0] || item.product.images[0] || '/default-product.jpg'}
+                            src={
+                              item.variant?.images?.[0] ||
+                              item.product.images[0] ||
+                              "/default-product.jpg"
+                            }
                             alt={item.product.name}
                             width={80}
                             height={80}
@@ -171,7 +180,7 @@ export default function CartPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="font-medium tracking-tight">
-                              <Link 
+                              <Link
                                 href={`/product/${item.product.slug}`}
                                 className="hover:text-brand-dark transition-colors"
                               >
@@ -185,13 +194,21 @@ export default function CartPage() {
                             )}
                             {item.variant && item.variant.attributes && (
                               <div className="flex gap-2 mt-1">
-                                {String(item.variant.attributes.size || '') && (
-                                  <Badge variant="secondary" className="text-xs">
+                                {String(item.variant.attributes.size || "") && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
                                     Size {String(item.variant.attributes.size)}
                                   </Badge>
                                 )}
-                                {String(item.variant.attributes.metal || '') && (
-                                  <Badge variant="secondary" className="text-xs">
+                                {String(
+                                  item.variant.attributes.metal || ""
+                                ) && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
                                     {String(item.variant.attributes.metal)}
                                   </Badge>
                                 )}
@@ -216,7 +233,9 @@ export default function CartPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                onClick={() =>
+                                  updateQuantity(item.id, item.quantity - 1)
+                                }
                                 disabled={item.quantity <= 1}
                               >
                                 <Minus className="h-3 w-3" />
@@ -228,13 +247,21 @@ export default function CartPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                disabled={item.quantity >= (item.variant?.quantity || item.product.quantity)}
+                                onClick={() =>
+                                  updateQuantity(item.id, item.quantity + 1)
+                                }
+                                disabled={
+                                  item.quantity >=
+                                  (item.variant?.quantity ||
+                                    item.product.quantity)
+                                }
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
-                            {item.quantity >= (item.variant?.quantity || item.product.quantity) && (
+                            {item.quantity >=
+                              (item.variant?.quantity ||
+                                item.product.quantity) && (
                               <span className="text-xs text-amber-600">
                                 Max stock reached
                               </span>
@@ -242,11 +269,17 @@ export default function CartPage() {
                           </div>
                           <div className="text-right">
                             <p className="font-medium">
-                              {formatPriceFromFloat((item.variant?.price || item.product.price) * item.quantity)}
+                              {formatPriceFromFloat(
+                                (item.variant?.price || item.product.price) *
+                                  item.quantity
+                              )}
                             </p>
                             {item.quantity > 1 && (
                               <p className="text-xs text-muted-foreground">
-                                {formatPriceFromFloat(item.variant?.price || item.product.price)} each
+                                {formatPriceFromFloat(
+                                  item.variant?.price || item.product.price
+                                )}{" "}
+                                each
                               </p>
                             )}
                           </div>
@@ -263,8 +296,10 @@ export default function CartPage() {
           <div className="space-y-6">
             <Card className="sticky top-24">
               <CardContent className="p-6 space-y-4">
-                <h2 className="font-serif text-lg tracking-tight">Order Summary</h2>
-                
+                <h2 className="font-serif text-lg tracking-tight">
+                  Order Summary
+                </h2>
+
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span>Subtotal ({totalItems} items)</span>
@@ -275,22 +310,28 @@ export default function CartPage() {
                     {shippingData.loading ? (
                       <HeartLoader size="sm" />
                     ) : (
-                      <span className={shippingData.cost === 0 ? "text-green-600" : ""}>
-                        {shippingData.cost === 0 ? "Free" : formatPriceFromFloat(shippingData.cost)}
+                      <span
+                        className={
+                          shippingData.cost === 0 ? "text-green-600" : ""
+                        }
+                      >
+                        {shippingData.cost === 0
+                          ? "Free"
+                          : formatPriceFromFloat(shippingData.cost)}
                       </span>
                     )}
                   </div>
-                  {!shippingData.loading && (
-                    shippingData.qualifiesForFree ? (
+                  {!shippingData.loading &&
+                    (shippingData.qualifiesForFree ? (
                       <p className="text-xs text-green-600">
                         🎉 You qualify for free shipping!
                       </p>
                     ) : shippingData.amountNeeded > 0 ? (
                       <p className="text-xs text-blue-600">
-                        Add {formatPriceFromFloat(shippingData.amountNeeded)} more for free shipping
+                        Add {formatPriceFromFloat(shippingData.amountNeeded)}{" "}
+                        more for free shipping
                       </p>
-                    ) : null
-                  )}
+                    ) : null)}
                   <Separator />
                   <div className="flex justify-between font-medium text-base">
                     <span>Total</span>
@@ -298,11 +339,7 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full"
-                  size="lg"
-                  onClick={handleCheckout}
-                >
+                <Button className="w-full" size="lg" onClick={handleCheckout}>
                   <ArrowRight className="mr-2 h-4 w-4" />
                   Proceed to Checkout
                 </Button>
@@ -316,7 +353,9 @@ export default function CartPage() {
             {/* Trust Indicators */}
             <Card>
               <CardContent className="p-4 space-y-3">
-                <h3 className="font-medium text-sm tracking-tight">Why shop with us?</h3>
+                <h3 className="font-medium text-sm tracking-tight">
+                  Why shop with us?
+                </h3>
                 <div className="space-y-2 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -324,7 +363,10 @@ export default function CartPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>Free shipping on orders above ₹500</span>
+                    <span>
+                      Free shipping on orders above ₹
+                      {shipping.freeShippingThreshold}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-purple-500" />

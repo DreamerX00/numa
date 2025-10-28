@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -55,6 +57,12 @@ export default function OrderDetailsModal({
   const [isInternal, setIsInternal] = useState(true);
   const [editingStatus, setEditingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState("");
+  const [showShippingDialog, setShowShippingDialog] = useState(false);
+  const [shippingData, setShippingData] = useState({
+    trackingNumber: "",
+    carrier: "",
+    estimatedDelivery: "",
+  });
 
   const queryClient = useQueryClient();
 
@@ -128,6 +136,10 @@ export default function OrderDetailsModal({
         body: JSON.stringify({ format }),
       });
 
+      if (!response.ok) {
+        throw new Error(`Failed to generate ${format.toUpperCase()}`);
+      }
+
       if (format === "pdf") {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -145,6 +157,60 @@ export default function OrderDetailsModal({
           newWindow.document.close();
         }
       }
+      return format;
+    },
+    onMutate: (format) => {
+      toast.loading(
+        format === "pdf"
+          ? "Generating PDF invoice..."
+          : "Opening HTML invoice...",
+        { id: "invoice-generation" }
+      );
+    },
+    onSuccess: (format) => {
+      toast.success(
+        format === "pdf"
+          ? "PDF invoice downloaded successfully!"
+          : "HTML invoice opened in new tab!",
+        { id: "invoice-generation" }
+      );
+    },
+    onError: (error: Error, format) => {
+      toast.error(
+        `Failed to generate ${format.toUpperCase()} invoice: ${error.message}`,
+        { id: "invoice-generation" }
+      );
+    },
+  });
+
+  // Update shipping mutation
+  const updateShippingMutation = useMutation({
+    mutationFn: async (data: {
+      trackingNumber: string;
+      carrier: string;
+      estimatedDelivery?: string;
+    }) => {
+      const response = await fetch(`/api/admin/orders/${orderId}/shipping`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update shipping");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+      setShowShippingDialog(false);
+      setShippingData({
+        trackingNumber: "",
+        carrier: "",
+        estimatedDelivery: "",
+      });
+      toast.success("Shipping information updated successfully!");
+    },
+    onError: (error) => {
+      toast.error(`Failed to update shipping: ${error.message}`);
     },
   });
 
@@ -654,7 +720,22 @@ export default function OrderDetailsModal({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="outline" className="w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setShippingData({
+                        trackingNumber: order?.trackingNumber || "",
+                        carrier: order?.carrier || "",
+                        estimatedDelivery: order?.estimatedDelivery
+                          ? new Date(order.estimatedDelivery)
+                              .toISOString()
+                              .split("T")[0]
+                          : "",
+                      });
+                      setShowShippingDialog(true);
+                    }}
+                  >
                     Update Shipping
                   </Button>
                 </CardContent>
@@ -663,6 +744,98 @@ export default function OrderDetailsModal({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Shipping Update Dialog */}
+      <Dialog open={showShippingDialog} onOpenChange={setShowShippingDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Update Shipping Information</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="trackingNumber">Tracking Number *</Label>
+              <Input
+                id="trackingNumber"
+                value={shippingData.trackingNumber}
+                onChange={(e) =>
+                  setShippingData((prev) => ({
+                    ...prev,
+                    trackingNumber: e.target.value,
+                  }))
+                }
+                placeholder="Enter tracking number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="carrier">Carrier *</Label>
+              <Select
+                value={shippingData.carrier}
+                onValueChange={(value) =>
+                  setShippingData((prev) => ({ ...prev, carrier: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select carrier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FedEx">FedEx</SelectItem>
+                  <SelectItem value="UPS">UPS</SelectItem>
+                  <SelectItem value="DHL">DHL</SelectItem>
+                  <SelectItem value="India Post">India Post</SelectItem>
+                  <SelectItem value="BlueDart">BlueDart</SelectItem>
+                  <SelectItem value="DTDC">DTDC</SelectItem>
+                  <SelectItem value="Ecom Express">Ecom Express</SelectItem>
+                  <SelectItem value="Delhivery">Delhivery</SelectItem>
+                  <SelectItem value="Xpressbees">Xpressbees</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="estimatedDelivery">
+                Estimated Delivery (Optional)
+              </Label>
+              <Input
+                id="estimatedDelivery"
+                type="date"
+                value={shippingData.estimatedDelivery}
+                onChange={(e) =>
+                  setShippingData((prev) => ({
+                    ...prev,
+                    estimatedDelivery: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowShippingDialog(false)}
+              disabled={updateShippingMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!shippingData.trackingNumber || !shippingData.carrier) {
+                  toast.error("Tracking number and carrier are required");
+                  return;
+                }
+                updateShippingMutation.mutate(shippingData);
+              }}
+              disabled={
+                updateShippingMutation.isPending ||
+                !shippingData.trackingNumber ||
+                !shippingData.carrier
+              }
+            >
+              {updateShippingMutation.isPending
+                ? "Updating..."
+                : "Update Shipping"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

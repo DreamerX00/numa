@@ -8,21 +8,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Phone, 
-  Mail, 
-  Clock, 
-  MessageCircle, 
+import {
+  Phone,
+  Mail,
+  Clock,
+  MessageCircle,
   Send,
-  Instagram,
   CheckCircle,
   Users,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
+import { SiInstagram } from "react-icons/si";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 const contactFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -41,7 +48,7 @@ const inquiryTypes = [
   { value: "order", label: "Order Support" },
   { value: "custom", label: "Custom Design" },
   { value: "wholesale", label: "Wholesale/Partnership" },
-  { value: "press", label: "Press & Media" }
+  { value: "press", label: "Press & Media" },
 ];
 
 const contactMethods = [
@@ -50,51 +57,51 @@ const contactMethods = [
     title: "Customer Care",
     details: ["+91 6267940313", "+91 8269564404"],
     subtitle: "WhatsApp & Calls Available",
-    available: "Mon-Sat, 10 AM - 8 PM IST"
+    available: "Mon-Sat, 10 AM - 8 PM IST",
   },
   {
     icon: Mail,
     title: "Email Support",
     details: ["shreyaaa4404@gmail.com", ""],
     subtitle: "Response within 24 hours",
-    available: "24/7 Support"
+    available: "24/7 Support",
   },
   {
     icon: MessageCircle,
     title: "Live Chat",
     details: ["Chat with our jewelry experts"],
     subtitle: "Instant responses",
-    available: "Mon-Sat, 10 AM - 8 PM IST"
+    available: "Mon-Sat, 10 AM - 8 PM IST",
   },
   {
-    icon: Instagram,
+    icon: SiInstagram,
     title: "Social Media",
     details: ["@numa.iin", "DM us anytime"],
     subtitle: "Follow for updates",
-    available: "Active daily"
-  }
+    available: "Active daily",
+  },
 ];
 
 const businessInfo = {
   address: "",
   hours: {
     weekdays: "Monday - Saturday: 10:00 AM - 8:00 PM",
-    sunday: "Sunday: 11:00 AM - 6:00 PM"
+    sunday: "Sunday: 11:00 AM - 6:00 PM",
   },
-  headquarters: ""
+  headquarters: "",
 };
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-  }
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+  },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
 export default function ContactPage() {
@@ -117,7 +124,7 @@ export default function ContactPage() {
     setIsSubmitting(true);
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log("Contact form data:", data);
       setIsSubmitted(true);
       form.reset();
@@ -147,8 +154,9 @@ export default function ContactPage() {
               Get in <span className="text-brand">Touch</span>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              We&apos;re here to help you find the perfect piece or answer any questions about our jewelry collections. 
-              Reach out to our dedicated team for personalized assistance.
+              We&apos;re here to help you find the perfect piece or answer any
+              questions about our jewelry collections. Reach out to our
+              dedicated team for personalized assistance.
             </p>
           </motion.div>
         </Container>
@@ -178,11 +186,17 @@ export default function ContactPage() {
                       <h3 className="font-semibold mb-2">{method.title}</h3>
                       <div className="space-y-1 mb-3">
                         {method.details.map((detail, idx) => (
-                          <p key={idx} className="text-sm font-medium">{detail}</p>
+                          <p key={idx} className="text-sm font-medium">
+                            {detail}
+                          </p>
                         ))}
                       </div>
-                      <p className="text-xs text-muted-foreground mb-1">{method.subtitle}</p>
-                      <p className="text-xs text-brand font-medium">{method.available}</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {method.subtitle}
+                      </p>
+                      <p className="text-xs text-brand font-medium">
+                        {method.available}
+                      </p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -201,7 +215,8 @@ export default function ContactPage() {
                     Send us a Message
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Fill out the form below and we&apos;ll get back to you within 24 hours.
+                    Fill out the form below and we&apos;ll get back to you
+                    within 24 hours.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -212,9 +227,12 @@ export default function ContactPage() {
                       className="text-center py-8"
                     >
                       <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Message Sent!</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        Message Sent!
+                      </h3>
                       <p className="text-muted-foreground">
-                        Thank you for reaching out. We&apos;ll get back to you soon.
+                        Thank you for reaching out. We&apos;ll get back to you
+                        soon.
                       </p>
                       <Button
                         onClick={() => setIsSubmitted(false)}
@@ -226,7 +244,10 @@ export default function ContactPage() {
                     </motion.div>
                   ) : (
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-4"
+                      >
                         <div className="grid md:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
@@ -235,7 +256,10 @@ export default function ContactPage() {
                               <FormItem>
                                 <FormLabel>Full Name *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Your full name" {...field} />
+                                  <Input
+                                    placeholder="Your full name"
+                                    {...field}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -248,7 +272,10 @@ export default function ContactPage() {
                               <FormItem>
                                 <FormLabel>Email Address *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="your@email.com" {...field} />
+                                  <Input
+                                    placeholder="your@email.com"
+                                    {...field}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -264,7 +291,10 @@ export default function ContactPage() {
                               <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="+91 98765 43210" {...field} />
+                                  <Input
+                                    placeholder="+91 98765 43210"
+                                    {...field}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -277,12 +307,15 @@ export default function ContactPage() {
                               <FormItem>
                                 <FormLabel>Inquiry Type *</FormLabel>
                                 <FormControl>
-                                  <select 
-                                    {...field} 
+                                  <select
+                                    {...field}
                                     className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
                                   >
-                                    {inquiryTypes.map(type => (
-                                      <option key={type.value} value={type.value}>
+                                    {inquiryTypes.map((type) => (
+                                      <option
+                                        key={type.value}
+                                        value={type.value}
+                                      >
                                         {type.label}
                                       </option>
                                     ))}
@@ -301,7 +334,10 @@ export default function ContactPage() {
                             <FormItem>
                               <FormLabel>Subject *</FormLabel>
                               <FormControl>
-                                <Input placeholder="Brief description of your inquiry" {...field} />
+                                <Input
+                                  placeholder="Brief description of your inquiry"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -315,10 +351,10 @@ export default function ContactPage() {
                             <FormItem>
                               <FormLabel>Message *</FormLabel>
                               <FormControl>
-                                <Textarea 
+                                <Textarea
                                   placeholder="Tell us more about how we can help you..."
                                   rows={5}
-                                  {...field} 
+                                  {...field}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -326,9 +362,9 @@ export default function ContactPage() {
                           )}
                         />
 
-                        <Button 
-                          type="submit" 
-                          className="w-full" 
+                        <Button
+                          type="submit"
+                          className="w-full"
                           disabled={isSubmitting}
                         >
                           {isSubmitting ? (
@@ -354,7 +390,6 @@ export default function ContactPage() {
             <motion.div variants={itemVariants} className="space-y-6">
               {/* Office Location */}
               <Card>
-                
                 <CardContent className="space-y-4">
                   <div>
                     <p className="font-medium mb-2"></p>
@@ -383,21 +418,27 @@ export default function ContactPage() {
                       <Users className="h-5 w-5 text-brand" />
                       <div>
                         <p className="font-medium"></p>
-                        <p className="text-xs text-muted-foreground">Happy Customers</p>
+                        <p className="text-xs text-muted-foreground">
+                          Happy Customers
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle className="h-5 w-5 text-brand" />
                       <div>
                         <p className="font-medium">24 Hours</p>
-                        <p className="text-xs text-muted-foreground">Average Response Time</p>
+                        <p className="text-xs text-muted-foreground">
+                          Average Response Time
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-5 w-5 text-brand" />
                       <div>
                         <p className="font-medium"></p>
-                        <p className="text-xs text-muted-foreground">Crafting Excellence</p>
+                        <p className="text-xs text-muted-foreground">
+                          Crafting Excellence
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -409,43 +450,57 @@ export default function ContactPage() {
           {/* FAQ Section */}
           <motion.section variants={itemVariants} className="mb-16">
             <div className="text-center mb-8">
-              <h2 className="text-2xl lg:text-3xl font-serif mb-4">Frequently Asked Questions</h2>
+              <h2 className="text-2xl lg:text-3xl font-serif mb-4">
+                Frequently Asked Questions
+              </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Quick answers to common questions about our jewelry, orders, and services.
+                Quick answers to common questions about our jewelry, orders, and
+                services.
               </p>
             </div>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
                   question: "What are your shipping times?",
-                  answer: "We offer free shipping within India with delivery in 3-5 business days. Express delivery available in 1-2 days for metro cities."
+                  answer:
+                    "We offer free shipping within India with delivery in 3-5 business days. Express delivery available in 1-2 days for metro cities.",
                 },
                 {
                   question: "Do you offer custom jewelry design?",
-                  answer: "Yes! Our master craftsmen can create custom pieces. Contact us with your ideas and we'll provide a consultation and quote."
+                  answer:
+                    "Yes! Our master craftsmen can create custom pieces. Contact us with your ideas and we'll provide a consultation and quote.",
                 },
                 {
                   question: "What is your return policy?",
-                  answer: "We offer a 30-day return policy for unused items in original packaging. Custom pieces have different terms."
+                  answer:
+                    "We offer a 30-day return policy for unused items in original packaging. Custom pieces have different terms.",
                 },
                 {
                   question: "Are your diamonds certified?",
-                  answer: "All our diamonds come with proper certification from recognized laboratories like GIA, IGI, or SGL."
+                  answer:
+                    "All our diamonds come with proper certification from recognized laboratories like GIA, IGI, or SGL.",
                 },
                 {
                   question: "Do you offer jewelry insurance?",
-                  answer: "We provide insurance options and can help you get your jewelry appraised for personal insurance coverage."
+                  answer:
+                    "We provide insurance options and can help you get your jewelry appraised for personal insurance coverage.",
                 },
                 {
                   question: "How do I care for my jewelry?",
-                  answer: "Each piece comes with care instructions. Generally, store separately, clean gently, and avoid chemicals and extreme temperatures."
-                }
+                  answer:
+                    "Each piece comes with care instructions. Generally, store separately, clean gently, and avoid chemicals and extreme temperatures.",
+                },
               ].map((faq, index) => (
-                <Card key={index} className="hover:shadow-md transition-all duration-300">
+                <Card
+                  key={index}
+                  className="hover:shadow-md transition-all duration-300"
+                >
                   <CardContent className="p-6">
                     <h3 className="font-semibold mb-3">{faq.question}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{faq.answer}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {faq.answer}
+                    </p>
                   </CardContent>
                 </Card>
               ))}

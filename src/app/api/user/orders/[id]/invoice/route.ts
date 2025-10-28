@@ -1,14 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserFromSession, createAuthErrorResponse } from '@/lib/auth/userSession';
-import { generateInvoiceHTML, generateInvoicePDF } from '@/lib/invoice/generator';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import {
+  getUserFromSession,
+  createAuthErrorResponse,
+} from "@/lib/auth/userSession";
+import {
+  generateInvoiceHTML,
+  generateInvoicePDF,
+} from "@/lib/invoice/generator";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  
+
   try {
     // Get authenticated user
     const authResult = await getUserFromSession(request);
@@ -18,25 +24,25 @@ export async function GET(
 
     const { dbUser } = authResult.user;
     const { searchParams } = new URL(request.url);
-    const format = searchParams.get('format') || 'pdf';
+    const format = searchParams.get("format") || "pdf";
 
     // Get order and verify ownership
     const order = await prisma.order.findFirst({
-      where: { 
+      where: {
         id: id,
-        userId: dbUser.id 
+        userId: dbUser.id,
       },
       include: {
         invoices: {
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      }
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
     });
 
     if (!order) {
       return NextResponse.json(
-        { error: 'Order not found or unauthorized' },
+        { error: "Order not found or unauthorized" },
         { status: 404 }
       );
     }
@@ -45,36 +51,36 @@ export async function GET(
     const invoice = order.invoices[0];
     if (!invoice) {
       return NextResponse.json(
-        { error: 'Invoice not available for this order yet' },
+        { error: "Invoice not available for this order yet" },
         { status: 404 }
       );
     }
 
     // Only allow invoice download for delivered or shipped orders
-    if (!['DELIVERED', 'SHIPPED', 'PROCESSING'].includes(order.status)) {
+    if (!["DELIVERED", "SHIPPED", "PROCESSING"].includes(order.status)) {
       return NextResponse.json(
-        { error: 'Invoice not available for orders in this status' },
+        { error: "Invoice not available for orders in this status" },
         { status: 400 }
       );
     }
 
     // Generate invoice content using stored data
-    if (format === 'pdf') {
+    if (format === "pdf") {
       const pdfBuffer = await generateInvoicePDF(invoice);
-      
-      return new NextResponse(pdfBuffer.buffer as ArrayBuffer, {
+
+      return new NextResponse(pdfBuffer as unknown as BodyInit, {
         headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`
-        }
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`,
+        },
       });
-    } else if (format === 'html') {
+    } else if (format === "html") {
       const htmlContent = await generateInvoiceHTML(invoice);
-      
+
       return new NextResponse(htmlContent, {
         headers: {
-          'Content-Type': 'text/html'
-        }
+          "Content-Type": "text/html",
+        },
       });
     }
 
@@ -86,14 +92,13 @@ export async function GET(
         invoiceDate: invoice.invoiceDate,
         totalAmount: invoice.totalAmount,
         currency: invoice.currency,
-        status: invoice.status
-      }
+        status: invoice.status,
+      },
     });
-
   } catch (error) {
-    console.error('Customer invoice error:', error);
+    console.error("Customer invoice error:", error);
     return NextResponse.json(
-      { error: 'Failed to retrieve invoice' },
+      { error: "Failed to retrieve invoice" },
       { status: 500 }
     );
   }

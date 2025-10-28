@@ -45,13 +45,61 @@ const companySettingsSchema = z.object({
   invoiceNotes: z.string().optional().nullable(),
 
   // Logo
-  companyLogo: z.string().url("Invalid logo URL").optional().nullable(),
+  companyLogo: z
+    .string()
+    .regex(/^https?:\/\/.+/, "Invalid logo URL")
+    .optional()
+    .nullable(),
 
   // Bank Details
   bankName: z.string().optional().nullable(),
   bankAccount: z.string().optional().nullable(),
   bankIfsc: z.string().optional().nullable(),
   bankBranch: z.string().optional().nullable(),
+
+  // Phase 1 Invoice Settings - Branding
+  invoiceLogo: z
+    .string()
+    .regex(/^https?:\/\/.+/, "Invalid logo URL")
+    .optional()
+    .nullable(),
+  invoiceLogoPosition: z.enum(["left", "center", "right"]).optional(),
+
+  // Phase 1 Invoice Settings - Signature & Authorization
+  signatoryName: z.string().optional().nullable(),
+  signatoryDesignation: z.string().optional().nullable(),
+  digitalSignature: z
+    .string()
+    .regex(/^https?:\/\/.+/, "Invalid signature URL")
+    .optional()
+    .nullable(),
+  companySeal: z
+    .string()
+    .regex(/^https?:\/\/.+/, "Invalid seal URL")
+    .optional()
+    .nullable(),
+
+  // Phase 1 Invoice Settings - Payment Information
+  bankAccountHolder: z.string().optional().nullable(),
+  bankUpiId: z.string().optional().nullable(),
+  paymentQrCode: z
+    .string()
+    .regex(/^https?:\/\/.+/, "Invalid QR code URL")
+    .optional()
+    .nullable(),
+
+  // Phase 1 Invoice Settings - Additional Terms
+  deliveryTerms: z.string().optional().nullable(),
+  returnPolicy: z.string().optional().nullable(),
+  warrantyInfo: z.string().optional().nullable(),
+
+  // Phase 1 Invoice Settings - Configuration
+  invoiceDefaultDueDays: z
+    .number()
+    .int()
+    .min(1, "Due days must be at least 1")
+    .max(365, "Due days cannot exceed 365")
+    .optional(),
 });
 
 /**

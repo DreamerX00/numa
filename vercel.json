@@ -7,6 +7,12 @@
       "maxDuration": 30
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-pending-orders",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "regions": ["iad1"],
   "env": {
     "MONGODB_TIMEOUT": "10000",

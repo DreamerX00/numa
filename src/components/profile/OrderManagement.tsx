@@ -37,7 +37,7 @@ import {
   ArrowLeft,
   Clock,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import type { OrderSummary } from "@/types/profile";
 
@@ -66,7 +66,7 @@ const mockOrders: (OrderSummary & {
     id: "order_1",
     orderNumber: "NUMA-2024-001",
     status: "delivered",
-    totalAmount: 1250.00,
+    totalAmount: 1250.0,
     currency: "USD",
     itemCount: 2,
     orderDate: new Date("2024-08-15"),
@@ -81,35 +81,35 @@ const mockOrders: (OrderSummary & {
         name: "Elegant Diamond Ring",
         variant: "18K Gold, Size 7",
         quantity: 1,
-        price: 950.00,
+        price: 950.0,
         image: DEFAULT_IMAGES.PRODUCT,
-        sku: "RING-DIA-001"
+        sku: "RING-DIA-001",
       },
       {
         id: "item_2",
         name: "Pearl Earrings",
         variant: "White Gold",
         quantity: 1,
-        price: 300.00,
+        price: 300.0,
         image: DEFAULT_IMAGES.PRODUCT,
-        sku: "EAR-PEARL-002"
-      }
+        sku: "EAR-PEARL-002",
+      },
     ],
     shipping: {
       method: "Express Delivery",
-      cost: 15.00,
-      address: "123 Main St, New York, NY 10001"
+      cost: 15.0,
+      address: "123 Main St, New York, NY 10001",
     },
     payment: {
       method: "Credit Card",
-      last4: "4242"
-    }
+      last4: "4242",
+    },
   },
   {
     id: "order_2",
     orderNumber: "NUMA-2024-002",
     status: "shipped",
-    totalAmount: 890.00,
+    totalAmount: 890.0,
     currency: "USD",
     itemCount: 1,
     orderDate: new Date("2024-09-10"),
@@ -124,26 +124,26 @@ const mockOrders: (OrderSummary & {
         name: "Gold Chain Necklace",
         variant: "22K Gold, 18 inches",
         quantity: 1,
-        price: 875.00,
+        price: 875.0,
         image: "DEFAULT_IMAGES.PRODUCT",
-        sku: "NECK-GOLD-003"
-      }
+        sku: "NECK-GOLD-003",
+      },
     ],
     shipping: {
       method: "Standard Delivery",
-      cost: 10.00,
-      address: "123 Main St, New York, NY 10001"
+      cost: 10.0,
+      address: "123 Main St, New York, NY 10001",
     },
     payment: {
       method: "Credit Card",
-      last4: "4242"
-    }
+      last4: "4242",
+    },
   },
   {
     id: "order_3",
     orderNumber: "NUMA-2024-003",
     status: "processing",
-    totalAmount: 2150.00,
+    totalAmount: 2150.0,
     currency: "USD",
     itemCount: 3,
     orderDate: new Date("2024-09-18"),
@@ -158,30 +158,30 @@ const mockOrders: (OrderSummary & {
         name: "Luxury Watch",
         variant: "Rose Gold, Leather Strap",
         quantity: 1,
-        price: 1800.00,
+        price: 1800.0,
         image: "DEFAULT_IMAGES.PRODUCT",
-        sku: "WATCH-LUX-001"
+        sku: "WATCH-LUX-001",
       },
       {
         id: "item_5",
         name: "Silver Bracelet",
         variant: "Sterling Silver",
         quantity: 2,
-        price: 175.00,
+        price: 175.0,
         image: "DEFAULT_IMAGES.PRODUCT",
-        sku: "BRAC-SIL-004"
-      }
+        sku: "BRAC-SIL-004",
+      },
     ],
     shipping: {
       method: "Express Delivery",
-      cost: 15.00,
-      address: "123 Main St, New York, NY 10001"
+      cost: 15.0,
+      address: "123 Main St, New York, NY 10001",
     },
     payment: {
       method: "Credit Card",
-      last4: "4242"
-    }
-  }
+      last4: "4242",
+    },
+  },
 ];
 
 const getStatusIcon = (status: string) => {
@@ -237,17 +237,23 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<string | null>(null);
   const [reviewProductName, setReviewProductName] = useState<string>("");
-  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(
+    null
+  );
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.status.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === "all" || order.status === filterStatus;
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.status.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter =
+      filterStatus === "all" || order.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const selectedOrderDetails = selectedOrder ? 
-    orders.find(order => order.id === selectedOrder) : null;
+  const selectedOrderDetails = selectedOrder
+    ? orders.find((order) => order.id === selectedOrder)
+    : null;
 
   const handleReviewClick = (productId: string, productName: string) => {
     setReviewProductId(productId);
@@ -262,34 +268,51 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
     // Could show a success message here
   };
 
-  const handleDownloadInvoice = async (orderId: string, format: 'pdf' | 'html' = 'pdf') => {
+  const handleDownloadInvoice = async (
+    orderId: string,
+    format: "pdf" | "html" = "pdf"
+  ) => {
     setDownloadingInvoice(orderId);
+    const toastId = "invoice-download";
+
     try {
-      const response = await fetch(`/api/user/orders/${orderId}/invoice?format=${format}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      toast.loading(
+        format === "pdf"
+          ? "Generating PDF invoice..."
+          : "Opening HTML invoice...",
+        { id: toastId }
+      );
+
+      const response = await fetch(
+        `/api/user/orders/${orderId}/invoice?format=${format}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to download invoice' }));
-        throw new Error(errorData.error || 'Failed to download invoice');
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Failed to download invoice" }));
+        throw new Error(errorData.error || "Failed to download invoice");
       }
 
-      if (format === 'pdf') {
+      if (format === "pdf") {
         // Handle PDF download
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
+        const a = document.createElement("a");
+        a.style.display = "none";
         a.href = url;
         a.download = `invoice-${orderId}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success('Invoice downloaded successfully');
+        toast.success("Invoice downloaded successfully", { id: toastId });
       } else {
         // Handle HTML view in new tab
         const htmlContent = await response.text();
@@ -298,13 +321,55 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
           newWindow.document.write(htmlContent);
           newWindow.document.close();
         }
+        toast.success("Invoice opened in new tab", { id: toastId });
       }
     } catch (error) {
-      console.error('Error downloading invoice:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to download invoice');
+      console.error("Error downloading invoice:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to download invoice",
+        { id: toastId }
+      );
     } finally {
       setDownloadingInvoice(null);
     }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingOrder(orderId);
+    const toastId = "cancel-order";
+
+    try {
+      toast.loading("Cancelling order...", { id: toastId });
+
+      const response = await fetch(`/api/user/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to cancel order");
+      }
+
+      toast.success("Order cancelled successfully", { id: toastId });
+
+      // Refresh the page to show updated order status
+      window.location.reload();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to cancel order",
+        { id: toastId }
+      );
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
+
+  const canCancelOrder = (order: OrderSummary) => {
+    // Can only cancel pending/processing orders that haven't been shipped
+    return order.status === "pending" || order.status === "processing";
   };
 
   if (selectedOrderDetails) {
@@ -328,13 +393,22 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   Order {selectedOrderDetails.orderNumber}
-                  <Badge className={getStatusColor(selectedOrderDetails.status)}>
+                  <Badge
+                    className={getStatusColor(selectedOrderDetails.status)}
+                  >
                     {getStatusIcon(selectedOrderDetails.status)}
-                    <span className="ml-1 capitalize">{selectedOrderDetails.status}</span>
+                    <span className="ml-1 capitalize">
+                      {selectedOrderDetails.status}
+                    </span>
                   </Badge>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Placed on {selectedOrderDetails.orderDate ? new Date(selectedOrderDetails.orderDate).toLocaleDateString() : 'Date not available'}
+                  Placed on{" "}
+                  {selectedOrderDetails.orderDate
+                    ? new Date(
+                        selectedOrderDetails.orderDate
+                      ).toLocaleDateString()
+                    : "Date not available"}
                 </p>
               </div>
             </div>
@@ -364,11 +438,17 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                     />
                     <div className="flex-1">
                       <h4 className="font-semibold">{item.name}</h4>
-                      <p className="text-sm text-muted-foreground">{item.variant}</p>
-                      <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.variant}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        SKU: {item.sku}
+                      </p>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-sm">Qty: {item.quantity}</span>
-                        <span className="font-semibold">${item.price.toFixed(2)}</span>
+                        <span className="font-semibold">
+                          ${item.price.toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   </motion.div>
@@ -384,22 +464,53 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                  {(() => {
-                    const baseDate = selectedOrderDetails.orderDate ? new Date(selectedOrderDetails.orderDate) : new Date();
-                    return [
-                      { status: "Order Placed", date: baseDate, completed: true },
-                      { status: "Payment Confirmed", date: baseDate, completed: true },
-                      { status: "Processing", date: new Date(baseDate.getTime() + 24 * 60 * 60 * 1000), completed: true },
-                      { status: "Shipped", date: new Date(baseDate.getTime() + 2 * 24 * 60 * 60 * 1000), completed: true },
-                      { status: "Delivered", date: selectedOrderDetails.estimatedDelivery ? new Date(selectedOrderDetails.estimatedDelivery) : null, completed: true },
-                    ];
-                  })().map((step, index) => (
+                    {(() => {
+                      const baseDate = selectedOrderDetails.orderDate
+                        ? new Date(selectedOrderDetails.orderDate)
+                        : new Date();
+                      return [
+                        {
+                          status: "Order Placed",
+                          date: baseDate,
+                          completed: true,
+                        },
+                        {
+                          status: "Payment Confirmed",
+                          date: baseDate,
+                          completed: true,
+                        },
+                        {
+                          status: "Processing",
+                          date: new Date(
+                            baseDate.getTime() + 24 * 60 * 60 * 1000
+                          ),
+                          completed: true,
+                        },
+                        {
+                          status: "Shipped",
+                          date: new Date(
+                            baseDate.getTime() + 2 * 24 * 60 * 60 * 1000
+                          ),
+                          completed: true,
+                        },
+                        {
+                          status: "Delivered",
+                          date: selectedOrderDetails.estimatedDelivery
+                            ? new Date(selectedOrderDetails.estimatedDelivery)
+                            : null,
+                          completed: true,
+                        },
+                      ];
+                    })().map((step, index) => (
                       <div key={index} className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${step.completed ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <div
+                          className={`w-3 h-3 rounded-full ${step.completed ? "bg-green-500" : "bg-gray-300"}`}
+                        />
                         <div className="flex-1">
                           <p className="font-medium">{step.status}</p>
                           <p className="text-sm text-muted-foreground">
-                            {step.date?.toLocaleDateString()} {step.date?.toLocaleTimeString()}
+                            {step.date?.toLocaleDateString()}{" "}
+                            {step.date?.toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
@@ -419,11 +530,22 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${(selectedOrderDetails.totalAmount - (selectedOrderDetails.shipping?.cost || 0)).toFixed(2)}</span>
+                  <span>
+                    $
+                    {(
+                      selectedOrderDetails.totalAmount -
+                      (selectedOrderDetails.shipping?.cost || 0)
+                    ).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipping ({selectedOrderDetails.shipping?.method || 'Standard'})</span>
-                  <span>${(selectedOrderDetails.shipping?.cost || 0).toFixed(2)}</span>
+                  <span>
+                    Shipping (
+                    {selectedOrderDetails.shipping?.method || "Standard"})
+                  </span>
+                  <span>
+                    ${(selectedOrderDetails.shipping?.cost || 0).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total</span>
@@ -442,7 +564,8 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   <div>
                     <p className="font-medium">Delivery Address</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedOrderDetails.shipping?.address || 'Address not available'}
+                      {selectedOrderDetails.shipping?.address ||
+                        "Address not available"}
                     </p>
                   </div>
                 </div>
@@ -468,9 +591,12 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 <div className="flex items-start gap-2">
                   <DollarSign className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{selectedOrderDetails.payment?.method || 'Payment method not available'}</p>
+                    <p className="font-medium">
+                      {selectedOrderDetails.payment?.method ||
+                        "Payment method not available"}
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Ending in {selectedOrderDetails.payment?.last4 || '****'}
+                      Ending in {selectedOrderDetails.payment?.last4 || "****"}
                     </p>
                   </div>
                 </div>
@@ -492,17 +618,22 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 </Button>
               )}
               {selectedOrderDetails.canReview && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
-                  onClick={() => handleReviewClick("product_123", selectedOrderDetails.items?.[0]?.name || "Product")}
+                  onClick={() =>
+                    handleReviewClick(
+                      "product_123",
+                      selectedOrderDetails.items?.[0]?.name || "Product"
+                    )
+                  }
                 >
                   <Star className="h-4 w-4 mr-2" />
                   Write Review
                 </Button>
               )}
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="w-full"
                 onClick={() => handleDownloadInvoice(selectedOrderDetails.id)}
                 disabled={downloadingInvoice === selectedOrderDetails.id}
@@ -512,8 +643,35 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                {downloadingInvoice === selectedOrderDetails.id ? 'Downloading...' : 'Download Invoice'}
+                {downloadingInvoice === selectedOrderDetails.id
+                  ? "Downloading..."
+                  : "Download Invoice"}
               </Button>
+              {canCancelOrder(selectedOrderDetails) && (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        `Are you sure you want to cancel order ${selectedOrderDetails.orderNumber}? This action cannot be undone.`
+                      )
+                    ) {
+                      handleCancelOrder(selectedOrderDetails.id);
+                    }
+                  }}
+                  disabled={cancellingOrder === selectedOrderDetails.id}
+                >
+                  {cancellingOrder === selectedOrderDetails.id ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {cancellingOrder === selectedOrderDetails.id
+                    ? "Cancelling..."
+                    : "Cancel Order"}
+                </Button>
+              )}
               <Button variant="ghost" className="w-full">
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Contact Support
@@ -566,13 +724,17 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   <DropdownMenuItem onClick={() => setFilterStatus("all")}>
                     All Orders
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFilterStatus("delivered")}>
+                  <DropdownMenuItem
+                    onClick={() => setFilterStatus("delivered")}
+                  >
                     Delivered
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setFilterStatus("shipped")}>
                     Shipped
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFilterStatus("processing")}>
+                  <DropdownMenuItem
+                    onClick={() => setFilterStatus("processing")}
+                  >
                     Processing
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setFilterStatus("pending")}>
@@ -590,13 +752,20 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
           <TabsTrigger value="active">
-            Active ({orders.filter(o => !['delivered', 'cancelled', 'returned'].includes(o.status)).length})
+            Active (
+            {
+              orders.filter(
+                (o) =>
+                  !["delivered", "cancelled", "returned"].includes(o.status)
+              ).length
+            }
+            )
           </TabsTrigger>
           <TabsTrigger value="delivered">
-            Delivered ({orders.filter(o => o.status === 'delivered').length})
+            Delivered ({orders.filter((o) => o.status === "delivered").length})
           </TabsTrigger>
           <TabsTrigger value="returns">
-            Returns ({orders.filter(o => o.status === 'returned').length})
+            Returns ({orders.filter((o) => o.status === "returned").length})
           </TabsTrigger>
         </TabsList>
 
@@ -608,7 +777,10 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="hover-lift cursor-pointer" onClick={() => setSelectedOrder(order.id)}>
+              <Card
+                className="hover-lift cursor-pointer"
+                onClick={() => setSelectedOrder(order.id)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <Image
@@ -623,23 +795,34 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                         <div>
                           <h3 className="font-semibold">{order.orderNumber}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {order.itemCount} item{order.itemCount > 1 ? 's' : ''} • ${order.totalAmount.toFixed(2)}
+                            {order.itemCount} item
+                            {order.itemCount > 1 ? "s" : ""} • $
+                            {order.totalAmount.toFixed(2)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge className={getStatusColor(order.status)}>
                             {getStatusIcon(order.status)}
-                            <span className="ml-1 capitalize">{order.status}</span>
+                            <span className="ml-1 capitalize">
+                              {order.status}
+                            </span>
                           </Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="More options">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                aria-label="More options"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">More options</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedOrder(order.id)}>
+                              <DropdownMenuItem
+                                onClick={() => setSelectedOrder(order.id)}
+                              >
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
@@ -649,7 +832,7 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                                   Track Package
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleDownloadInvoice(order.id)}
                                 disabled={downloadingInvoice === order.id}
                               >
@@ -658,12 +841,39 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                                 ) : (
                                   <Download className="h-4 w-4 mr-2" />
                                 )}
-                                {downloadingInvoice === order.id ? 'Downloading...' : 'Download Invoice'}
+                                {downloadingInvoice === order.id
+                                  ? "Downloading..."
+                                  : "Download Invoice"}
                               </DropdownMenuItem>
                               {order.canReturn && (
                                 <DropdownMenuItem>
                                   <RotateCcw className="h-4 w-4 mr-2" />
                                   Return Items
+                                </DropdownMenuItem>
+                              )}
+                              {canCancelOrder(order) && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (
+                                      confirm(
+                                        `Are you sure you want to cancel order ${order.orderNumber}? This action cannot be undone.`
+                                      )
+                                    ) {
+                                      handleCancelOrder(order.id);
+                                    }
+                                  }}
+                                  disabled={cancellingOrder === order.id}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  {cancellingOrder === order.id ? (
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <AlertCircle className="h-4 w-4 mr-2" />
+                                  )}
+                                  {cancellingOrder === order.id
+                                    ? "Cancelling..."
+                                    : "Cancel Order"}
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
@@ -673,12 +883,20 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Ordered {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'Date not available'}
+                          Ordered{" "}
+                          {order.orderDate
+                            ? new Date(order.orderDate).toLocaleDateString()
+                            : "Date not available"}
                         </div>
                         {order.estimatedDelivery && (
                           <div className="flex items-center gap-1">
                             <Truck className="h-4 w-4" />
-                            {order.status === 'delivered' ? 'Delivered' : 'Expected'} {new Date(order.estimatedDelivery).toLocaleDateString()}
+                            {order.status === "delivered"
+                              ? "Delivered"
+                              : "Expected"}{" "}
+                            {new Date(
+                              order.estimatedDelivery
+                            ).toLocaleDateString()}
                           </div>
                         )}
                         {order.trackingNumber && (
@@ -697,13 +915,17 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
         </TabsContent>
 
         {/* Other tab contents with filtered orders */}
-        {['active', 'delivered', 'returns'].map((tabValue) => (
+        {["active", "delivered", "returns"].map((tabValue) => (
           <TabsContent key={tabValue} value={tabValue} className="space-y-4">
             {filteredOrders
               .filter((order) => {
-                if (tabValue === 'active') return !['delivered', 'cancelled', 'returned'].includes(order.status);
-                if (tabValue === 'delivered') return order.status === 'delivered';
-                if (tabValue === 'returns') return order.status === 'returned';
+                if (tabValue === "active")
+                  return !["delivered", "cancelled", "returned"].includes(
+                    order.status
+                  );
+                if (tabValue === "delivered")
+                  return order.status === "delivered";
+                if (tabValue === "returns") return order.status === "returned";
                 return true;
               })
               .map((order, index) => (
@@ -713,7 +935,10 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className="hover-lift cursor-pointer" onClick={() => setSelectedOrder(order.id)}>
+                  <Card
+                    className="hover-lift cursor-pointer"
+                    onClick={() => setSelectedOrder(order.id)}
+                  >
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
                         <Image
@@ -726,20 +951,28 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <h3 className="font-semibold">{order.orderNumber}</h3>
+                              <h3 className="font-semibold">
+                                {order.orderNumber}
+                              </h3>
                               <p className="text-sm text-muted-foreground">
-                                {order.itemCount} item{order.itemCount > 1 ? 's' : ''} • ${order.totalAmount.toFixed(2)}
+                                {order.itemCount} item
+                                {order.itemCount > 1 ? "s" : ""} • $
+                                {order.totalAmount.toFixed(2)}
                               </p>
                             </div>
                             <Badge className={getStatusColor(order.status)}>
                               {getStatusIcon(order.status)}
-                              <span className="ml-1 capitalize">{order.status}</span>
+                              <span className="ml-1 capitalize">
+                                {order.status}
+                              </span>
                             </Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
-                              {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : 'Date not available'}
+                              {order.orderDate
+                                ? new Date(order.orderDate).toLocaleDateString()
+                                : "Date not available"}
                             </div>
                             {order.trackingNumber && (
                               <div className="flex items-center gap-1">
@@ -764,10 +997,9 @@ export function OrderManagement({ orders = mockOrders }: OrderManagementProps) {
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No orders found</h3>
             <p className="text-muted-foreground mb-6">
-              {searchTerm || filterStatus !== "all" 
+              {searchTerm || filterStatus !== "all"
                 ? "Try adjusting your search or filter criteria."
-                : "You haven't placed any orders yet."
-              }
+                : "You haven't placed any orders yet."}
             </p>
             <Button asChild>
               <Link href="/collections">Start Shopping</Link>
