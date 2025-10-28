@@ -6,18 +6,19 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useHybridCartStore } from "@/lib/store/hybridCart";
 import { useCartService } from "@/hooks/useCartService";
+import { useSettings } from "@/hooks/useSettings";
 import { formatPriceFromFloat } from "@/lib/utils/currency";
 import { DEFAULT_IMAGES } from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ShoppingBag, 
-  Minus, 
-  Plus, 
-  ArrowRight,
-  X
-} from "lucide-react";
+import { ShoppingBag, Minus, Plus, ArrowRight, X } from "lucide-react";
 
 interface MiniCartProps {
   children: React.ReactNode;
@@ -25,17 +26,17 @@ interface MiniCartProps {
 
 export function MiniCart({ children }: MiniCartProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { items, isLoading, getTotalItems, getTotalPrice } = useHybridCartStore();
+  const { items, isLoading, getTotalItems, getTotalPrice } =
+    useHybridCartStore();
   const { updateQuantity, removeItem } = useCartService();
-  
+  const { shipping } = useSettings();
+
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
+      <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent className="w-full sm:max-w-lg">
         <SheetHeader className="space-y-2.5 pr-6">
           <SheetTitle className="flex items-center gap-2">
@@ -54,9 +55,7 @@ export function MiniCart({ children }: MiniCartProps) {
               </p>
             </div>
             <Button asChild onClick={() => setIsOpen(false)}>
-              <Link href="/collections">
-                Browse Collections
-              </Link>
+              <Link href="/collections">Browse Collections</Link>
             </Button>
           </div>
         ) : (
@@ -78,7 +77,11 @@ export function MiniCart({ children }: MiniCartProps) {
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
                         <Image
-                          src={item.variant?.image || item.product.images[0] || DEFAULT_IMAGES.PRODUCT}
+                          src={
+                            item.variant?.image ||
+                            item.product.images[0] ||
+                            DEFAULT_IMAGES.PRODUCT
+                          }
                           alt={item.product.name}
                           width={64}
                           height={64}
@@ -101,22 +104,57 @@ export function MiniCart({ children }: MiniCartProps) {
                           )}
                           {item.variant && (
                             <div className="flex gap-1 mt-1">
-                              {item.variant.attributes && typeof item.variant.attributes === 'object' && (
-                                <>
-                                  {(item.variant.attributes as Record<string, string>).size && (
-                                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                                      Size: {(item.variant.attributes as Record<string, string>).size}
-                                    </Badge>
-                                  )}
-                                  {(item.variant.attributes as Record<string, string>).color && (
-                                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                                      {(item.variant.attributes as Record<string, string>).color}
-                                    </Badge>
-                                  )}
-                                </>
-                              )}
+                              {item.variant.attributes &&
+                                typeof item.variant.attributes === "object" && (
+                                  <>
+                                    {(
+                                      item.variant.attributes as Record<
+                                        string,
+                                        string
+                                      >
+                                    ).size && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-[10px] px-1 py-0"
+                                      >
+                                        Size:{" "}
+                                        {
+                                          (
+                                            item.variant.attributes as Record<
+                                              string,
+                                              string
+                                            >
+                                          ).size
+                                        }
+                                      </Badge>
+                                    )}
+                                    {(
+                                      item.variant.attributes as Record<
+                                        string,
+                                        string
+                                      >
+                                    ).color && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-[10px] px-1 py-0"
+                                      >
+                                        {
+                                          (
+                                            item.variant.attributes as Record<
+                                              string,
+                                              string
+                                            >
+                                          ).color
+                                        }
+                                      </Badge>
+                                    )}
+                                  </>
+                                )}
                               {item.variant.name && (
-                                <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px] px-1 py-0"
+                                >
                                   {item.variant.name}
                                 </Badge>
                               )}
@@ -141,7 +179,9 @@ export function MiniCart({ children }: MiniCartProps) {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() =>
+                              updateQuantity(item.id, item.quantity - 1)
+                            }
                             disabled={item.quantity <= 1 || isLoading}
                           >
                             <Minus className="h-3 w-3" />
@@ -153,8 +193,14 @@ export function MiniCart({ children }: MiniCartProps) {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= (item.variant?.quantity || item.product.quantity) || isLoading}
+                            onClick={() =>
+                              updateQuantity(item.id, item.quantity + 1)
+                            }
+                            disabled={
+                              item.quantity >=
+                                (item.variant?.quantity ||
+                                  item.product.quantity) || isLoading
+                            }
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -179,8 +225,8 @@ export function MiniCart({ children }: MiniCartProps) {
               </div>
 
               <div className="space-y-2">
-                <Button 
-                  asChild 
+                <Button
+                  asChild
                   className="w-full"
                   onClick={() => setIsOpen(false)}
                 >
@@ -189,20 +235,18 @@ export function MiniCart({ children }: MiniCartProps) {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  asChild 
+                <Button
+                  variant="outline"
+                  asChild
                   className="w-full"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Link href="/collections">
-                    Continue Shopping
-                  </Link>
+                  <Link href="/collections">Continue Shopping</Link>
                 </Button>
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                Free shipping on orders above ₹500
+                Free shipping on orders above ₹{shipping.freeShippingThreshold}
               </p>
             </div>
           </div>

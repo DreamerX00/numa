@@ -167,7 +167,7 @@ export async function POST(
     if (format === "pdf") {
       const pdfBuffer = await generateInvoicePDF(invoice);
 
-      return new NextResponse(pdfBuffer.buffer as ArrayBuffer, {
+      return new NextResponse(pdfBuffer as unknown as BodyInit, {
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`,

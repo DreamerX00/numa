@@ -27,12 +27,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {
-    data: _adminData,
-    isLoading: adminLoading,
-    error,
-  } = useQuery({
+  const { isLoading: adminLoading, error } = useQuery({
     queryKey: ["admin", "access"],
     queryFn: checkAdminAccess,
     enabled: !!user && !loading,

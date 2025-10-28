@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -106,12 +107,26 @@ export default function AdminSettingsPage() {
   });
 
   const [paymentSettings, setPaymentSettings] = useState({
+    // PhonePe
     phonePeEnabled: true,
     phonePeMerchantId: "PGTESTPAYUAT",
     phonePeSaltKey: "•••••••••••••••",
+    phonePeDisplayName: "PhonePe / UPI",
+    // Razorpay
+    razorpayEnabled: false,
+    razorpayKeyId: "",
+    razorpayKeySecret: "",
+    razorpayDisplayName: "Cards / UPI / Wallets",
+    // Stripe
     stripeEnabled: false,
     stripePublishableKey: "",
     stripeSecretKey: "",
+    stripeDisplayName: "Credit/Debit Card",
+    // Cash on Delivery
+    codEnabled: true,
+    codDisplayName: "Cash on Delivery",
+    codInstructions: "Pay when you receive your order",
+    // General
     minOrderAmount: 100,
   });
 
@@ -136,6 +151,20 @@ export default function AdminSettingsPage() {
     bankAccount: null as string | null,
     bankIfsc: null as string | null,
     bankBranch: null as string | null,
+    // Phase 1 Invoice Settings
+    invoiceLogo: null as string | null,
+    invoiceLogoPosition: "left",
+    signatoryName: null as string | null,
+    signatoryDesignation: null as string | null,
+    digitalSignature: null as string | null,
+    companySeal: null as string | null,
+    bankAccountHolder: null as string | null,
+    bankUpiId: null as string | null,
+    paymentQrCode: null as string | null,
+    deliveryTerms: null as string | null,
+    returnPolicy: null as string | null,
+    warrantyInfo: null as string | null,
+    invoiceDefaultDueDays: 30,
   });
 
   // Load settings from API
@@ -307,7 +336,7 @@ export default function AdminSettingsPage() {
             onValueChange={setActiveSection}
             className="space-y-4"
           >
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger
                 value="general"
                 className="flex items-center space-x-2"
@@ -321,6 +350,13 @@ export default function AdminSettingsPage() {
               >
                 <Building2 className="h-4 w-4" />
                 <span>Company</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="invoice"
+                className="flex items-center space-x-2"
+              >
+                <Receipt className="h-4 w-4" />
+                <span>Invoice</span>
               </TabsTrigger>
               <TabsTrigger
                 value="payments"
@@ -925,6 +961,352 @@ export default function AdminSettingsPage() {
               </div>
             </TabsContent>
 
+            {/* Invoice Settings */}
+            <TabsContent value="invoice">
+              <div className="space-y-6">
+                {/* Branding & Logo */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Receipt className="h-5 w-5 text-purple-600" />
+                      <CardTitle>Invoice Branding</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="invoiceLogo">Invoice Logo URL</Label>
+                        <Input
+                          id="invoiceLogo"
+                          value={companySettings.invoiceLogo || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              invoiceLogo: e.target.value || null,
+                            }))
+                          }
+                          placeholder="https://example.com/invoice-logo.png"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Recommended size: 200x60px (PNG with transparent
+                          background)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invoiceLogoPosition">
+                          Logo Position
+                        </Label>
+                        <Select
+                          value={companySettings.invoiceLogoPosition || "left"}
+                          onValueChange={(value) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              invoiceLogoPosition: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="left">Left</SelectItem>
+                            <SelectItem value="center">Center</SelectItem>
+                            <SelectItem value="right">Right</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Bank & Payment Details */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Landmark className="h-5 w-5 text-blue-600" />
+                      <CardTitle>Payment Information</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bankAccountHolder">
+                          Account Holder Name
+                        </Label>
+                        <Input
+                          id="bankAccountHolder"
+                          value={companySettings.bankAccountHolder || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              bankAccountHolder: e.target.value || null,
+                            }))
+                          }
+                          placeholder="Numa Jewelry Pvt Ltd"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bankUpiId">UPI ID</Label>
+                        <Input
+                          id="bankUpiId"
+                          value={companySettings.bankUpiId || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              bankUpiId: e.target.value || null,
+                            }))
+                          }
+                          placeholder="business@upi"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentQrCode">Payment QR Code URL</Label>
+                      <Input
+                        id="paymentQrCode"
+                        value={companySettings.paymentQrCode || ""}
+                        onChange={(e) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            paymentQrCode: e.target.value || null,
+                          }))
+                        }
+                        placeholder="https://example.com/payment-qr.png"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Upload your UPI QR code image for customers to scan and
+                        pay
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Signature & Authorization */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="h-5 w-5 text-green-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      <CardTitle>Signature & Authorization</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signatoryName">
+                          Authorized Signatory Name
+                        </Label>
+                        <Input
+                          id="signatoryName"
+                          value={companySettings.signatoryName || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              signatoryName: e.target.value || null,
+                            }))
+                          }
+                          placeholder="John Doe"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signatoryDesignation">
+                          Designation
+                        </Label>
+                        <Input
+                          id="signatoryDesignation"
+                          value={companySettings.signatoryDesignation || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              signatoryDesignation: e.target.value || null,
+                            }))
+                          }
+                          placeholder="Managing Director"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="digitalSignature">
+                          Digital Signature URL
+                        </Label>
+                        <Input
+                          id="digitalSignature"
+                          value={companySettings.digitalSignature || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              digitalSignature: e.target.value || null,
+                            }))
+                          }
+                          placeholder="https://example.com/signature.png"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Transparent PNG recommended (150x80px)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="companySeal">
+                          Company Seal/Stamp URL
+                        </Label>
+                        <Input
+                          id="companySeal"
+                          value={companySettings.companySeal || ""}
+                          onChange={(e) =>
+                            setCompanySettings((prev) => ({
+                              ...prev,
+                              companySeal: e.target.value || null,
+                            }))
+                          }
+                          placeholder="https://example.com/seal.png"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Circular stamp (100x100px PNG)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Terms & Conditions */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="h-5 w-5 text-orange-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <CardTitle>Additional Terms</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryTerms">Delivery Terms</Label>
+                      <Textarea
+                        id="deliveryTerms"
+                        value={companySettings.deliveryTerms || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            deliveryTerms: e.target.value || null,
+                          }))
+                        }
+                        placeholder="Standard delivery within 7-10 business days"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="returnPolicy">
+                        Return Policy (Summary)
+                      </Label>
+                      <Textarea
+                        id="returnPolicy"
+                        value={companySettings.returnPolicy || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            returnPolicy: e.target.value || null,
+                          }))
+                        }
+                        placeholder="7-day return policy with prior authorization"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="warrantyInfo">Warranty Information</Label>
+                      <Textarea
+                        id="warrantyInfo"
+                        value={companySettings.warrantyInfo || ""}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            warrantyInfo: e.target.value || null,
+                          }))
+                        }
+                        placeholder="6 months warranty on manufacturing defects"
+                        rows={2}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Invoice Configuration */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-5 w-5 text-indigo-600" />
+                      <CardTitle>Invoice Configuration</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invoiceDefaultDueDays">
+                        Default Due Days
+                      </Label>
+                      <Input
+                        id="invoiceDefaultDueDays"
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={companySettings.invoiceDefaultDueDays || 30}
+                        onChange={(e) =>
+                          setCompanySettings((prev) => ({
+                            ...prev,
+                            invoiceDefaultDueDays:
+                              parseInt(e.target.value) || 30,
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-gray-500">
+                        Number of days until invoice payment is due (default:
+                        30)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => handleSave("company")}
+                    disabled={loading}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save Invoice Settings
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
             {/* Payment Settings */}
             <TabsContent value="payments">
               <Card>
@@ -941,7 +1323,7 @@ export default function AdminSettingsPage() {
                       <div>
                         <h3 className="text-lg font-medium">PhonePe</h3>
                         <p className="text-sm text-gray-600">
-                          Configure PhonePe payment gateway
+                          UPI payments via PhonePe gateway
                         </p>
                       </div>
                       <Switch
@@ -955,37 +1337,129 @@ export default function AdminSettingsPage() {
                       />
                     </div>
                     {paymentSettings.phonePeEnabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
+                      <div className="space-y-4 ml-6">
                         <div className="space-y-2">
-                          <Label>Merchant ID</Label>
+                          <Label>Display Name</Label>
                           <Input
-                            value={paymentSettings.phonePeMerchantId}
+                            value={paymentSettings.phonePeDisplayName}
                             onChange={(e) =>
                               setPaymentSettings((prev) => ({
                                 ...prev,
-                                phonePeMerchantId: e.target.value,
+                                phonePeDisplayName: e.target.value,
                               }))
                             }
-                            placeholder="PGTESTPAYUAT"
+                            placeholder="PhonePe / UPI"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Salt Key</Label>
-                          <Input
-                            type="password"
-                            value={paymentSettings.phonePeSaltKey}
-                            onChange={(e) =>
-                              setPaymentSettings((prev) => ({
-                                ...prev,
-                                phonePeSaltKey: e.target.value,
-                              }))
-                            }
-                            placeholder="•••••••••••••••"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Merchant ID</Label>
+                            <Input
+                              value={paymentSettings.phonePeMerchantId}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  phonePeMerchantId: e.target.value,
+                                }))
+                              }
+                              placeholder="PGTESTPAYUAT"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Salt Key</Label>
+                            <Input
+                              type="password"
+                              value={paymentSettings.phonePeSaltKey}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  phonePeSaltKey: e.target.value,
+                                }))
+                              }
+                              placeholder="•••••••••••••••"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Leave as dots (•••) to keep existing value
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
+
+                  <Separator />
+
+                  {/* Razorpay Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Razorpay</h3>
+                        <p className="text-sm text-gray-600">
+                          Cards, UPI, Wallets, and more via Razorpay
+                        </p>
+                      </div>
+                      <Switch
+                        checked={paymentSettings.razorpayEnabled}
+                        onCheckedChange={(checked: boolean) =>
+                          setPaymentSettings((prev) => ({
+                            ...prev,
+                            razorpayEnabled: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    {paymentSettings.razorpayEnabled && (
+                      <div className="space-y-4 ml-6">
+                        <div className="space-y-2">
+                          <Label>Display Name</Label>
+                          <Input
+                            value={paymentSettings.razorpayDisplayName}
+                            onChange={(e) =>
+                              setPaymentSettings((prev) => ({
+                                ...prev,
+                                razorpayDisplayName: e.target.value,
+                              }))
+                            }
+                            placeholder="Cards / UPI / Wallets"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Key ID</Label>
+                            <Input
+                              value={paymentSettings.razorpayKeyId}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  razorpayKeyId: e.target.value,
+                                }))
+                              }
+                              placeholder="rzp_test_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Key Secret</Label>
+                            <Input
+                              type="password"
+                              value={paymentSettings.razorpayKeySecret}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  razorpayKeySecret: e.target.value,
+                                }))
+                              }
+                              placeholder="•••••••••••••••"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Leave as dots (•••) to keep existing value
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
 
                   {/* Stripe Settings */}
                   <div className="space-y-4">
@@ -993,7 +1467,7 @@ export default function AdminSettingsPage() {
                       <div>
                         <h3 className="text-lg font-medium">Stripe</h3>
                         <p className="text-sm text-gray-600">
-                          Configure Stripe payment gateway
+                          International cards via Stripe (for global customers)
                         </p>
                       </div>
                       <Switch
@@ -1007,40 +1481,126 @@ export default function AdminSettingsPage() {
                       />
                     </div>
                     {paymentSettings.stripeEnabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
+                      <div className="space-y-4 ml-6">
                         <div className="space-y-2">
-                          <Label>Publishable Key</Label>
+                          <Label>Display Name</Label>
                           <Input
-                            value={paymentSettings.stripePublishableKey}
+                            value={paymentSettings.stripeDisplayName}
                             onChange={(e) =>
                               setPaymentSettings((prev) => ({
                                 ...prev,
-                                stripePublishableKey: e.target.value,
+                                stripeDisplayName: e.target.value,
                               }))
                             }
-                            placeholder="pk_test_..."
+                            placeholder="Credit/Debit Card"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Secret Key</Label>
-                          <Input
-                            type="password"
-                            value={paymentSettings.stripeSecretKey}
-                            onChange={(e) =>
-                              setPaymentSettings((prev) => ({
-                                ...prev,
-                                stripeSecretKey: e.target.value,
-                              }))
-                            }
-                            placeholder="sk_test_..."
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Publishable Key</Label>
+                            <Input
+                              value={paymentSettings.stripePublishableKey}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  stripePublishableKey: e.target.value,
+                                }))
+                              }
+                              placeholder="pk_test_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Secret Key</Label>
+                            <Input
+                              type="password"
+                              value={paymentSettings.stripeSecretKey}
+                              onChange={(e) =>
+                                setPaymentSettings((prev) => ({
+                                  ...prev,
+                                  stripeSecretKey: e.target.value,
+                                }))
+                              }
+                              placeholder="•••••••••••••••"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Leave as dots (•••) to keep existing value
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
 
+                  <Separator />
+
+                  {/* Cash on Delivery Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">
+                          Cash on Delivery (COD)
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Pay at the time of delivery
+                        </p>
+                      </div>
+                      <Switch
+                        checked={paymentSettings.codEnabled}
+                        onCheckedChange={(checked: boolean) =>
+                          setPaymentSettings((prev) => ({
+                            ...prev,
+                            codEnabled: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    {paymentSettings.codEnabled && (
+                      <div className="space-y-4 ml-6">
+                        <div className="space-y-2">
+                          <Label>Display Name</Label>
+                          <Input
+                            value={paymentSettings.codDisplayName}
+                            onChange={(e) =>
+                              setPaymentSettings((prev) => ({
+                                ...prev,
+                                codDisplayName: e.target.value,
+                              }))
+                            }
+                            placeholder="Cash on Delivery"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Instructions</Label>
+                          <Textarea
+                            value={paymentSettings.codInstructions}
+                            onChange={(e) =>
+                              setPaymentSettings((prev) => ({
+                                ...prev,
+                                codInstructions: e.target.value,
+                              }))
+                            }
+                            placeholder="Pay when you receive your order"
+                            rows={2}
+                          />
+                          <p className="text-xs text-gray-500">
+                            This message will be shown to customers
+                          </p>
+                        </div>
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <p className="text-sm text-amber-800">
+                            <strong>Note:</strong> COD charges (₹
+                            {shippingSettings.codCharges}) can be configured in
+                            the Shipping tab.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   <div className="space-y-2">
-                    <Label>Minimum Order Amount</Label>
+                    <Label>Minimum Order Amount (₹)</Label>
                     <Input
                       type="number"
                       value={paymentSettings.minOrderAmount}
@@ -1054,8 +1614,15 @@ export default function AdminSettingsPage() {
                     />
                   </div>
 
-                  <Button onClick={() => handleSave("payments")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button
+                    onClick={() => handleSave("payments")}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>
@@ -1686,8 +2253,15 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave("notifications")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button
+                    onClick={() => handleSave("notifications")}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>
@@ -1838,8 +2412,15 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave("security")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button
+                    onClick={() => handleSave("security")}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>
@@ -1986,8 +2567,12 @@ export default function AdminSettingsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={() => handleSave("seo")}>
-                    <Save className="h-4 w-4 mr-2" />
+                  <Button onClick={() => handleSave("seo")} disabled={loading}>
+                    {loading ? (
+                      <HeartLoader size="sm" className="mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
                     Save Changes
                   </Button>
                 </CardContent>

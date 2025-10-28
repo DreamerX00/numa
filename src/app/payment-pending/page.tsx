@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useSettings } from "@/hooks/useSettings";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Clock, RefreshCw, Home, CreditCard } from "lucide-react";
 
 function PaymentPendingPageContent() {
   const searchParams = useSearchParams();
+  const { general } = useSettings();
   const orderId = searchParams.get("order_id");
   const paymentId = searchParams.get("payment_id");
   const [mounted, setMounted] = useState(false);
@@ -25,7 +27,7 @@ function PaymentPendingPageContent() {
 
   return (
     <Container className="py-12 md:py-16">
-      <motion.div 
+      <motion.div
         className="max-w-md mx-auto text-center space-y-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -40,7 +42,9 @@ function PaymentPendingPageContent() {
             <Clock className="h-16 w-16 mx-auto text-blue-500" />
           </motion.div>
           <div>
-            <h1 className="text-2xl font-serif tracking-tight">Payment Pending</h1>
+            <h1 className="text-2xl font-serif tracking-tight">
+              Payment Pending
+            </h1>
             <p className="text-muted-foreground mt-2">
               Your payment is being processed. This may take a few minutes.
             </p>
@@ -67,7 +71,8 @@ function PaymentPendingPageContent() {
               )}
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground text-center">
-                  Status: <span className="font-medium text-blue-600">Processing</span>
+                  Status:{" "}
+                  <span className="font-medium text-blue-600">Processing</span>
                 </p>
               </div>
             </CardContent>
@@ -84,8 +89,12 @@ function PaymentPendingPageContent() {
                 </h3>
                 <ul className="text-xs text-blue-700 mt-2 space-y-1">
                   <li>• We&apos;re verifying your payment with the bank</li>
-                  <li>• You&apos;ll receive an SMS/email confirmation shortly</li>
-                  <li>• If payment fails, amount will be refunded in 5-7 days</li>
+                  <li>
+                    • You&apos;ll receive an SMS/email confirmation shortly
+                  </li>
+                  <li>
+                    • If payment fails, amount will be refunded in 5-7 days
+                  </li>
                 </ul>
               </div>
             </div>
@@ -93,21 +102,13 @@ function PaymentPendingPageContent() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            asChild 
-            variant="outline" 
-            className="flex-1"
-          >
+          <Button asChild variant="outline" className="flex-1">
             <Link href="/track-order" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Track Payment
             </Link>
           </Button>
-          <Button 
-            asChild 
-            variant="default" 
-            className="flex-1"
-          >
+          <Button asChild variant="default" className="flex-1">
             <Link href="/" className="flex items-center gap-2">
               <Home className="h-4 w-4" />
               Go Home
@@ -118,11 +119,8 @@ function PaymentPendingPageContent() {
         <div className="text-xs text-muted-foreground">
           <p>
             Need help? Contact our support team at{" "}
-            <Link 
-              href="/contact" 
-              className="text-primary hover:underline"
-            >
-              support@numa.com
+            <Link href="/contact" className="text-primary hover:underline">
+              {general.supportEmail}
             </Link>
           </p>
         </div>
@@ -133,14 +131,18 @@ function PaymentPendingPageContent() {
 
 export default function PaymentPendingPage() {
   return (
-    <Suspense fallback={
-      <Container className="py-12 md:py-16">
-        <div className="max-w-md mx-auto text-center">
-          <Clock className="h-16 w-16 mx-auto text-blue-500 animate-pulse" />
-          <h1 className="text-2xl font-serif tracking-tight mt-4">Loading...</h1>
-        </div>
-      </Container>
-    }>
+    <Suspense
+      fallback={
+        <Container className="py-12 md:py-16">
+          <div className="max-w-md mx-auto text-center">
+            <Clock className="h-16 w-16 mx-auto text-blue-500 animate-pulse" />
+            <h1 className="text-2xl font-serif tracking-tight mt-4">
+              Loading...
+            </h1>
+          </div>
+        </Container>
+      }
+    >
       <PaymentPendingPageContent />
     </Suspense>
   );
