@@ -334,6 +334,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Team
 
 - **Lead Developer** - [@DreamerX00](https://github.com/DreamerX00)
+- **Frontend Developer** - [@Tan9isha](https://github.com/Ta9isha)
 
 ---
 
