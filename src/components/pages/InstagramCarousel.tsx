@@ -19,7 +19,7 @@ interface InstagramCarouselProps {
   posts?: InstagramPost[];
 }
 
-// Mock Instagram data - in production, this would come from Instagram API
+// Mock Instagram data - fallback for when API credentials are not set
 const mockInstagramPosts: InstagramPost[] = [
   {
     id: "1",
@@ -71,10 +71,12 @@ const mockInstagramPosts: InstagramPost[] = [
   },
 ];
 
-export function InstagramCarousel({ posts = mockInstagramPosts }: InstagramCarouselProps) {
+export function InstagramCarousel({ posts: propPosts }: InstagramCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(4);
   const [mounted, setMounted] = useState(false);
+  const [posts, setPosts] = useState<InstagramPost[]>(propPosts || mockInstagramPosts);
+  const [loading, setLoading] = useState(!propPosts);
 
   useEffect(() => {
     setMounted(true);
@@ -95,7 +97,84 @@ export function InstagramCarousel({ posts = mockInstagramPosts }: InstagramCarou
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Fetch Instagram posts from API
+  useEffect(() => {
+    if (!propPosts && loading) {
+      const fetchInstagramPosts = async () => {
+        try {
+          const response = await fetch("/api/instagram", {
+            cache: "no-store",
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setPosts(data);
+          } else {
+            setPosts(mockInstagramPosts);
+          }
+        } catch (error) {
+          console.error("Error fetching Instagram posts:", error);
+          setPosts(mockInstagramPosts);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchInstagramPosts();
+    }
+  }, [propPosts, loading]);
+
   if (!mounted) return null;
+
+  // Show loading skeleton while fetching
+  if (loading && posts.length === 0) {
+    return (
+      <motion.section
+        className="py-20 bg-gradient-to-b from-white via-gray-50 to-white"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+      >
+        <Container>
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-white animate-pulse"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.057-1.645.069-4.849.069-3.204 0-3.584-.012-4.849-.069-3.25-.148-4.772-1.701-4.919-4.919-.057-1.265-.069-1.645-.069-4.849 0-3.204.013-3.583.069-4.849.148-3.226 1.671-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+              Follow Us on Instagram
+            </h2>
+            <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto">
+              Loading posts...
+            </p>
+          </motion.div>
+
+          {/* Skeleton Loading Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mb-12">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="aspect-square bg-gray-200 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
+        </Container>
+      </motion.section>
+    );
+  }
 
   const maxIndex = Math.max(0, posts.length - Math.ceil(itemsPerView));
   const canGoNext = currentIndex < maxIndex;
