@@ -129,7 +129,7 @@ export default function InstagramManagementPage() {
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      toast.error("Cloudinary configuration missing. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET in your environment variables.");
+      toast.error("Cloudinary configuration missing. Check your .env file for NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET");
       return;
     }
 
@@ -142,12 +142,32 @@ export default function InstagramManagementPage() {
       {
         cloudName,
         uploadPreset,
-        sources: ["local", "url"],
+        sources: ["local", "url", "camera"], // Manual upload from local files, URL, or camera
         multiple: false,
         maxFiles: 1,
-        resourceType: "auto",
-        clientAllowedFormats: ["gif", "jpg", "jpeg", "png", "mp4", "webm"],
-        maxFileSize: 50000000, // 50MB
+        resourceType: "auto", // Supports images and videos
+        clientAllowedFormats: ["gif", "jpg", "jpeg", "png", "mp4", "webm", "mov"],
+        maxFileSize: 100000000, // 100MB for GIFs
+        folder: "instagram", // Organize uploads in instagram folder
+        cropping: false, // No cropping - use original file
+        showSkipCropButton: true,
+        styles: {
+          palette: {
+            window: "#FFFFFF",
+            windowBorder: "#90A0B3",
+            tabIcon: "#000000",
+            menuIcons: "#5A616A",
+            textDark: "#000000",
+            textLight: "#FFFFFF",
+            link: "#0078FF",
+            action: "#FF620C",
+            inactiveTabIcon: "#0E2F5A",
+            error: "#F44235",
+            inProgress: "#0078FF",
+            complete: "#20B832",
+            sourceBg: "#E4EBF1"
+          }
+        }
       },
       (error, result) => {
         if (!error && result && result.event === "success") {
@@ -463,14 +483,36 @@ export default function InstagramManagementPage() {
               Cloudinary Configuration Required
             </CardTitle>
             <CardDescription className="text-orange-700">
-              Please set up your Cloudinary environment variables to enable uploads:
+              Please check your Cloudinary environment variables in your <code className="px-1 py-0.5 bg-white rounded">.env</code> file:
               <div className="mt-3 p-3 bg-white rounded border border-orange-200 font-mono text-sm">
-                <div>NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"</div>
-                <div>NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="instagram_posts"</div>
+                <div>NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dkdu1rzki</div>
+                <div>NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=numa</div>
               </div>
               <div className="mt-2 text-sm">
-                Add these to your <code className="px-1 py-0.5 bg-white rounded">.env.local</code> file and restart the dev server.
-                See <code className="px-1 py-0.5 bg-white rounded">docs/INSTAGRAM_QUICK_SETUP.md</code> for detailed instructions.
+                If these are set correctly, restart your dev server. The upload widget will allow you to manually select and upload GIF files from your computer.
+              </div>
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Upload Instructions */}
+      {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
+        <Card className="mb-8 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-blue-800 text-lg">📤 Manual GIF Upload Instructions</CardTitle>
+            <CardDescription className="text-blue-700">
+              <ol className="list-decimal ml-5 mt-2 space-y-2">
+                <li>Click the upload button below</li>
+                <li>Select <strong>"My Files"</strong> to browse your computer</li>
+                <li>Choose your GIF file (max 100MB)</li>
+                <li>Wait for upload to complete</li>
+                <li>Add the Instagram post URL</li>
+                <li>Select POST or REEL type</li>
+                <li>Click "Add Instagram Post"</li>
+              </ol>
+              <div className="mt-3 text-sm">
+                <strong>Tip:</strong> For best results, use GIFs that are 500-800px wide. You can create GIFs from Instagram videos using tools like Giphy or Ezgif.
               </div>
             </CardDescription>
           </CardHeader>
