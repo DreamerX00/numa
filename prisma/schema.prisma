@@ -753,6 +753,11 @@ enum AdminLogAction {
   BULK_UPDATE
 }
 
+enum InstagramMediaType {
+  POST
+  REEL
+}
+
 enum InvoiceStatus {
   DRAFT
   SENT
@@ -974,4 +979,31 @@ model CarouselSlide {
   updatedAt   DateTime @updatedAt
 
   @@map("carousel_slides")
+}
+
+// ================================
+// INSTAGRAM MODELS
+// ================================
+
+model InstagramPost {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  mediaUrl    String            // Cloudinary URL for GIF/Image preview
+  mediaType   InstagramMediaType @default(POST) // POST or REEL
+  postUrl     String            // Link to actual Instagram post
+  isActive    Boolean           @default(true)
+  sortOrder   Int               @default(0) // For drag-drop ordering
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("instagram_posts")
+}
+
+model InstagramSettings {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  displayLimit    Int      @default(6) // Number of posts to show
+  autoScrollSpeed Int      @default(3000) // Milliseconds between auto-scroll
+  isActive        Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  @@map("instagram_settings")
 }

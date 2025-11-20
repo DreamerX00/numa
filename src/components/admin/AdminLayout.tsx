@@ -182,6 +182,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <NavLink href="/admin/orders" label="Orders" />
             <NavLink href="/admin/users" label="Users" />
             <NavLink href="/admin/carousel" label="Carousel" />
+            <NavLink href="/admin/instagram" label="Instagram" />
             <NavLink href="/admin/support" label="Support" />
             <NavLink href="/admin/analytics" label="Analytics" />
             <NavLink href="/admin/settings" label="Settings" />
