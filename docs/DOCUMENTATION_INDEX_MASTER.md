@@ -193,7 +193,9 @@ Status & Planning:
 Implementation:
 ├─ README_HOME_PAGE.md
 ├─ MOST_LOVED_PRODUCTS_CAROUSEL.md
-└─ IMPLEMENTATION_SUMMARY.md
+├─ IMPLEMENTATION_SUMMARY.md
+├─ INSTAGRAM_ADMIN_GUIDE.md
+└─ INSTAGRAM_QUICK_SETUP.md
 
 Design:
 ├─ DESIGN_INSPIRATION_GOLDDIGGER.md
@@ -420,6 +422,12 @@ Result: FULLY DOCUMENTED ✅
 - Architecture → VISUAL_ARCHITECTURE_DIAGRAMS.md
 - Implementation → IMPLEMENTATION_SUMMARY.md
 - Code patterns → QUICK_REFERENCE_CAROUSEL.md
+- Instagram setup → INSTAGRAM_QUICK_SETUP.md
+
+**Admin Features?**
+- Instagram management → INSTAGRAM_ADMIN_GUIDE.md
+- Carousel setup → QUICK_REFERENCE_CAROUSEL.md
+- Settings → COMPANY_SETTINGS_GUIDE.md
 
 ---
 

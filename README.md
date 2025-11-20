@@ -170,6 +170,8 @@ RAZORPAY_WEBHOOK_SECRET="your-webhook-secret"
 CLOUDINARY_CLOUD_NAME="your-cloud-name"
 CLOUDINARY_API_KEY="your-api-key"
 CLOUDINARY_API_SECRET="your-api-secret"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="instagram_posts"
 
 # Email (Optional)
 EMAIL_HOST="smtp.gmail.com"
