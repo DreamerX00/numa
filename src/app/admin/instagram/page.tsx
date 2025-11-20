@@ -17,6 +17,7 @@ import {
   Save,
   Eye,
   EyeOff,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,7 @@ export default function InstagramManagementPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [cloudinaryLoaded, setCloudinaryLoaded] = useState(false);
 
   // Form state for new post
   const [newPostUrl, setNewPostUrl] = useState("");
@@ -123,11 +125,16 @@ export default function InstagramManagementPage() {
 
   // Cloudinary Upload Widget
   const openUploadWidget = () => {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "your-cloud-name";
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "instagram_posts";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      toast.error("Cloudinary configuration missing. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET in your environment variables.");
+      return;
+    }
 
     if (!window.cloudinary) {
-      toast.error("Cloudinary widget not loaded");
+      toast.error("Cloudinary widget is still loading. Please wait a moment and try again.");
       return;
     }
 
@@ -294,13 +301,49 @@ export default function InstagramManagementPage() {
 
   // Load Cloudinary widget script
   useEffect(() => {
-    if (!document.getElementById("cloudinary-upload-widget")) {
+    const loadCloudinaryWidget = () => {
+      // Check if already loaded
+      if (window.cloudinary) {
+        setCloudinaryLoaded(true);
+        return;
+      }
+
+      if (document.getElementById("cloudinary-upload-widget")) {
+        // Script tag exists, wait for it to load
+        const checkInterval = setInterval(() => {
+          if (window.cloudinary) {
+            setCloudinaryLoaded(true);
+            clearInterval(checkInterval);
+          }
+        }, 100);
+        
+        setTimeout(() => clearInterval(checkInterval), 10000); // Stop after 10s
+        return;
+      }
+
       const script = document.createElement("script");
       script.id = "cloudinary-upload-widget";
       script.src = "https://widget.cloudinary.com/v2.0/global/all.js";
       script.async = true;
+      
+      script.onload = () => {
+        console.log("Cloudinary widget loaded successfully");
+        setCloudinaryLoaded(true);
+      };
+      
+      script.onerror = () => {
+        console.error("Failed to load Cloudinary widget");
+        toast.error("Failed to load upload widget. Please refresh the page.");
+      };
+      
       document.body.appendChild(script);
-    }
+    };
+
+    loadCloudinaryWidget();
+
+    return () => {
+      // Don't remove script on unmount as it may be used by other components
+    };
   }, []);
 
   if (loading) {
@@ -411,6 +454,29 @@ export default function InstagramManagementPage() {
         </Dialog>
       </div>
 
+      {/* Environment Check Alert */}
+      {!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
+        <Card className="mb-8 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-800 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Cloudinary Configuration Required
+            </CardTitle>
+            <CardDescription className="text-orange-700">
+              Please set up your Cloudinary environment variables to enable uploads:
+              <div className="mt-3 p-3 bg-white rounded border border-orange-200 font-mono text-sm">
+                <div>NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"</div>
+                <div>NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="instagram_posts"</div>
+              </div>
+              <div className="mt-2 text-sm">
+                Add these to your <code className="px-1 py-0.5 bg-white rounded">.env.local</code> file and restart the dev server.
+                See <code className="px-1 py-0.5 bg-white rounded">docs/INSTAGRAM_QUICK_SETUP.md</code> for detailed instructions.
+              </div>
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
       {/* Add New Post Card */}
       <Card className="mb-8">
         <CardHeader>
@@ -446,14 +512,26 @@ export default function InstagramManagementPage() {
                 ) : (
                   <Button
                     onClick={openUploadWidget}
+                    disabled={!cloudinaryLoaded}
                     variant="outline"
                     className="w-full h-32 border-dashed mt-2"
                   >
                     <div className="text-center">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-600">
-                        Click to upload GIF or Image
-                      </p>
+                      {!cloudinaryLoaded ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-gray-400 animate-spin" />
+                          <p className="text-sm text-gray-600">
+                            Loading upload widget...
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm text-gray-600">
+                            Click to upload GIF or Image
+                          </p>
+                        </>
+                      )}
                     </div>
                   </Button>
                 )}
