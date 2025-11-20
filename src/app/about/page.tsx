@@ -153,8 +153,8 @@ export default function AboutPage() {
                   <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-8 border-white shadow-2xl">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20" />
                     <Image
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&h=625&fit=crop"
-                      alt="Founder 1"
+                      src="/About/Naincy.png"
+                      alt="Naincy - Co-Founder"
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -188,10 +188,10 @@ export default function AboutPage() {
                 >
                   <div>
                     <h3 className="font-serif text-4xl md:text-5xl font-bold text-gray-900 mb-3">
-                      Shreya Sharma
+                      Naincy
                     </h3>
                     <p className="text-xl text-purple-600 font-medium mb-6">
-                      Co-Founder & Creative Director
+                      
                     </p>
                   </div>
 
@@ -214,10 +214,9 @@ export default function AboutPage() {
                   {/* Bio */}
                   <div className="space-y-4 text-gray-600">
                     <p>
-                      With over a decade of experience in jewelry design and a
-                      passion for timeless craftsmanship, Shreya brings her
-                      vision of elegant, meaningful jewelry to life through
-                      NUMA.
+                      With a passion for timeless craftsmanship and elegant design,
+                      Naincy brings her vision of meaningful jewelry to life through
+                      NUMA, creating pieces that resonate with modern women.
                     </p>
                     <p>
                       Her design philosophy blends traditional artistry with
@@ -269,10 +268,10 @@ export default function AboutPage() {
                 >
                   <div>
                     <h3 className="font-serif text-4xl md:text-5xl font-bold text-gray-900 mb-3">
-                      Arjun Mehta
+                      Shreya
                     </h3>
                     <p className="text-xl text-purple-600 font-medium mb-6">
-                      Co-Founder & Operations Director
+                      
                     </p>
                   </div>
 
@@ -295,12 +294,12 @@ export default function AboutPage() {
                   {/* Bio */}
                   <div className="space-y-4 text-gray-600">
                     <p>
-                      Arjun brings expertise in sustainable supply chain
-                      management and ethical business practices, ensuring NUMA
-                      operates with integrity at every level.
+                      Shreya brings expertise in operations management and ethical
+                      business practices, ensuring NUMA operates with integrity at
+                      every level.
                     </p>
                     <p>
-                      His dedication to transparency and responsible sourcing
+                      Her dedication to transparency and responsible sourcing
                       has made NUMA a brand that customers can trust and feel
                       proud to wear.
                     </p>
@@ -339,8 +338,8 @@ export default function AboutPage() {
                   <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border-8 border-white shadow-2xl">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20" />
                     <Image
-                      src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&h=625&fit=crop"
-                      alt="Founder 2"
+                      src="/About/Shreya.png"
+                      alt="Shreya - Co-Founder"
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -572,8 +571,8 @@ export default function AboutPage() {
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1">
                     <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                       <Image
-                        src="https://media.licdn.com/dms/image/v2/D5603AQESvarmSkAJlg/profile-displayphoto-shrink_400_400/B56ZVSx_uRHoAk-/0/1740850594111?e=1762992000&v=beta&t=H0Nhr6x5zMV9iz13PMsl1ZQMEaEA37mkNzbslgIA3rQ"
-                        alt="Developer 1"
+                        src="/About/Akash.jpg"
+                        alt="Akash - Full Stack Developer"
                         width={128}
                         height={128}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
@@ -583,7 +582,7 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-2">Akash Singh</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Akash</h3>
               <p className="text-sm text-purple-400 mb-6">
                 Full Stack Developer
               </p>
@@ -631,8 +630,8 @@ export default function AboutPage() {
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1">
                     <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
                       <Image
-                        src="https://media.licdn.com/dms/image/v2/D5603AQGtV1mE6n2M3Q/profile-displayphoto-scale_400_400/B56ZeVy7vfHoAk-/0/1750564848545?e=1762992000&v=beta&t=PNuurAQQRTeboOw8bGYa7qrJZSFYIlIiBSzw3qqu0Ac"
-                        alt="Developer 2"
+                        src="/About/Tanisha.jpeg"
+                        alt="Tanisha - UI/UX Developer"
                         width={128}
                         height={128}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
@@ -643,9 +642,9 @@ export default function AboutPage() {
               </div>
 
               <h3 className="text-xl font-bold text-white mb-2">
-                Tanisha Sahu
+                Tanisha
               </h3>
-              <p className="text-sm text-purple-400 mb-6">UI/UX Developer</p>
+              <p className="text-sm text-purple-400 mb-6">Full Stack  Developer</p>
 
               {/* Social Links */}
               <div className="flex justify-center gap-3">
