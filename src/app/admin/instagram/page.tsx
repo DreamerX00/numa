@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
-import { motion, Reorder } from "framer-motion";
+import { Reorder } from "framer-motion";
 import {
   Upload,
   Trash2,
@@ -58,20 +58,41 @@ interface InstagramSettings {
   isActive: boolean;
 }
 
+interface CloudinaryUploadWidgetOptions {
+  cloudName: string;
+  uploadPreset: string;
+  sources: string[];
+  multiple: boolean;
+  maxFiles: number;
+  resourceType: string;
+  clientAllowedFormats: string[];
+  maxFileSize: number;
+  cropping?: boolean;
+  showSkipCropButton?: boolean;
+  styles?: {
+    palette: {
+      window: string;
+      windowBorder: string;
+      tabIcon: string;
+      menuIcons: string;
+      textDark: string;
+      textLight: string;
+      link: string;
+      action: string;
+      inactiveTabIcon: string;
+      error: string;
+      inProgress: string;
+      complete: string;
+      sourceBg: string;
+    };
+  };
+}
+
 declare global {
   interface Window {
     cloudinary?: {
       createUploadWidget: (
-        options: {
-          cloudName: string;
-          uploadPreset: string;
-          sources: string[];
-          multiple: boolean;
-          maxFiles: number;
-          resourceType: string;
-          clientAllowedFormats: string[];
-          maxFileSize: number;
-        },
+        options: CloudinaryUploadWidgetOptions,
         callback: (error: unknown, result: { event: string; info: { secure_url: string } }) => void
       ) => {
         open: () => void;
@@ -142,14 +163,13 @@ export default function InstagramManagementPage() {
       {
         cloudName,
         uploadPreset,
-        sources: ["local", "url", "camera"], // Manual upload from local files, URL, or camera
+        sources: ["local", "url", "camera"],
         multiple: false,
         maxFiles: 1,
-        resourceType: "auto", // Supports images and videos
+        resourceType: "auto",
         clientAllowedFormats: ["gif", "jpg", "jpeg", "png", "mp4", "webm", "mov"],
-        maxFileSize: 100000000, // 100MB for GIFs
-        folder: "instagram", // Organize uploads in instagram folder
-        cropping: false, // No cropping - use original file
+        maxFileSize: 100000000,
+        cropping: false,
         showSkipCropButton: true,
         styles: {
           palette: {
@@ -504,12 +524,12 @@ export default function InstagramManagementPage() {
             <CardDescription className="text-blue-700">
               <ol className="list-decimal ml-5 mt-2 space-y-2">
                 <li>Click the upload button below</li>
-                <li>Select <strong>"My Files"</strong> to browse your computer</li>
+                <li>Select <strong>&quot;My Files&quot;</strong> to browse your computer</li>
                 <li>Choose your GIF file (max 100MB)</li>
                 <li>Wait for upload to complete</li>
                 <li>Add the Instagram post URL</li>
                 <li>Select POST or REEL type</li>
-                <li>Click "Add Instagram Post"</li>
+                <li>Click &quot;Add Instagram Post&quot;</li>
               </ol>
               <div className="mt-3 text-sm">
                 <strong>Tip:</strong> For best results, use GIFs that are 500-800px wide. You can create GIFs from Instagram videos using tools like Giphy or Ezgif.
