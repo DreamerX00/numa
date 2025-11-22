@@ -47,11 +47,15 @@ export function useImageUpload({
   }, [maxSize]);
 
   const uploadFile = useCallback(async (file: File): Promise<UploadResult | null> => {
-    const validationError = validateFile(file);
-    if (validationError) {
-      setUploadError(validationError);
-      onError?.(validationError);
-      return null;
+    // Skip validation for video files (handled by API)
+    const isVideo = file.type.startsWith('video/');
+    if (!isVideo) {
+      const validationError = validateFile(file);
+      if (validationError) {
+        setUploadError(validationError);
+        onError?.(validationError);
+        return null;
+      }
     }
 
     setIsUploading(true);
@@ -62,6 +66,7 @@ export function useImageUpload({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', folder);
+      formData.append('resource_type', isVideo ? 'video' : 'image');
 
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {

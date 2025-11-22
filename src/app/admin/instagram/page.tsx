@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "sonner";
 import { Reorder } from "framer-motion";
+import { useImageUpload } from "@/hooks/useImageUpload";
 import {
   Upload,
   Trash2,
@@ -58,49 +59,6 @@ interface InstagramSettings {
   isActive: boolean;
 }
 
-interface CloudinaryUploadWidgetOptions {
-  cloudName: string;
-  uploadPreset: string;
-  sources: string[];
-  multiple: boolean;
-  maxFiles: number;
-  resourceType: string;
-  clientAllowedFormats: string[];
-  maxFileSize: number;
-  cropping?: boolean;
-  showSkipCropButton?: boolean;
-  styles?: {
-    palette: {
-      window: string;
-      windowBorder: string;
-      tabIcon: string;
-      menuIcons: string;
-      textDark: string;
-      textLight: string;
-      link: string;
-      action: string;
-      inactiveTabIcon: string;
-      error: string;
-      inProgress: string;
-      complete: string;
-      sourceBg: string;
-    };
-  };
-}
-
-declare global {
-  interface Window {
-    cloudinary?: {
-      createUploadWidget: (
-        options: CloudinaryUploadWidgetOptions,
-        callback: (error: unknown, result: { event: string; info: { secure_url: string } }) => void
-      ) => {
-        open: () => void;
-      };
-    };
-  }
-}
-
 export default function InstagramManagementPage() {
   const [posts, setPosts] = useState<InstagramPost[]>([]);
   const [settings, setSettings] = useState<InstagramSettings | null>(null);
@@ -108,12 +66,24 @@ export default function InstagramManagementPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [cloudinaryLoaded, setCloudinaryLoaded] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state for new post
   const [newPostUrl, setNewPostUrl] = useState("");
   const [newMediaType, setNewMediaType] = useState<"POST" | "REEL">("POST");
   const [uploadedMediaUrl, setUploadedMediaUrl] = useState("");
+  
+  const { uploadFile, isUploading } = useImageUpload({
+    folder: 'instagram_posts',
+    maxSize: 100, // 100MB for videos
+    onSuccess: (result) => {
+      setUploadedMediaUrl(result.url);
+      toast.success("Media uploaded successfully!");
+    },
+    onError: (error) => {
+      toast.error(error);
+    }
+  });
 
   // Fetch posts and settings
   useEffect(() => {
@@ -144,60 +114,19 @@ export default function InstagramManagementPage() {
     }
   };
 
-  // Cloudinary Upload Widget
-  const openUploadWidget = () => {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!cloudName || !uploadPreset) {
-      toast.error("Cloudinary configuration missing. Check your .env file for NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET");
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/mov'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a valid image (JPEG, PNG, GIF, WebP) or video (MP4, WebM, MOV) file');
       return;
     }
 
-    if (!window.cloudinary) {
-      toast.error("Cloudinary widget is still loading. Please wait a moment and try again.");
-      return;
-    }
-
-    const widget = window.cloudinary.createUploadWidget(
-      {
-        cloudName,
-        uploadPreset,
-        sources: ["local", "url", "camera"],
-        multiple: false,
-        maxFiles: 1,
-        resourceType: "auto",
-        clientAllowedFormats: ["gif", "jpg", "jpeg", "png", "mp4", "webm", "mov"],
-        maxFileSize: 100000000,
-        cropping: false,
-        showSkipCropButton: true,
-        styles: {
-          palette: {
-            window: "#FFFFFF",
-            windowBorder: "#90A0B3",
-            tabIcon: "#000000",
-            menuIcons: "#5A616A",
-            textDark: "#000000",
-            textLight: "#FFFFFF",
-            link: "#0078FF",
-            action: "#FF620C",
-            inactiveTabIcon: "#0E2F5A",
-            error: "#F44235",
-            inProgress: "#0078FF",
-            complete: "#20B832",
-            sourceBg: "#E4EBF1"
-          }
-        }
-      },
-      (error, result) => {
-        if (!error && result && result.event === "success") {
-          setUploadedMediaUrl(result.info.secure_url);
-          toast.success("Media uploaded successfully!");
-        }
-      }
-    );
-
-    widget.open();
+    await uploadFile(file);
   };
 
   // Create new post
@@ -338,53 +267,6 @@ export default function InstagramManagementPage() {
       setSaving(false);
     }
   };
-
-  // Load Cloudinary widget script
-  useEffect(() => {
-    const loadCloudinaryWidget = () => {
-      // Check if already loaded
-      if (window.cloudinary) {
-        setCloudinaryLoaded(true);
-        return;
-      }
-
-      if (document.getElementById("cloudinary-upload-widget")) {
-        // Script tag exists, wait for it to load
-        const checkInterval = setInterval(() => {
-          if (window.cloudinary) {
-            setCloudinaryLoaded(true);
-            clearInterval(checkInterval);
-          }
-        }, 100);
-        
-        setTimeout(() => clearInterval(checkInterval), 10000); // Stop after 10s
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.id = "cloudinary-upload-widget";
-      script.src = "https://widget.cloudinary.com/v2.0/global/all.js";
-      script.async = true;
-      
-      script.onload = () => {
-        console.log("Cloudinary widget loaded successfully");
-        setCloudinaryLoaded(true);
-      };
-      
-      script.onerror = () => {
-        console.error("Failed to load Cloudinary widget");
-        toast.error("Failed to load upload widget. Please refresh the page.");
-      };
-      
-      document.body.appendChild(script);
-    };
-
-    loadCloudinaryWidget();
-
-    return () => {
-      // Don't remove script on unmount as it may be used by other components
-    };
-  }, []);
 
   if (loading) {
     return (
@@ -572,30 +454,42 @@ export default function InstagramManagementPage() {
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    onClick={openUploadWidget}
-                    disabled={!cloudinaryLoaded}
-                    variant="outline"
-                    className="w-full h-32 border-dashed mt-2"
-                  >
-                    <div className="text-center">
-                      {!cloudinaryLoaded ? (
-                        <>
-                          <Loader2 className="w-8 h-8 mx-auto mb-2 text-gray-400 animate-spin" />
-                          <p className="text-sm text-gray-600">
-                            Loading upload widget...
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600">
-                            Click to upload GIF or Image
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </Button>
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      variant="outline"
+                      className="w-full h-32 border-dashed mt-2"
+                    >
+                      <div className="text-center">
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="w-8 h-8 mx-auto mb-2 text-gray-400 animate-spin" />
+                            <p className="text-sm text-gray-600">
+                              Uploading...
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm text-gray-600">
+                              Click to upload Image or Video
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Supports: JPG, PNG, GIF, WebP, MP4, WebM, MOV
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
