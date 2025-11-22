@@ -15,26 +15,28 @@ interface Props {
 }
 
 // Generate static paths for collections at build time
-export async function generateStaticParams() {
-  try {
-    const categories = await prisma.category.findMany({
-      where: {
-        isActive: true,
-      },
-      select: {
-        slug: true,
-      },
-      take: 50, // Generate top 50 categories at build time
-    });
-
-    return categories.map((category) => ({
-      slug: category.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for collections:', error);
-    return [];
-  }
-}
+// Commented out to prevent database connection during build
+// Pages will be generated on-demand (SSR) instead
+// export async function generateStaticParams() {
+//   try {
+//     const categories = await prisma.category.findMany({
+//       where: {
+//         isActive: true,
+//       },
+//       select: {
+//         slug: true,
+//       },
+//       take: 50, // Generate top 50 categories at build time
+//     });
+//
+//     return categories.map((category) => ({
+//       slug: category.slug,
+//     }));
+//   } catch (error) {
+//     console.error('Error generating static params for collections:', error);
+//     return [];
+//   }
+// }
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
