@@ -77,6 +77,41 @@ interface AnalyticsData {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
+// Custom label renderer for pie chart
+const renderCustomLabel = (props: { 
+  cx?: number; 
+  cy?: number; 
+  midAngle?: number; 
+  innerRadius?: number; 
+  outerRadius?: number; 
+  percent?: number; 
+  index?: number; 
+  payload?: { status: string; percentage: number } 
+}) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, payload } = props;
+  
+  if (!cx || !cy || !midAngle || !innerRadius || !outerRadius || !payload) return null;
+  
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text 
+      x={x} 
+      y={y} 
+      fill="white" 
+      textAnchor={x > cx ? 'start' : 'end'} 
+      dominantBaseline="central"
+      fontSize="12"
+      fontWeight="500"
+    >
+      {`${payload.status} (${payload.percentage}%)`}
+    </text>
+  );
+};
+
 export default function OrderAnalytics() {
   const [dateRange, setDateRange] = useState('30d');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -290,7 +325,7 @@ export default function OrderAnalytics() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry: any) => `${entry.status} (${entry.percentage}%)`}
+                  label={renderCustomLabel}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="count"
