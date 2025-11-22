@@ -11,7 +11,7 @@ export function withSecurityHeaders(response: NextResponse): NextResponse {
     "img-src 'self' data: blob: https: http:",
     "media-src 'self' data: blob:",
     "connect-src 'self' https://api.phonepe.com https://api-preprod.phonepe.com https://api.razorpay.com https://www.google-analytics.com https://*.googleapis.com https://accounts.google.com https://api.cloudinary.com https://res.cloudinary.com https://api.dicebear.com",
-    "frame-src 'self' https://accounts.google.com https://api.razorpay.com",
+    "frame-src 'self' https://accounts.google.com https://api.razorpay.com https://upload-widget.cloudinary.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -47,7 +47,7 @@ export function securityHeaders() {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Permissions-Policy": "camera=(self https://upload-widget.cloudinary.com), microphone=(), geolocation=()",
   };
 }
 

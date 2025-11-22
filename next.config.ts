@@ -109,7 +109,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(self https://upload-widget.cloudinary.com), microphone=(), geolocation=()",
           },
         ],
       },
