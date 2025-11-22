@@ -22,27 +22,29 @@ interface Props {
 }
 
 // Generate static paths for products at build time
-export async function generateStaticParams() {
-  try {
-    const products = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        status: "ACTIVE",
-      },
-      select: {
-        slug: true,
-      },
-      take: 100, // Generate top 100 products at build time
-    });
-
-    return products.map((product) => ({
-      slug: product.slug,
-    }));
-  } catch (error) {
-    console.error("Error generating static params:", error);
-    return [];
-  }
-}
+// Commented out to prevent database connection during build
+// Pages will be generated on-demand (SSR) instead
+// export async function generateStaticParams() {
+//   try {
+//     const products = await prisma.product.findMany({
+//       where: {
+//         isActive: true,
+//         status: "ACTIVE",
+//       },
+//       select: {
+//         slug: true,
+//       },
+//       take: 100, // Generate top 100 products at build time
+//     });
+//
+//     return products.map((product) => ({
+//       slug: product.slug,
+//     }));
+//   } catch (error) {
+//     console.error("Error generating static params:", error);
+//     return [];
+//   }
+// }
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
